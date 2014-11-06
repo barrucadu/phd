@@ -1,0 +1,176 @@
+\documentclass[12pt]{beamer}
+\usetheme{default}
+\usefonttheme{serif}
+
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+
+\author{Michael Walker}
+\title{Runtime Verification}
+\institute{Department of Computer Science\\
+  University of York\\
+  \texttt{msw504@york.ac.uk}
+}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+%%%%% 1 Minute (1)
+
+\begin{frame}{Outline}
+  \tableofcontents
+
+  \begin{center}
+    See the handout for literature references.
+  \end{center}
+\end{frame}
+
+%%%%% 5 Minutes (6)
+
+\section{Static Analysis}
+\label{sec:statann}
+
+\begin{frame}{Static Analysis}
+  % Very quick overview, cover formal specification, proof assistants,
+  % proof-carrying code, and certifying compilers. Get a quite saying
+  % it's hard.
+
+  % PAPERS: 
+\end{frame}
+
+%%%%% 15 Minutes (21)
+
+\section{Runtime Verification}
+\label{sec:runver}
+
+\begin{frame}{Runtime Verification}
+  % Overview of RV, quote seminal paper
+
+  % PAPERS: 
+\end{frame}
+
+%%%%%%%%%% 7 Minutes (13)
+
+\subsection{Design by Contract}
+\label{sec:runver-dbc}
+
+\begin{frame}{Design by Contract}
+  % Overview of DbC, quote seminal paper (Eiffel!)
+
+  % PAPERS: 
+\end{frame}
+
+\subsubsection{Annotation Techniques}
+\label{sec:runver-dbc-ann}
+
+\begin{frame}{Design by Contract: Annotation Techniques}
+  % Talk mostly about JML for source-level, compare and contract
+  % BCSL/BML for bytecode-level
+
+  % PAPERS: 
+\end{frame}
+
+\begin{frame}{Design by Contract: Annotation Techniques}
+  % Example contract, talk through
+\end{frame}
+
+\subsubsection{Aspect-Oriented Programming Techniques}
+\label{sec:runver-sbc-aop}
+
+\begin{frame}{Design by Contract: AOP Techniques}
+  % Briefly explain AOP (maybe find a seminal paper?), say this can be
+  % used with annotation techniques (eg, AspectJML), but here I'm
+  % focusing on writing contracts in the host language and then
+  % combining the program logic with the contract checking with
+  % AOP. Explain and compare jContractor and ezContractor.
+
+  % PAPERS: 
+\end{frame}
+
+%%%%%%%%%% 7 Minutes (20)
+
+\subsection{Trace Analysis}
+\label{sec:runver-trace}
+
+\begin{frame}{Trace Analysis}
+  % Overview of traces, quote seminal paper (Hoare?), explain how we
+  % can generate traces by triggering events at program points
+  % (find good paper), and how we can specify properties of programs
+  % as properties of traces.
+
+  % PAPERS: 
+\end{frame}
+
+\subsubsection{Logics}
+\label{sec:runver-trace-log}
+
+\begin{frame}{Trace Analysis: Logics}
+  % Overview of regular properties and LTL, find seminal papers using
+  % those for RV. Example LTL predicate, explain.
+
+  % PAPERS: 
+\end{frame}
+
+\subsubsection{Monitor-Oriented Programming}
+\label{sec:runver-trace-mop}
+
+\begin{frame}{Trace Analysis: Monitor-Oriented Programming}
+  % Explain MOP, cite MOP/JavaMOP papers.
+
+  % PAPERS: 
+\end{frame}
+
+%%%%%%%%%% 1 Minutes (21)
+
+\subsection{Trace Analysis by Contract?}
+\label{sec:runver-tbc}
+
+\begin{frame}{Trace Analysis by Contract?}
+  % Mention how abstract data types & ghost/model fields in JML/BML
+  % let us treat traces, at specification time, as a sequence of
+  % events, and reason about that.
+\end{frame}
+
+%%%%% 4 Minutes (25)
+
+\section{Conclusions}
+\label{sec:conc}
+
+\begin{frame}{Conclusions}
+  % Briefly summarise RV and state typical downsides. Maybe find a
+  % paper comparing overheads of various approaches.
+
+  % PAPERS: 
+\end{frame}
+
+\subsection{Runtime Verification has High Overheads}
+\label{sec:conc-over}
+
+\begin{frame}{High Overheads}
+  % Explain that instrumenting at runtime inevitably leads to
+  % overheads. Mention recent JavaMOP work on reducing that.
+
+  % PAPERS: 
+\end{frame}
+
+\subsection{It's not an either/or choice}
+\label{sec:conc-dich}
+
+\begin{frame}{It's not an either/or choice}
+  % Mention that we can use static analysis / runtime verification to
+  % inform each other. eg, not generating monitors for things we can
+  % statically check (find a paper), and using monitors to filter
+  % static analysis results (mention recent work)
+
+  % PAPERS: 
+\end{frame}
+
+\begin{frame}{References}
+  \bibliographystyle{plain}
+  \bibliography{references}
+\end{frame}
+
+\end{document}
