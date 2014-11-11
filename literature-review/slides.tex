@@ -5,6 +5,9 @@
 \usepackage{lmodern}
 \usepackage[T1]{fontenc}
 
+\usepackage[style=authoryear-comp]{biblatex}
+\bibliography{references}
+
 \author{Michael Walker}
 \title{Runtime Verification}
 \institute{Department of Computer Science\\
@@ -38,7 +41,14 @@
   % proof-carrying code, and certifying compilers. Get a quite saying
   % it's hard.
 
-  % PAPERS: 
+  % "If P is any property possessed by some, but not all, recursively
+  % enumerable sets, then there exists no effective general method for
+  % deciding, given a set \alpha by means of a partial recursive
+  % function enumerating it, whether or not \alpha has the property P"
+
+  % Example of this by reduction to halting problem
+
+  % PAPERS: rice (corollary b)
 \end{frame}
 
 %%%%% 15 Minutes (21)
@@ -47,9 +57,14 @@
 \label{sec:runver}
 
 \begin{frame}{Runtime Verification}
-  % Overview of RV, quote seminal paper
+  % Overview of RV, quote preface of rv'01 proc.
 
-  % PAPERS: 
+  % "The ultimate longer term goal is to investigate whether the use
+  % of lightweight formal methods applied during the execution of
+  % programs is a viable component to the current heavyweight methods
+  % proving programs correct always before their execution" - RV'01
+
+  % NON-PAPERS: rv01
 \end{frame}
 
 %%%%%%%%%% 7 Minutes (13)
@@ -58,9 +73,9 @@
 \label{sec:runver-dbc}
 
 \begin{frame}{Design by Contract}
-  % Overview of DbC, quote seminal paper (Eiffel!)
+  % Overview of DbC
 
-  % PAPERS: 
+  % PAPERS: eiffel
 \end{frame}
 
 \subsubsection{Annotation Techniques}
@@ -70,7 +85,8 @@
   % Talk mostly about JML for source-level, compare and contract
   % BCSL/BML for bytecode-level
 
-  % PAPERS: 
+  % PAPERS: bcsl, bml
+  % NON-PAPERS: jml
 \end{frame}
 
 \begin{frame}{Design by Contract: Annotation Techniques}
@@ -85,9 +101,9 @@
   % used with annotation techniques (eg, AspectJML), but here I'm
   % focusing on writing contracts in the host language and then
   % combining the program logic with the contract checking with
-  % AOP. Explain and compare jContractor and ezContractor.
+  % AOP. Explain and compare jContractor and ezContract.
 
-  % PAPERS: 
+  % PAPERS: jcontractor, ezcontract
 \end{frame}
 
 %%%%%%%%%% 7 Minutes (20)
@@ -101,7 +117,7 @@
   % (find good paper), and how we can specify properties of programs
   % as properties of traces.
 
-  % PAPERS: 
+  % PAPERS: cspthy
 \end{frame}
 
 \subsubsection{Logics}
@@ -111,7 +127,7 @@
   % Overview of regular properties and LTL, find seminal papers using
   % those for RV. Example LTL predicate, explain.
 
-  % PAPERS: 
+  % PAPERS: eres, alto
 \end{frame}
 
 \subsubsection{Monitor-Oriented Programming}
@@ -120,7 +136,7 @@
 \begin{frame}{Trace Analysis: Monitor-Oriented Programming}
   % Explain MOP, cite MOP/JavaMOP papers.
 
-  % PAPERS: 
+  % PAPERS: javamop
 \end{frame}
 
 %%%%%%%%%% 1 Minutes (21)
@@ -143,7 +159,7 @@
   % Briefly summarise RV and state typical downsides. Maybe find a
   % paper comparing overheads of various approaches.
 
-  % PAPERS: 
+  % PAPERS: enforce
 \end{frame}
 
 \subsection{Runtime Verification has High Overheads}
@@ -151,9 +167,9 @@
 
 \begin{frame}{High Overheads}
   % Explain that instrumenting at runtime inevitably leads to
-  % overheads. Mention recent JavaMOP work on reducing that.
+  % overheads.
 
-  % PAPERS: 
+  % PAPERS: javamop-thesis (memory), compensate (time)
 \end{frame}
 
 \subsection{It's not an either/or choice}
@@ -165,12 +181,7 @@
   % statically check (find a paper), and using monitors to filter
   % static analysis results (mention recent work)
 
-  % PAPERS: 
-\end{frame}
-
-\begin{frame}{References}
-  \bibliographystyle{plain}
-  \bibliography{references}
+  % PAPERS: integ, statver
 \end{frame}
 
 \end{document}
