@@ -1,29 +1,14 @@
-@proceedings{rv01,
-  title     = {{Runtime Verification (2001)}},
-  booktitle = {Runtime Verification (2001)},
-  volume    = 55,
-  issue     = 2,
-  series    = {Electronic Notes in Theoretical Computer Science},
-  publisher = {Elsevier},
-  address   = {Paris, France},
-  year      = {2001}
-}
-
-@article{eiffel,
-  title     = {Eiffel: A language and environment for software engineering},
-  author    = {Meyer, Bertrand},
-  journal   = {Journal of Systems and Software},
-  volume    = {8},
-  number    = {3},
-  pages     = {199--246},
-  year      = {1988},
-  publisher = {Elsevier}
-}
+% Key texts
 
 @online{jml,
   title   = {{The Java Modeling Language (JML)}},
   url     = {http://www.jmlspecs.org},
-  urldate = {2014-11-07}
+  urldate = {2014-11-07},
+
+  annotation = {{A language for annoatting (in comments) Java source
+                  with contracts, which has proven to be quite
+                  influential, for example \textsc{Frama-C} uses a
+                  very similar language for C programs.}}
 }
 
 @inproceedings{bcsl,
@@ -38,6 +23,11 @@
   acmid     = {1141708},
   publisher = {ACM},
   address   = {New York, NY, USA},
+
+  annotation = {{A JML-inspired Design by Contract annotation logic
+                  for Java bytecode. Intended to facilitate
+                  proof-carrying code, but could be checked at
+                  runtime, as JML often is.}}
 }
 
 @incollection{bml,
@@ -49,6 +39,8 @@
   publisher = {Springer Berlin Heidelberg},
   author    = {Burdy, Lilian and Huisman, Marieke and Pavlova, Mariela},
   pages     = {215-229},
+
+  annotation = {{Follow-on work from BCSL, defining a format for storing the annotations in the bytecode.}}
 }
 
 @article{jcontractor,
@@ -59,7 +51,11 @@
   number    = {4},
   pages     = {55--79},
   year      = {2002},
-  publisher = {Elsevier}
+  publisher = {Elsevier},
+
+  annotation = {{Uses on-the-fly bytecode instrumentation to implement
+                  Design by Contract in Java, with contracts also
+                  specified in Java.}}
 }
 
 @inproceedings{ezcontract,
@@ -68,7 +64,11 @@
   booktitle    = {Software Engineering Conference, 2007. APSEC 2007. 14th Asia-Pacific},
   pages        = {502--509},
   year         = {2007},
-  organization = {IEEE}
+  organization = {IEEE},
+
+  annotation = {{Similar approach to jContractor, but allows contracts
+                  to be specified within the methods they apply to,
+                  using markers to delimit contracts from code.}}
 }
 
 @inproceedings{javamop,
@@ -83,36 +83,27 @@
   acmid     = {2337436},
   publisher = {IEEE Press},
   address   = {Piscataway, NJ, USA},
+
+  annotation = {{Summarises the design of JavaMOP, a monitoring
+                  component for Java programs which is logic-agnostic,
+                  in that users can plug in different logical
+                  frameworks and still make use of JavaMOP as a
+                  high-level interface to the target system.}}
 }
 
 @phdthesis{javamop-thesis,
   title  = {Efficient, expressive, and effective runtime verification},
   author = {Meredith, Patrick O’Neil},
   year   = {2012},
-  school = {University of Illinois}
+  school = {University of Illinois},
+
+  annotation = {{Introduces MOP, a system for performing efficient
+                  logic-agnostic monitoring (of which JavaMOP is one
+                  incarnation) applicable to many different
+                  application domains, such as hardware.}}
 }
 
-@article{integ,
-  title     = {Integrated static code analysis and runtime verification},
-  author    = {S{\"o}zer, H},
-  journal   = {Software: Practice and Experience},
-  year      = {2014},
-  publisher = {Wiley Online Library}
-}
-
-@article{rice,
-  title     = {Classes of Recursively Enumerable Sets and Their Decision Problems},
-  author    = {Rice, H. G.},
-  journal   = {Transactions of the American Mathematical Society},
-  volume    = {74},
-  number    = {2},
-  pages     = {pp. 358-366},
-  ISSN      = {00029947},
-  abstract  = {},
-  year      = {1953},
-  publisher = {American Mathematical Society},
-  copyright = {Copyright © 1953 American Mathematical Society},
-}
+% Interesting work
 
 @article{statver,
   title     = {{Static verification of dynamically detected program invariants: Integrating Daikon and ESC/Java}},
@@ -122,7 +113,103 @@
   number    = {2},
   pages     = {255--276},
   year      = {2001},
-  publisher = {Elsevier}
+  publisher = {Elsevier},
+
+  annotation = {Uses Daikon to extract likely invariants of programs
+                  from sample runs and then attempts to prove
+                  statically.}
+}
+
+@article{integ,
+  title     = {Integrated static code analysis and runtime verification},
+  author    = {S{\"o}zer, H},
+  journal   = {Software: Practice and Experience},
+  year      = {2014},
+  publisher = {Wiley Online Library},
+
+  annotation = {Runtime monitoring to identify likely false positives
+                  in static bug finding.}
+}
+
+@article{eres,
+  title     = {Generating optimal monitors for extended regular expressions},
+  author    = {Sen, Koushik and Ro{\c{s}}u, Grigore},
+  journal   = {Electronic Notes in Theoretical Computer Science},
+  volume    = {89},
+  number    = {2},
+  pages     = {226--245},
+  year      = {2003},
+  publisher = {Elsevier},
+
+  annotation = {Automatically deriving low-overhead monitors for trace properties.}
+}
+
+@article{alto,
+  title     = {Checking finite traces using alternating automata},
+  author    = {Finkbeiner, Bernd and Sipma, Henny},
+  journal   = {Formal Methods in System Design},
+  volume    = {24},
+  number    = {2},
+  pages     = {101--127},
+  year      = {2004},
+  publisher = {Springer},
+
+  annotation = {Uses alternating automata to check trace properties
+                  specified with LTL.}
+}
+
+@inproceedings{compensate,
+  title     = {Compensation-aware runtime monitoring},
+  author    = {Colombo, Christian and Pace, Gordon J and Abela, Patrick},
+  booktitle = {Runtime Verification},
+  pages     = {214--228},
+  year      = {2010},
+  publisher = {Springer},
+
+  annotation = {Undoing actions after faults in the case of
+                  asynchronous monitoring.}
+}
+
+% Background reading
+
+@proceedings{rv01,
+  title     = {{Runtime Verification (2001)}},
+  booktitle = {Runtime Verification (2001)},
+  volume    = 55,
+  issue     = 2,
+  series    = {Electronic Notes in Theoretical Computer Science},
+  publisher = {Elsevier},
+  address   = {Paris, France},
+  year      = {2001},
+
+  annotation = {The inaugural workshop on runtime verification.}
+}
+
+@article{eiffel,
+  title     = {Eiffel: A language and environment for software engineering},
+  author    = {Meyer, Bertrand},
+  journal   = {Journal of Systems and Software},
+  volume    = {8},
+  number    = {3},
+  pages     = {199--246},
+  year      = {1988},
+  publisher = {Elsevier},
+
+  annotation = {Early OOP language, and the father of contracts.}
+}
+
+@article{rice,
+  title     = {Classes of Recursively Enumerable Sets and Their Decision Problems},
+  author    = {Rice, H. G.},
+  journal   = {Transactions of the American Mathematical Society},
+  volume    = {74},
+  number    = {2},
+  pages     = {pp. 358-366},
+  abstract  = {},
+  year      = {1953},
+  publisher = {American Mathematical Society},
+
+  annotation = {Proves that no general static analysis decision procedure can exist.}
 }
 
 @article{cspthy,
@@ -134,43 +221,13 @@
   number     = {3},
   month      = jun,
   year       = {1984},
-  issn       = {0004-5411},
   pages      = {560--599},
   numpages   = {40},
   acmid      = {833},
   publisher  = {ACM},
   address    = {New York, NY, USA},
-}
 
-@article{eres,
-  title     = {Generating optimal monitors for extended regular expressions},
-  author    = {Sen, Koushik and Ro{\c{s}}u, Grigore},
-  journal   = {Electronic Notes in Theoretical Computer Science},
-  volume    = {89},
-  number    = {2},
-  pages     = {226--245},
-  year      = {2003},
-  publisher = {Elsevier}
-}
-
-@article{alto,
-  title     = {Checking finite traces using alternating automata},
-  author    = {Finkbeiner, Bernd and Sipma, Henny},
-  journal   = {Formal Methods in System Design},
-  volume    = {24},
-  number    = {2},
-  pages     = {101--127},
-  year      = {2004},
-  publisher = {Springer}
-}
-
-@inproceedings{compensate,
-  title     = {Compensation-aware runtime monitoring},
-  author    = {Colombo, Christian and Pace, Gordon J and Abela, Patrick},
-  booktitle = {Runtime Verification},
-  pages     = {214--228},
-  year      = {2010},
-  publisher = {Springer}
+  annotation = {Defines the semantics of CSP and, msot relevently here, traces.}
 }
 
 @inproceedings{enforce,
@@ -179,5 +236,7 @@
   booktitle = {Runtime Verification},
   pages     = {89--105},
   year      = {2010},
-  publisher = {Springer}
+  publisher = {Springer},
+
+  annotation = {Summary of ``runtime enforcement'' and many current approaches.}
 }
