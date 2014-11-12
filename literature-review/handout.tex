@@ -1,0 +1,32 @@
+\documentclass[10pt,a4paper]{article}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{Michael Walker}
+\lhead{\textsc{Runtime Verification}}
+
+\usepackage{lmodern}
+
+\usepackage[authordate,annotation,backend=biber]{biblatex-chicago}
+\bibliography{references}
+
+\DeclareBibliographyCategory{keytext}
+\DeclareBibliographyCategory{interest}
+\DeclareBibliographyCategory{background}
+
+\addtocategory{keytext}{jml,bcsl,bml,jcontractor,ezcontract,javamop,javamop-thesis}
+\addtocategory{interest}{integ,statver,eres,alto,compensate}
+\addtocategory{background}{rv01,eiffel,rice,cspthy,enforce}
+
+\author{Michael Walker}
+\title{Runtime Verification: Handout}
+
+\begin{document}
+
+\nocite{*}
+\printbibliography[category=keytext,title={Key Texts}]
+\printbibliography[category=interest,title={Interesting Work}]
+\printbibliography[category=background,title={Background Reading}]
+
+\end{document}
