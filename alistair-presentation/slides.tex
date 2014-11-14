@@ -1,0 +1,108 @@
+\documentclass[12pt]{beamer}
+\usetheme{default}
+\usefonttheme{serif}
+
+\usepackage{attrib}
+
+\author{Michael Walker}
+\title{Static Analysis is Hard}
+\subtitle{Hopefulness? Hopelessness? The Rise of Darkness!}
+\institute{Department of Computer Science\\
+  University of York\\
+  \texttt{msw504@york.ac.uk}
+}
+
+\begin{document}
+
+\begin{frame}[plain]
+  \titlepage
+\end{frame}
+
+\begin{frame}{Static Analysis}
+  \textbf{Static Analysis:} The (fully or partially) automatic process
+  of proving properties of programs prior to executing them.
+
+  \visible<2->{
+    \begin{itemize}
+      \item Type checking
+      \item Memory safety
+      \item Deadlock/livelock freedom
+      \item Schedulability
+    \end{itemize}
+  }
+\end{frame}
+
+\begin{frame}{Static Analysis: \small A Nemesis Arises!}
+  \only<1>{
+    \begin{quote}
+      If $\mathcal P$ is any property possessed by some, but not all,
+      recursively enumerable sets, then there exists no effective
+      general method for deciding, given a set $\alpha$ by means of a
+      partial recursive function enumerating it, whether or not
+      $\alpha$ has the property $\mathcal P$.  [\ldots] Of course,
+      there will exist special methods for particular functions.
+
+      \attrib{Rice's Theorem, Corollary B, 1953}
+    \end{quote}
+
+    There exists no algorithm which can, for all input programs,
+    either prove or disprove some nontrivial property $\mathcal P$.
+  }
+
+  \visible<2->{
+    Suppose we had a function \texttt{identity?} :: $(a \rightarrow a)
+    \rightarrow Bool$, which returns ``yes'' or ``no'' depending on
+    whether its argument is the identity function.
+
+    \vspace{0.25cm}
+  }
+
+  \visible<3->{
+    Or even \texttt{identity?} :: $(Bool \rightarrow Bool) \rightarrow
+    Bool$
+
+    \vspace{0.25cm}
+  }
+
+  \visible<4->{
+    We can use this to solve the halting problem!
+  }
+
+  \visible<5->{
+    \begin{center}
+      \texttt{halts?(P, I) = identity?($\lambda$x $\mapsto$ P(I); return x)}
+    \end{center}
+
+    Undecidable in general!
+  }
+\end{frame}
+
+\begin{frame}{Static Analysis: \small Defeating Rice, the Evil Sorcerer}
+  Rice's theorem:
+  \begin{itemize}
+    \item applies to Turing machines,
+    \item refers to exact results,
+    \item refers to a fully automatic analysis.
+  \end{itemize}
+
+  \visible<2->{
+    We can:
+    \begin{itemize}
+      \item weaken our systems,
+      \item use heuristics,
+      \item introduce human involvement.
+    \end{itemize}
+  }
+\end{frame}
+
+\begin{frame}
+  Rice, H. G. 1953 ``Classes of Recursively Enumerable Sets and Their
+  Decision Problems.''  \textit{Transactions of the American
+    Mathematical Society} 74 (2)
+
+  \vspace{0.25cm}
+
+  \url{http://www.jstor.org/stable/1990888}
+\end{frame}
+
+\end{document}
