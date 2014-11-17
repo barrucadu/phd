@@ -34,14 +34,10 @@
 
 %%%%% 5 Minutes (6)
 
-\section{Static Analysis}
+\section{Static Analysis is Hard}
 \label{sec:statann}
 
 \begin{frame}{Static Analysis}
-  % Very quick overview, cover formal specification, proof assistants,
-  % proof-carrying code, and certifying compilers. Get a quite saying
-  % it's hard.
-
   \textbf{Static Analysis:} The (fully or partially) automatic process
   of proving properties of programs prior to executing them.
 
@@ -55,7 +51,7 @@
   }
 \end{frame}
 
-\begin{frame}{Static Analysis: \small A Nemesis Arises!}
+\begin{frame}{Rice's Theorem: \small A Nemesis Arises!}
   % PAPERS: rice (corollary b)
 
   \only<1>{
@@ -102,7 +98,7 @@
   }
 \end{frame}
 
-\begin{frame}{Static Analysis: \small Defeating Rice, the Evil Sorcerer}
+\begin{frame}{Practical Static Analysis: \small Defeating Rice, the Evil Sorcerer}
   Rice's theorem:
   \begin{itemize}
     \item applies to Turing machines,
@@ -111,12 +107,20 @@
   \end{itemize}
 
   \visible<2->{
+    \vspace{0.25cm}
+
     We can:
     \begin{itemize}
       \item weaken our systems,
       \item use heuristics,
       \item introduce human involvement.
     \end{itemize}
+  }
+
+  \visible<3->{
+    \vspace{0.25cm}
+
+    Still very difficult.
   }
 \end{frame}
 
