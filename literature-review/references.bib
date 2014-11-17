@@ -91,18 +91,6 @@
                   high-level interface to the target system.}}
 }
 
-@phdthesis{javamop-thesis,
-  title  = {Efficient, expressive, and effective runtime verification},
-  author = {Meredith, Patrick O’Neil},
-  year   = {2012},
-  school = {University of Illinois},
-
-  annotation = {{Introduces MOP, a system for performing efficient
-                  logic-agnostic monitoring (of which JavaMOP is one
-                  incarnation) applicable to many different
-                  application domains, such as hardware.}}
-}
-
 % Interesting work
 
 @article{statver,
@@ -118,17 +106,6 @@
   annotation = {Uses Daikon to extract likely invariants of programs
                   from sample runs and then attempts to prove
                   statically.}
-}
-
-@article{integ,
-  title     = {Integrated static code analysis and runtime verification},
-  author    = {S{\"o}zer, H},
-  journal   = {Software: Practice and Experience},
-  year      = {2014},
-  publisher = {Wiley Online Library},
-
-  annotation = {Runtime monitoring to identify likely false positives
-                  in static bug finding.}
 }
 
 @article{eres,
@@ -158,16 +135,30 @@
                   specified with LTL.}
 }
 
-@inproceedings{compensate,
-  title     = {Compensation-aware runtime monitoring},
+@article{compensate,
+  title     = {Safer asynchronous runtime monitoring using compensations},
   author    = {Colombo, Christian and Pace, Gordon J and Abela, Patrick},
-  booktitle = {Runtime Verification},
-  pages     = {214--228},
-  year      = {2010},
+  journal   = {Formal Methods in System Design},
+  volume    = {41},
+  number    = {3},
+  pages     = {269--294},
+  year      = {2012},
   publisher = {Springer},
 
-  annotation = {Undoing actions after faults in the case of
-                  asynchronous monitoring.}
+  annotation = {Uses asynchronous monitoring with the ability to roll
+                  back incomplete transations to reduce overhead.}
+}
+
+@incollection{unified,
+  title     = {A unified approach for static and runtime verification: framework and applications},
+  author    = {Ahrendt, Wolfgang and Pace, Gordon J and Schneider, Gerardo},
+  booktitle = {Leveraging Applications of Formal Methods, Verification and Validation. Technologies for Mastering Change},
+  pages     = {312--326},
+  year      = {2012},
+  publisher = {Springer},
+
+  annotation = {Uses static verification to reduce and simplify
+                  runtime monitoring obligations.}
 }
 
 % Background reading
@@ -228,15 +219,4 @@
   address    = {New York, NY, USA},
 
   annotation = {Defines the semantics of CSP and, msot relevently here, traces.}
-}
-
-@inproceedings{enforce,
-  title     = {You should better enforce than verify},
-  author    = {Falcone, Yli{\`e}s},
-  booktitle = {Runtime Verification},
-  pages     = {89--105},
-  year      = {2010},
-  publisher = {Springer},
-
-  annotation = {Summary of ``runtime enforcement'' and many current approaches.}
 }
