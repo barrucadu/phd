@@ -4,6 +4,11 @@
 
 \usepackage{attrib}
 
+\usepackage[backend=biber, citestyle=authoryear]{biblatex}
+\addbibresource{references.bib}
+
+\usepackage{graphicx}
+
 \author{Michael Walker}
 \title{Runtime Verification}
 \institute{Department of Computer Science\\
@@ -216,36 +221,97 @@
 
 %%%%% 4 Minutes (25)
 
-\section{Conclusions}
+\section{Conclusions \& Other Work}
 \label{sec:conc}
 
-\begin{frame}{Conclusions}
-  % Briefly summarise RV and state typical downsides. Maybe find a
-  % paper comparing overheads of various approaches.
-
-  % PAPERS: enforce
+\begin{frame}
+  \begin{center}
+    \Large Nearly there\ldots
+  \end{center}
 \end{frame}
 
 \subsection{Runtime Verification has High Overheads}
 \label{sec:conc-over}
 
 \begin{frame}{High Overheads}
-  % Explain that instrumenting at runtime inevitably leads to
-  % overheads.
+  % PAPERS: compensate (time)
 
-  % PAPERS: javamop-thesis (memory), compensate (time)
+  Runtime monitoring inevitably leads to time and space overheads.
+
+  \visible<2->{
+    \vspace{0.25cm}
+
+    There is work in addressing this:
+
+    \begin{description}
+      \item[Space] Analyse the monitoring predicates and simplify,
+        % TODO: citation
+
+      \item[Time] Asynchronous monitoring with the ability to roll
+        back incomplete transactions \parencite{compensate}.
+    \end{description}
+  }
 \end{frame}
 
 \subsection{It's not an either/or choice}
 \label{sec:conc-dich}
 
 \begin{frame}{It's not an either/or choice}
-  % Mention that we can use static analysis / runtime verification to
-  % inform each other. eg, not generating monitors for things we can
-  % statically check (find a paper), and using monitors to filter
-  % static analysis results (mention recent work)
+% PAPERS: statver, unified
 
-  % PAPERS: integ, statver
+  \only<1,3>{
+    Static analysis and runtime verification give different
+    viewpoints.
+
+    \vspace{0.25cm}
+
+    \visible<3>{
+      Work has been done on:
+
+      \begin{itemize}
+        \item Static verification of dynamically-detected
+          invariants \parencite{statver},
+
+        \item Using static verification to simplify or even eliminate
+          monitoring obligations \parencite{unified}.
+      \end{itemize}
+    }
+  }
+
+  \only<2>{
+    Can we combine these two insights?
+
+    \begin{center}
+      \includegraphics[width=0.75\textwidth]{pushmi-pullyu.png}
+    \end{center}
+  }
+\end{frame}
+
+\begin{frame}{Runtime Verification: \small A Summary}
+  \begin{itemize}
+    \item<1-> Only reasons about the current execution
+    \item<1-> ``More decidable'' than static analysis
+    \item<2-> But not incompatible with static analysis!
+    \item<3-> Still a lot to be done in efficient and safe monitoring
+      / error recovery
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Questions?}
+  \vspace{4.5cm}
+
+  \footnotesize
+  \textbf{Q:} What is the two-headed creature a few slides back?\\
+  \textbf{A:} A pushmi-pullyu.
+
+  \begin{quote}
+    ``I notice,'' said the duck, ``that you only talk with one of your
+    mouths. Can't the other head talk as well?''
+
+    ``Oh, yes,'' said the pushmi--pullyu. ``But I keep the other mouth
+    for eating---mostly. In that way I can talk while I am eating
+    without being rude. Our people have always been very polite.''
+  \end{quote}
 \end{frame}
 
 \end{document}
