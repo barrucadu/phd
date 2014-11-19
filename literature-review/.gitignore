@@ -2,4 +2,5 @@
 !.gitignore
 !*.tex
 !*.bib
-*.png
+!*.png
+!*.java

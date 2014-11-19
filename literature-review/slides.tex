@@ -10,6 +10,8 @@
 \usepackage{tikz}
 \usetikzlibrary{arrows,automata}
 
+\usepackage{minted}
+
 \usepackage{graphicx}
 
 \author{Michael Walker}
@@ -185,24 +187,83 @@
   }
 \end{frame}
 
-\subsubsection{Annotation Techniques}
+\subsubsection{Domain-specific Languages}
 \label{sec:runver-dbc-ann}
 
-\begin{frame}{Design by Contract: Annotation Techniques}
-  % Talk mostly about JML for source-level, compare and contract
-  % BCSL/BML for bytecode-level
-
+\begin{frame}[fragile]{Design by Contract: \small DSLs}
   % PAPERS: bcsl, bml, jml
+
+  Contracts are specified in a special contract language, often
+  designed specifically to incorporate high-level logical constructs
+  and be easily amenable to machine processing.
+
+\begin{verbatim}
+@requires true
+@ensures (a >= b <==> result == a) \/
+         (b >= a <==> result == b)
+int max(int a, int b):
+    if a >= b:
+        return a
+    else:
+        return b
+\end{verbatim}
 \end{frame}
 
-\begin{frame}{Design by Contract: Annotation Techniques}
-  % Example contract, talk through
+\begin{frame}[fragile]{Design by Contract: \small DSLs}
+  %...continued, verbatim doesn't like being in an \only
+  \only<-3>{
+    JML \parencite{jml} is a particularly influential contract
+    language for Java, with offspring for C and Java bytecode.
+
+    \visible<2->{
+      \vspace{0.25cm}
+
+      In addition to pre- and postconditions, JML has invariants.
+
+      \vspace{0.25cm}
+
+      It also has ghost variables, immutability specification, frame
+      rules, and fields/methods solely available for specification
+      purposes.
+    }
+
+    \visible<3->{
+      \vspace{0.25cm}
+
+      This lets us write arbitrary (pure) code for specification
+      purposes.
+    }
+  }
+
+  \only<4>{
+    BCSL \parencite{bcsl} (later BML \parencite{bml}) is a JML
+    analogue for Java bytecode developed by Inria. Java bytecode is of
+    particular interest because of the potential for proof-carrying
+    code in mobile applications.
+  }
+
+  \only<5>{
+    \begin{itemize}
+      \item JML: Has a Java-like syntax written in special comments,
+        allows actual Java to define model methods.
+
+      \item BCSL \& BML: Use Java class attributes to store encoded
+        contracts in a binary format.
+    \end{itemize}
+
+    Static proof tools exist for both, runtime instrumentation and
+    monitoring exists for JML.
+  }
 \end{frame}
 
-\subsubsection{Aspect-Oriented Programming Techniques}
+\begin{frame}{Design by Contract: \small DSLs}
+  \inputminted[fontsize=\footnotesize]{java}{jmlstack.java}
+\end{frame}
+
+\subsubsection{Re-using the Host Language}
 \label{sec:runver-sbc-aop}
 
-\begin{frame}{Design by Contract: AOP Techniques}
+\begin{frame}{Design by Contract: \small Piggy-backing on the host language}
   % Briefly explain AOP (maybe find a seminal paper?), say this can be
   % used with annotation techniques (eg, AspectJML), but here I'm
   % focusing on writing contracts in the host language and then
