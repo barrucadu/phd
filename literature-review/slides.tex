@@ -7,6 +7,9 @@
 \usepackage[backend=biber, citestyle=authoryear]{biblatex}
 \addbibresource{references.bib}
 
+\usepackage{tikz}
+\usetikzlibrary{arrows,automata}
+
 \usepackage{graphicx}
 
 \author{Michael Walker}
@@ -221,6 +224,28 @@
   % Mention how abstract data types & ghost/model fields in JML/BML
   % let us treat traces, at specification time, as a sequence of
   % events, and reason about that.
+
+  JML and its offspring have support for abstract data types and ghost
+  variables, so you \textit{could} explicitly build and reason about a
+  trace via contracts.
+
+  \vspace{0.25cm}
+
+  \visible<2->{
+    We can also define a trace monitor as a state machine, with state
+    transitions including pre- and postconditions \parencite{unified}.
+
+    \begin{center}
+      \begin{tikzpicture}[->, auto, node distance=8cm]
+        \node[initial,state] (A)              {$s_{A}$};
+        \node[state]         (B) [right of=A] {$s_{B}$};
+
+        \path (A) edge [loop above] node {pre / foo() / post} (A)
+                  edge [bend left]  node {pre / bar() / post} (B)
+              (B) edge [bend left]  node {pre / baz() / post} (A);
+      \end{tikzpicture}
+    \end{center}
+  }
 \end{frame}
 
 %%%%% 4 Minutes (25)
