@@ -264,13 +264,73 @@ int max(int a, int b):
 \label{sec:runver-sbc-aop}
 
 \begin{frame}{Design by Contract: \small Piggy-backing on the host language}
-  % Briefly explain AOP (maybe find a seminal paper?), say this can be
-  % used with annotation techniques (eg, AspectJML), but here I'm
-  % focusing on writing contracts in the host language and then
-  % combining the program logic with the contract checking with
-  % AOP. Explain and compare jContractor and ezContract.
-
   % PAPERS: jcontractor, ezcontract
+
+  \only<1>{
+    \begin{itemize}
+      \item Rather than define a new contract language, re-use the host
+        language.
+
+      \item May define high-level functions approximating a DSL.
+
+      \item Easy to use for runtime monitors.
+
+      \item Difficult to use for static analysis.
+    \end{itemize}
+  }
+
+  \only<2>{
+    jContractor \parencite{jcontractor} specifies contracts for
+    methods in separate methods following a naming scheme:
+
+    \begin{description}
+      \item[Original:]     \texttt{T foo($\ldots$)}
+      \item[Precondition]  \texttt{boolean foo\_Precondition($\ldots$)}
+      \item[Postcondition] \texttt{boolean foo\_Postcondition($\ldots$, T RESULT)}
+    \end{description}
+
+    Implements checking by on-the-fly bytecode manipulation.
+
+    \begin{itemize}
+      \item Overhead is only incurred if the code is run with
+        jContractor.
+
+      \item Conversely, only checks contracts when explicitly told to.
+
+      \item This may make it more suitable for developmental purposes
+        than debugging ``in the wild''.
+    \end{itemize}
+  }
+
+  \only<3>{
+    ezContract \parencite{ezcontract} similarly specifies contracts in
+    the host language, but uses bytecode markers rather than a method
+    naming convention to identify contracts,
+
+    \inputminted[fontsize=\footnotesize]{java}{ezstack.java}
+
+    Also uses on-the-fly bytecode manipulation to check contracts,
+    same pros and cons as jContractor due to this.
+  }
+\end{frame}
+
+\begin{frame}{Design by Contract: \small DSLs vs. Host Language}
+  DSLs:
+
+  \begin{itemize}
+    \item More amenable to computer processing.
+    \item Require programmers to learn a new (albeit small) language.
+  \end{itemize}
+
+  \vspace{0.25cm}
+
+  Host language:
+
+  \begin{itemize}
+    \item Very shallow learning curve.
+    \item Very difficult to do anything with other than check at
+      runtime.
+  \end{itemize}
 \end{frame}
 
 %%%%%%%%%% 7 Minutes (20)
