@@ -162,9 +162,27 @@
 \label{sec:runver-dbc}
 
 \begin{frame}{Design by Contract}
-  % Overview of DbC
-
   % PAPERS: eiffel
+
+  \begin{itemize}
+    \item Introduced in 1988 by Eiffel \parencite{eiffel}.
+    \item Functions have associated pre- and postconditions.
+    \item Preconditions are assumed true when the function is called.
+    \item Postconditions must be true if the function terminates
+      and the precondition was met.
+  \end{itemize}
+
+  \visible<2->{
+    \vspace{0.25cm}
+
+    Contracts can be:
+
+    \begin{itemize}
+      \item assumed (good programmer behaviour);
+      \item verified statically; or
+      \item enforced at runtime.
+    \end{itemize}
+  }
 \end{frame}
 
 \subsubsection{Annotation Techniques}
@@ -174,8 +192,7 @@
   % Talk mostly about JML for source-level, compare and contract
   % BCSL/BML for bytecode-level
 
-  % PAPERS: bcsl, bml
-  % NON-PAPERS: jml
+  % PAPERS: bcsl, bml, jml
 \end{frame}
 
 \begin{frame}{Design by Contract: Annotation Techniques}
