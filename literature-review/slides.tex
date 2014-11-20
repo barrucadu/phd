@@ -401,43 +401,11 @@ int max(int a, int b):
 
 %%%%% 4 Minutes (25)
 
-\section{Conclusions \& Other Work}
+\section{Conclusions}
 \label{sec:conc}
 
-\begin{frame}
-  \begin{center}
-    \Large Nearly there\ldots
-  \end{center}
-\end{frame}
-
-\subsection{Runtime Verification has High Overheads}
-\label{sec:conc-over}
-
-\begin{frame}{High Overheads}
-  % PAPERS: compensate (time)
-
-  Runtime monitoring inevitably leads to time and space overheads.
-
-  \visible<2->{
-    \vspace{0.25cm}
-
-    There is work in addressing this:
-
-    \begin{description}
-      \item[Space] Analyse the monitoring predicates and simplify,
-        % TODO: citation
-
-      \item[Time] Asynchronous monitoring with the ability to roll
-        back incomplete transactions \parencite{compensate}.
-    \end{description}
-  }
-\end{frame}
-
-\subsection{It's not an either/or choice}
-\label{sec:conc-dich}
-
-\begin{frame}{It's not an either/or choice}
-% PAPERS: statver, unified
+\begin{frame}{Combined approaches}
+  % PAPERS: statver, unified
 
   \only<1,3>{
     Static analysis and runtime verification give different
@@ -459,11 +427,37 @@ int max(int a, int b):
   }
 
   \only<2>{
-    Can we combine these two insights?
-
     \begin{center}
       \includegraphics[width=0.75\textwidth]{pushmi-pullyu.png}
     \end{center}
+  }
+\end{frame}
+
+\begin{frame}{Successes}
+  
+\end{frame}
+
+\begin{frame}{Open Problems}
+  
+\end{frame}
+
+\begin{frame}{High Overheads}
+  % PAPERS: compensate (time)
+
+  Runtime monitoring inevitably leads to time and space overheads.
+
+  \visible<2->{
+    \vspace{0.25cm}
+
+    There is work in addressing this:
+
+    \begin{description}
+      \item[Space] Analyse the monitoring predicates and simplify,
+        % TODO: citation
+
+      \item[Time] Asynchronous monitoring with the ability to roll
+        back incomplete transactions \parencite{compensate}.
+    \end{description}
   }
 \end{frame}
 
