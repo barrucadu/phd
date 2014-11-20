@@ -337,35 +337,39 @@ int max(int a, int b):
 
 %%%%%%%%%% 1 Minutes (21)
 
-\subsection{Trace Analysis by Contract?}
+\subsection{Contracts + Traces?}
 \label{sec:runver-tbc}
 
-\begin{frame}{Trace Analysis by Contract?}
-  % Mention how abstract data types & ghost/model fields in JML/BML
-  % let us treat traces, at specification time, as a sequence of
-  % events, and reason about that.
+\begin{frame}
+  \begin{center}
+    \Large Contracts and traces let us specify properties in different
+    ways, but we can combine them.
+  \end{center}
+\end{frame}
 
-  JML and its offspring have support for abstract data types and ghost
-  variables, so you \textit{could} explicitly build and reason about a
-  trace via contracts.
+\begin{frame}{Trace Analysis by Contract}
+  JML and its offspring have abstract data types and ghost variables.
 
   \vspace{0.25cm}
 
-  \visible<2->{
-    We can also define a trace monitor as a state machine, with state
-    transitions including pre- and postconditions \parencite{unified}.
+  A trace could be explicitly built, and reasoned about, by contracts.
+\end{frame}
 
-    \begin{center}
-      \begin{tikzpicture}[->, auto, node distance=8cm]
-        \node[initial,state] (A)              {$s_{A}$};
-        \node[state]         (B) [right of=A] {$s_{B}$};
+\begin{frame}{Augmented Trace Monitors}
 
-        \path (A) edge [loop above] node {pre / foo() / post} (A)
-                  edge [bend left]  node {pre / bar() / post} (B)
-              (B) edge [bend left]  node {pre / baz() / post} (A);
-      \end{tikzpicture}
-    \end{center}
-  }
+  We can also define a trace monitor as a state machine, with state
+  transitions including pre- and postconditions \parencite{unified}.
+
+  \begin{center}
+    \begin{tikzpicture}[->, auto, node distance=8cm]
+      \node[initial,state] (A)              {$s_{A}$};
+      \node[state]         (B) [right of=A] {$s_{B}$};
+
+      \path (A) edge [loop above] node {pre / foo() / post} (A)
+                edge [bend left]  node {pre / bar() / post} (B)
+            (B) edge [bend left]  node {pre / baz() / post} (A);
+    \end{tikzpicture}
+  \end{center}
 \end{frame}
 
 %%%%% 4 Minutes (25)
