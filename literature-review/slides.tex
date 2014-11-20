@@ -159,7 +159,7 @@
 \subsubsection{Domain-specific Languages}
 \label{sec:runver-dbc-ann}
 
-\begin{frame}[fragile]{Design by Contract: \small DSLs}
+\begin{frame}[fragile]{Contract Languages}
   % PAPERS: bcsl, bml, jml
 
   Contracts are specified in a special contract language, often
@@ -178,7 +178,7 @@ int max(int a, int b):
 \end{verbatim}
 \end{frame}
 
-\begin{frame}[fragile]{Design by Contract: \small DSLs}
+\begin{frame}[fragile]{Contract Languages: \small JML}
   %...continued, verbatim doesn't like being in an \only
   \only<-3>{
     JML \parencite{jml} is a particularly influential contract
@@ -203,30 +203,30 @@ int max(int a, int b):
       purposes.
     }
   }
-
-  \only<4>{
-    BCSL \parencite{bcsl} (later BML \parencite{bml}) is a JML
-    analogue for Java bytecode developed by Inria. Java bytecode is of
-    particular interest because of the potential for proof-carrying
-    code in mobile applications.
-  }
-
-  \only<5>{
-    \begin{itemize}
-      \item JML: Has a Java-like syntax written in special comments,
-        allows actual Java to define model methods.
-
-      \item BCSL \& BML: Use Java class attributes to store encoded
-        contracts in a binary format.
-    \end{itemize}
-
-    Static proof tools exist for both, runtime instrumentation and
-    monitoring exists for JML.
-  }
 \end{frame}
 
-\begin{frame}{Design by Contract: \small JML Example}
+\begin{frame}{JML Example}
   \inputminted[fontsize=\footnotesize]{java}{jmlstack.java}
+\end{frame}
+
+\begin{frame}{Contract Languages: \small BCSL / BML}
+  BCSL \parencite{bcsl} (later BML \parencite{bml}) is a JML analogue
+  for Java bytecode developed by Inria. Java bytecode is of particular
+  interest because of the potential for proof-carrying code in mobile
+  applications.
+\end{frame}
+
+\begin{frame}{Contract Languages}
+  \begin{itemize}
+    \item JML: Has a Java-like syntax written in special comments,
+      allows actual Java to define model methods.
+
+    \item BCSL \& BML: Use Java class attributes to store encoded
+      contracts in a binary format.
+  \end{itemize}
+
+  Static proof tools exist for both, runtime instrumentation and
+  monitoring exists for JML.
 \end{frame}
 
 \subsubsection{Re-using the Host Language}
