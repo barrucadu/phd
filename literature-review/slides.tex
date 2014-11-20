@@ -59,48 +59,16 @@
 \begin{frame}{Rice's Theorem: \small A Nemesis Arises!}
   % PAPERS: rice (corollary b)
 
-  \only<1>{
-    \begin{quote}
-      If $\mathcal P$ is any property possessed by some, but not all,
-      recursively enumerable sets, then there exists no effective
-      general method for deciding, given a set $\alpha$ by means of a
-      partial recursive function enumerating it, whether or not
-      $\alpha$ has the property $\mathcal P$.  [\ldots] Of course,
-      there will exist special methods for particular functions.
+  \begin{quote}
+    If $\mathcal P$ is any property possessed by some, but not all,
+    recursively enumerable sets, then there exists no effective
+    general method for deciding, given a set $\alpha$ by means of a
+    partial recursive function enumerating it, whether or not $\alpha$
+    has the property $\mathcal P$.  [\ldots] Of course, there will
+    exist special methods for particular functions.
 
-      \attrib{Rice's Theorem, Corollary B, 1953}
-    \end{quote}
-
-    There exists no algorithm which can, for all input programs,
-    either prove or disprove some nontrivial property $\mathcal P$.
-  }
-
-  \visible<2->{
-    Suppose we had a function \texttt{identity?} :: $(a \rightarrow a)
-    \rightarrow Bool$, which returns ``yes'' or ``no'' depending on
-    whether its argument is the identity function.
-
-    \vspace{0.25cm}
-  }
-
-  \visible<3->{
-    Or even \texttt{identity?} :: $(Bool \rightarrow Bool) \rightarrow
-    Bool$
-
-    \vspace{0.25cm}
-  }
-
-  \visible<4->{
-    We can use this to solve the halting problem!
-  }
-
-  \visible<5->{
-    \begin{center}
-      \texttt{halts?(P, I) = identity?($\lambda$x $\mapsto$ P(I); return x)}
-    \end{center}
-
-    Undecidable in general!
-  }
+    \attrib{Rice's Theorem, Corollary B, 1953}
+  \end{quote}
 \end{frame}
 
 \begin{frame}{Practical Static Analysis: \small Defeating Rice, the Evil Sorcerer}
