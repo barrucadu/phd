@@ -204,10 +204,120 @@
 \begin{frame}{Contract Languages: \small BCSL / BML}
   % PAPERS: bcsl, bml
 
-  BCSL \parencite{bcsl} (later BML \parencite{bml}) is a JML analogue
-  for Java bytecode developed by Inria. Java bytecode is of particular
-  interest because of the potential for proof-carrying code in mobile
-  applications.
+  BCSL \parencite{bcsl} (later BML \parencite{bml})
+
+  \begin{itemize}
+    \item JML analogue for Java bytecode
+    \item Can be produced from JML
+    \item Developed for the possibility of proof-carrying code
+    \item Compact binary representation of contracts
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{BML Example}
+  \begin{verbatim}
+{| requires lv[2] > 0
+   ensures lv[2] == \old(lv[2]) - 1
+   ensures \result == \old(lv[3]) |}
+  \end{verbatim}
+
+  \vspace{0.25cm}
+
+  Predicates: \textbf{20 bytes} (vs \textbf{80}, or \textbf{640} bits)
+
+  \vspace{0.25cm}
+
+  Predicates + metadata: \textbf{362 bits}.
+\end{frame}
+
+\begin{frame}[fragile]{BML Example}
+  \footnotesize
+  \begin{tikzpicture}[level/.style={sibling distance=6cm/#1}]
+    \node (a) {\&\&}
+      child {node (b) {==}
+        child {node (c) {lv}
+          child {node (d) {2}}
+        }
+        child {node (e) {-}
+          child {node (f) {old}
+            child {node (g) {lv}
+              child {node (h) {2}}
+            }
+          }
+          child {node (i) {int}
+            child {node (j) {1}}
+          }
+        }
+      }
+      child {node (k) {==}
+        child {node (l) {result}}
+        child {node (m) {old}
+          child {node (n) {lv}
+            child {node (o) {2}}
+          }
+        }
+      };
+
+    \path (a) -- (b);
+    \path (a) -- (k);
+    \path (b) -- (c);
+    \path (b) -- (e);
+    \path (c) -- (d);
+    \path (e) -- (f);
+    \path (e) -- (i);
+    \path (f) -- (g);
+    \path (g) -- (h);
+    \path (i) -- (j);
+    \path (k) -- (l);
+    \path (k) -- (m);
+    \path (m) -- (n);
+    \path (n) -- (o);
+  \end{tikzpicture}
+\end{frame}
+
+\begin{frame}[fragile]{BML Example}
+  \footnotesize
+  \begin{tikzpicture}[level/.style={sibling distance=6cm/#1}]
+    \node (a) {0x02}
+      child {node (b) {0x08}
+        child {node (c) {0x90}
+          child {node (d) {0x02}}
+        }
+        child {node (e) {0x28}
+          child {node (f) {0x99}
+            child {node (g) {0x90}
+              child {node (h) {0x02}}
+            }
+          }
+          child {node (i) {0x40}
+            child {node (j) {0x01}}
+          }
+        }
+      }
+      child {node (k) {0x08}
+        child {node (l) {0x52}}
+        child {node (m) {0x99}
+          child {node (n) {0x90}
+            child {node (o) {0x02}}
+          }
+        }
+      };
+
+    \path (a) -- (b);
+    \path (a) -- (k);
+    \path (b) -- (c);
+    \path (b) -- (e);
+    \path (c) -- (d);
+    \path (e) -- (f);
+    \path (e) -- (i);
+    \path (f) -- (g);
+    \path (g) -- (h);
+    \path (i) -- (j);
+    \path (k) -- (l);
+    \path (k) -- (m);
+    \path (m) -- (n);
+    \path (n) -- (o);
+  \end{tikzpicture}
 \end{frame}
 
 \begin{frame}{Contract Languages}
