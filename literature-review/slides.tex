@@ -187,29 +187,14 @@
 \begin{frame}[fragile]{Contract Languages: \small JML}
   % PAPERS: jml
 
-  \only<-3>{
-    JML \parencite{jml} is a particularly influential contract
-    language for Java, with offspring for C and Java bytecode.
+  JML \parencite{jml} has
 
-    \visible<2->{
-      \vspace{0.25cm}
-
-      In addition to pre- and postconditions, JML has invariants.
-
-      \vspace{0.25cm}
-
-      It also has ghost variables, immutability specification, frame
-      rules, and fields/methods solely available for specification
-      purposes.
-    }
-
-    \visible<3->{
-      \vspace{0.25cm}
-
-      This lets us write arbitrary (pure) code for specification
-      purposes.
-    }
-  }
+  \begin{itemize}
+    \item data and loop invariants,
+    \item ghost variables,
+    \item method frame specification,
+    \item model methods.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{JML Example}
