@@ -492,31 +492,21 @@
 \end{frame}
 
 \begin{frame}{Successes}
-  
+  % PAPERS: valgrind, compensate, datarace, addrsan
+
+  \begin{itemize}
+    \item Valgrind \parencite{valgrind}
+    \item AddressSanitizer: A Fast Address Sanity
+      Checker \parencite{addrsan}.
+    \item Dynamic Race Detection with LLVM
+      Compiler \parencite{datarace}.
+    \item Asynchronous monitoring with the ability to roll
+      back incomplete transactions \parencite{compensate}.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Open Problems}
   
-\end{frame}
-
-\begin{frame}{High Overheads}
-  % PAPERS: compensate (time)
-
-  Runtime monitoring inevitably leads to time and space overheads.
-
-  \visible<2->{
-    \vspace{0.25cm}
-
-    There is work in addressing this:
-
-    \begin{description}
-      \item[Space] Analyse the monitoring predicates and simplify,
-        % TODO: citation
-
-      \item[Time] Asynchronous monitoring with the ability to roll
-        back incomplete transactions \parencite{compensate}.
-    \end{description}
-  }
 \end{frame}
 
 \begin{frame}{Runtime Verification: \small A Summary}

@@ -230,3 +230,42 @@
 
   annotation = {Defines the semantics of CSP and, msot relevently here, traces.}
 }
+
+@article{valgrind,
+  title     = {Valgrind: A program supervision framework},
+  author    = {Nethercote, Nicholas and Seward, Julian},
+  journal   = {Electronic notes in theoretical computer science},
+  volume    = {89},
+  number    = {2},
+  pages     = {44--66},
+  year      = {2003},
+  publisher = {Elsevier},
+
+  annotation = {{A now \textit{de facto} debugging tool for C, to find
+                  memory errors.}}
+}
+
+@incollection{datarace,
+  year      = {2012},
+  volume    = {7186},
+  series    = {Lecture Notes in Computer Science},
+  editor    = {Khurshid, Sarfraz and Sen, Koushik},
+  title     = {Dynamic Race Detection with LLVM Compiler},
+  publisher = {Springer Berlin Heidelberg},
+  author    = {Serebryany, Konstantin and Potapenko, Alexander and Iskhodzhanov, Timur and Vyukov, Dmitriy},
+  pages     = {110-114},
+
+  annotation = {{A runtime data race detection tool using LLVM to
+                  instrument code.}}
+}
+
+@inproceedings{addrsan,
+  title     = {AddressSanitizer: A Fast Address Sanity Checker.},
+  author    = {Serebryany, Konstantin and Bruening, Derek and Potapenko, Alexander and Vyukov, Dmitriy},
+  booktitle = {USENIX Annual Technical Conference},
+  pages     = {309--318},
+  year      = {2012},
+
+  annotation = {{A runtime memory error detection tool using LLVM to
+                  instrument code.}}
+}
