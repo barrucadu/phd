@@ -14,6 +14,11 @@
 
 \usepackage{graphicx}
 
+\usepackage{tabularx}
+\usepackage{colortbl}
+
+\usepackage{wasysym}
+
 \author{Michael Walker}
 \title{Runtime Verification}
 \institute{Department of Computer Science\\
@@ -156,30 +161,32 @@
   }
 \end{frame}
 
-\subsubsection{Domain-specific Languages}
-\label{sec:runver-dbc-ann}
+\begin{frame}{Design by Contract}
+  \begingroup
+  \renewcommand{\arraystretch}{2}
+  \begin{tabularx}{\textwidth}{|X|c|c|}
+    \hline
+    & Learning curve & Automated reasoning\\
 
-\begin{frame}[fragile]{Contract Languages}
-  % PAPERS: bcsl, bml, jml
+    \hline
+    \textbf{DSL} & \cellcolor{red!25} {\Large \frownie} &
+    \cellcolor{green!25} {\Large \smiley}\\
 
-  Contracts are specified in a special contract language, often
-  designed specifically to incorporate high-level logical constructs
-  and be easily amenable to machine processing.
+    \hline
+    \textbf{Host} & \cellcolor{green!25} {\Large \smiley} &
+    \cellcolor{red!25} {\Large \frownie}\\
 
-\begin{verbatim}
-@requires true
-@ensures (a >= b <==> result == a) \/
-         (b >= a <==> result == b)
-int max(int a, int b):
-    if a >= b:
-        return a
-    else:
-        return b
-\end{verbatim}
+    \hline
+  \end{tabularx}
+  \endgroup
 \end{frame}
 
+\subsubsection{Domain-specific Languages}
+\label{sec:runver-dbc-dsl}
+
 \begin{frame}[fragile]{Contract Languages: \small JML}
-  %...continued, verbatim doesn't like being in an \only
+  % PAPERS: jml
+
   \only<-3>{
     JML \parencite{jml} is a particularly influential contract
     language for Java, with offspring for C and Java bytecode.
@@ -210,6 +217,8 @@ int max(int a, int b):
 \end{frame}
 
 \begin{frame}{Contract Languages: \small BCSL / BML}
+  % PAPERS: bcsl, bml
+
   BCSL \parencite{bcsl} (later BML \parencite{bml}) is a JML analogue
   for Java bytecode developed by Inria. Java bytecode is of particular
   interest because of the potential for proof-carrying code in mobile
@@ -281,25 +290,6 @@ int max(int a, int b):
     Also uses on-the-fly bytecode manipulation to check contracts,
     same pros and cons as jContractor due to this.
   }
-\end{frame}
-
-\begin{frame}{Design by Contract: \small DSLs vs. Host Language}
-  DSLs:
-
-  \begin{itemize}
-    \item More amenable to computer processing.
-    \item Require programmers to learn a new (albeit small) language.
-  \end{itemize}
-
-  \vspace{0.25cm}
-
-  Host language:
-
-  \begin{itemize}
-    \item Very shallow learning curve.
-    \item Very difficult to do anything with other than check at
-      runtime.
-  \end{itemize}
 \end{frame}
 
 %%%%%%%%%% 7 Minutes (20)
