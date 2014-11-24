@@ -399,6 +399,39 @@
   % as properties of traces.
 
   % PAPERS: cspthy
+
+  \begin{itemize}
+    \item Introduced in 1984 in CSP \parencite{cspthy}.
+    \item Execution of a program specified in terms of a sequence of events.
+  \end{itemize}
+
+  \visible<2->{
+    \vspace{0.25cm}
+
+    Traces can be used to:
+
+    \begin{itemize}
+      \item reason about relations between programs; or
+      \item monitor adherence to a specification.
+    \end{itemize}
+  }
+\end{frame}
+
+\begin{frame}[fragile]{Trace Analysis}
+  \inputminted[fontsize=\footnotesize]{java}{iterator.java}
+
+  Motivating example: calls to \texttt{next()} must always follow a
+  call to \texttt{hasNext()}.
+
+  \begin{center}
+    \begin{tikzpicture}[->, auto, node distance=8cm]
+      \node[initial,state] (A)              {$s_{A}$};
+      \node[state]         (B) [right of=A] {$s_{B}$};
+
+      \path (A) edge [bend left]  node {hasNext()} (B)
+            (B) edge [bend left]  node {next()} (A);
+    \end{tikzpicture}
+  \end{center}
 \end{frame}
 
 \subsubsection{Logics}
