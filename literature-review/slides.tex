@@ -218,16 +218,16 @@
   \begin{verbatim}
 {| requires lv[2] > 0
    ensures lv[2] == \old(lv[2]) - 1
-   ensures \result == \old(lv[3]) |}
+   ensures \result == \old(lv[2]) |}
   \end{verbatim}
 
   \vspace{0.25cm}
 
-  Predicates: \textbf{20 bytes} (vs \textbf{80}).
+  Predicates: \textbf{30 bytes} (vs \textbf{80}).
 
   \vspace{0.25cm}
 
-  Predicates + metadata: \textbf{40 bytes}.
+  Predicates + metadata: \textbf{50 bytes}.
 \end{frame}
 
 \begin{frame}[fragile]{BML Example}
