@@ -442,11 +442,32 @@
 \subsubsection{Logics}
 \label{sec:runver-trace-log}
 
-\begin{frame}{Trace Analysis: Logics}
-  % Overview of regular properties and LTL, find seminal papers using
-  % those for RV. Example LTL predicate, explain.
+\begin{frame}{Trace Analysis: \small Logics}
+  % PAPERS: ltl, eres
 
-  % PAPERS: eres, alto
+  \only<1>{
+    Extended regular expressions (EREs) are one way of expressing
+    properties of traces \parencite{eres}, where trace elements
+    consist of one of a few well-defined values.
+
+    \vspace{0.25cm}
+
+    EREs add complementation to regular expressions.
+  }
+
+  \only<2>{
+    Linear Temporal Logic (LTL) is common in runtime verification, and
+    can be used to synthesise monitors \parencite{ltl}.
+
+    \begin{align*}
+      \mathbf{X} p   &\equiv \mbox{$p$ is true in the next time step}\\
+      w \models \mathbf{X} p &\Leftrightarrow w_{1} \models p\\\\
+      p \mathbf{U} q &\equiv \mbox{$q$ is true until $p$ becomes true}\\
+      w \models p \mathbf{U} q &\Leftrightarrow \left(\exists i \geq
+        0,\ w_{i} \models p \land \forall 0 \leq k < i,\ w_{k}
+        \models q\right)\\
+    \end{align*}
+  }
 \end{frame}
 
 \subsubsection{Monitor-Oriented Programming}
