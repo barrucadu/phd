@@ -216,18 +216,18 @@
 
 \begin{frame}[fragile]{BML Example}
   \begin{verbatim}
-{| requires lv[2] > 0
-   ensures lv[2] == \old(lv[2]) - 1
-   ensures \result == \old(lv[2]) |}
+{| requires #2 > 0
+   ensures #2 == \old(#2) - 1
+   ensures \result == \old(#3) |}
   \end{verbatim}
 
   \vspace{0.25cm}
 
-  Predicates: \textbf{30 bytes} (vs \textbf{80}).
+  Predicates: \textbf{29 bytes} (vs \textbf{80}).
 
   \vspace{0.25cm}
 
-  Predicates + metadata: \textbf{50 bytes}.
+  Predicates + metadata: \textbf{49 bytes}.
 \end{frame}
 
 \begin{frame}[fragile]{BML Example}
@@ -235,12 +235,12 @@
   \begin{tikzpicture}[level/.style={sibling distance=6cm/#1}]
     \node (a) {\&\&}
       child {node (b) {==}
-        child {node (c) {lv}
+        child {node (c) {\#}
           child {node (d) {2}}
         }
         child {node (e) {-}
           child {node (f) {old}
-            child {node (g) {lv}
+            child {node (g) {\#}
               child {node (h) {2}}
             }
           }
@@ -252,8 +252,8 @@
       child {node (k) {==}
         child {node (l) {result}}
         child {node (m) {old}
-          child {node (n) {lv}
-            child {node (o) {2}}
+          child {node (n) {\#}
+            child {node (o) {3}}
           }
         }
       };
@@ -280,25 +280,25 @@
   \begin{tikzpicture}[level/.style={sibling distance=6cm/#1}]
     \node (a) {0x02}
       child {node (b) {0x08}
-        child {node (c) {0x90}
-          child {node (d) {0x02}}
+        child {node (c) {0x80}
+          child {node (d) {0x0002}}
         }
         child {node (e) {0x28}
           child {node (f) {0x99}
-            child {node (g) {0x90}
-              child {node (h) {0x02}}
+            child {node (g) {0x80}
+              child {node (h) {0x0002}}
             }
           }
           child {node (i) {0x40}
-            child {node (j) {0x01}}
+            child {node (j) {0x00000001}}
           }
         }
       }
       child {node (k) {0x08}
         child {node (l) {0x52}}
         child {node (m) {0x99}
-          child {node (n) {0x90}
-            child {node (o) {0x02}}
+          child {node (n) {0x80}
+            child {node (o) {0x0003}}
           }
         }
       };
