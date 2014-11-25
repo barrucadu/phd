@@ -417,21 +417,26 @@
   }
 \end{frame}
 
-\begin{frame}[fragile]{Trace Analysis}
-  \inputminted[fontsize=\footnotesize]{java}{iterator.java}
+\begin{frame}{Trace Analysis: \small Motivating Example}
+  Financial transaction systems need fraud detection and handling.
 
-  Motivating example: calls to \texttt{next()} must always follow a
-  call to \texttt{hasNext()}.
+  \vspace{0.25cm}
 
-  \begin{center}
-    \begin{tikzpicture}[->, auto, node distance=8cm]
-      \node[initial,state] (A)              {$s_{A}$};
-      \node[state]         (B) [right of=A] {$s_{B}$};
+  Users can be considered separate `processes' with their own traces.
 
-      \path (A) edge [bend left]  node {hasNext()} (B)
-            (B) edge [bend left]  node {next()} (A);
-    \end{tikzpicture}
-  \end{center}
+  \vspace{0.25cm}
+
+  Monitoring happens on a per-user basis, and fraud is characterised
+  by unusual behaviour (sub-traces).
+
+  \vspace{0.25cm}
+
+  Not easy to see how to specify with contracts.
+
+  \vspace{0.25cm}
+
+  See (\cite{compensate} \S7).
+
 \end{frame}
 
 \subsubsection{Logics}
