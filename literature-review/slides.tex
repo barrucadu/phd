@@ -337,7 +337,7 @@
 \label{sec:runver-sbc-aop}
 
 \begin{frame}{Design by Contract: \small Piggy-backing on the host language}
-  % PAPERS: jcontractor, ezcontract
+  % PAPERS: jcontractor
 
   \only<1>{
     \begin{itemize}
@@ -373,17 +373,6 @@
       \item This may make it more suitable for developmental purposes
         than debugging ``in the wild''.
     \end{itemize}
-  }
-
-  \only<3>{
-    ezContract \parencite{ezcontract} similarly specifies contracts in
-    the host language, but uses bytecode markers rather than a method
-    naming convention to identify contracts,
-
-    \inputminted[fontsize=\footnotesize]{java}{ezstack.java}
-
-    Also uses on-the-fly bytecode manipulation to check contracts,
-    same pros and cons as jContractor due to this.
   }
 \end{frame}
 
@@ -439,9 +428,6 @@
 
 \end{frame}
 
-\subsubsection{Logics}
-\label{sec:runver-trace-log}
-
 \begin{frame}{Trace Analysis: \small Logics}
   % PAPERS: ltl, eres
 
@@ -468,15 +454,6 @@
         \models q\right)\\
     \end{align*}
   }
-\end{frame}
-
-\subsubsection{Monitor-Oriented Programming}
-\label{sec:runver-trace-mop}
-
-\begin{frame}{Trace Analysis: Monitor-Oriented Programming}
-  % Explain MOP, cite MOP/JavaMOP papers.
-
-  % PAPERS: javamop
 \end{frame}
 
 %%%%%%%%%% 1 Minutes (21)
