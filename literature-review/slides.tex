@@ -490,33 +490,31 @@
 \section{Conclusions}
 \label{sec:conc}
 
+\begin{frame}
+  \begin{center}
+    \only<1>{
+      \Large Static analysis and runtime verification give different
+      viewpoints.
+    }
+
+    \only<2>{
+      \includegraphics[width=0.75\textwidth]{pushmi-pullyu.png}
+    }
+  \end{center}
+\end{frame}
+
 \begin{frame}{Combined approaches}
   % PAPERS: statver, unified
 
-  \only<1,3>{
-    Static analysis and runtime verification give different
-    viewpoints.
+  Work has been done on:
 
-    \vspace{0.25cm}
+  \begin{itemize}
+    \item Static verification of dynamically-detected
+      invariants \parencite{statver},
 
-    \visible<3>{
-      Work has been done on:
-
-      \begin{itemize}
-        \item Static verification of dynamically-detected
-          invariants \parencite{statver},
-
-        \item Using static verification to simplify or even eliminate
-          monitoring obligations \parencite{unified}.
-      \end{itemize}
-    }
-  }
-
-  \only<2>{
-    \begin{center}
-      \includegraphics[width=0.75\textwidth]{pushmi-pullyu.png}
-    \end{center}
-  }
+    \item Using static verification to simplify or even eliminate
+      monitoring obligations \parencite{unified}.
+  \end{itemize}
 \end{frame}
 
 \begin{frame}{Successes}
