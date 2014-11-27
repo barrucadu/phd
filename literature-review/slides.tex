@@ -495,10 +495,24 @@
   \end{center}
 \end{frame}
 
-\begin{frame}{Augmented Trace Monitors}
+\begin{frame}{Trace Monitors}
+  We can define a trace monitor as a state machine.
 
-  We can define a trace monitor as a state machine, with state
-  transitions including pre- and postconditions \parencite{unified}.
+  \begin{center}
+    \begin{tikzpicture}[->, auto, node distance=8cm]
+      \node[initial,state] (A)              {$s_{A}$};
+      \node[state]         (B) [right of=A] {$s_{B}$};
+
+      \path (A) edge [loop above] node {foo()} (A)
+                edge [bend left]  node {bar()} (B)
+            (B) edge [bend left]  node {baz()} (A);
+    \end{tikzpicture}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Augmented Trace Monitors}
+  State transitions can include pre- and
+  postconditions \parencite{unified}.
 
   \begin{center}
     \begin{tikzpicture}[->, auto, node distance=8cm]
