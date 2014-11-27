@@ -361,15 +361,8 @@
   % PAPERS: jcontractor
 
   jContractor \parencite{jcontractor} specifies contracts for methods
-  in separate methods following a naming scheme:
-
-  \begin{description}
-    \item[Original:]     \texttt{T foo($\ldots$)}
-    \item[Precondition]  \texttt{boolean foo\_Precondition($\ldots$)}
-    \item[Postcondition] \texttt{boolean foo\_Postcondition($\ldots$, T RESULT)}
-  \end{description}
-
-  Implements checking by on-the-fly bytecode manipulation.
+  in separate methods following a naming scheme, with checking
+  implemented by on-the-fly bytecode manipulation.
 
   \begin{itemize}
     \item Overhead is only incurred if the code is run with
