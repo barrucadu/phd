@@ -344,44 +344,42 @@
 \subsubsection{Re-using the Host Language}
 \label{sec:runver-sbc-aop}
 
-\begin{frame}{Design by Contract: \small Piggy-backing on the host language}
+\begin{frame}{Host Language}
+  \begin{itemize}
+    \item Rather than define a new contract language, re-use the host
+      language.
+
+    \item May define high-level functions approximating a DSL.
+
+    \item Easy to use for runtime monitors.
+
+    \item Difficult to use for static analysis.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Host Language: \small jContractor}
   % PAPERS: jcontractor
 
-  \only<1>{
-    \begin{itemize}
-      \item Rather than define a new contract language, re-use the host
-        language.
+  jContractor \parencite{jcontractor} specifies contracts for methods
+  in separate methods following a naming scheme:
 
-      \item May define high-level functions approximating a DSL.
+  \begin{description}
+    \item[Original:]     \texttt{T foo($\ldots$)}
+    \item[Precondition]  \texttt{boolean foo\_Precondition($\ldots$)}
+    \item[Postcondition] \texttt{boolean foo\_Postcondition($\ldots$, T RESULT)}
+  \end{description}
 
-      \item Easy to use for runtime monitors.
+  Implements checking by on-the-fly bytecode manipulation.
 
-      \item Difficult to use for static analysis.
-    \end{itemize}
-  }
+  \begin{itemize}
+    \item Overhead is only incurred if the code is run with
+      jContractor.
 
-  \only<2>{
-    jContractor \parencite{jcontractor} specifies contracts for
-    methods in separate methods following a naming scheme:
+    \item Conversely, only checks contracts when explicitly told to.
 
-    \begin{description}
-      \item[Original:]     \texttt{T foo($\ldots$)}
-      \item[Precondition]  \texttt{boolean foo\_Precondition($\ldots$)}
-      \item[Postcondition] \texttt{boolean foo\_Postcondition($\ldots$, T RESULT)}
-    \end{description}
-
-    Implements checking by on-the-fly bytecode manipulation.
-
-    \begin{itemize}
-      \item Overhead is only incurred if the code is run with
-        jContractor.
-
-      \item Conversely, only checks contracts when explicitly told to.
-
-      \item This may make it more suitable for developmental purposes
-        than debugging ``in the wild''.
-    \end{itemize}
-  }
+    \item This may make it more suitable for developmental purposes
+      than debugging ``in the wild''.
+  \end{itemize}
 \end{frame}
 
 %%%%%%%%%% 7 Minutes (20)
