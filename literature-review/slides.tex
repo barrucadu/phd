@@ -19,6 +19,8 @@
 
 \usepackage{wasysym}
 
+\usepackage{lmodern}
+
 \author{Michael Walker}
 \title{Runtime Verification}
 \subtitle{A Literature Review}
@@ -203,7 +205,12 @@
 \end{frame}
 
 \begin{frame}{JML Example}
-  \inputminted[fontsize=\footnotesize]{java}{jmlstack.java}
+  % Horrible, but it works.
+  \inputminted[fontsize=\footnotesize, lastline=10]{java}{jmlstack.java}
+  \vspace{-1cm}
+  \textbf{\inputminted[fontsize=\footnotesize, firstline=11, lastline=14]{java}{jmlstack.java}}
+  \vspace{-0.33cm}
+  \inputminted[fontsize=\footnotesize, firstline=15]{java}{jmlstack.java}
 \end{frame}
 
 \begin{frame}{Contract Languages: \small BCSL / BML}
