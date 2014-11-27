@@ -202,6 +202,9 @@
     \item method frame specification,
     \item model methods.
   \end{itemize}
+
+  Contracts can be compiled to executable code, producing runtime
+  monitors.
 \end{frame}
 
 \begin{frame}{JML Example}
@@ -336,19 +339,6 @@
 
   \textbf{0x020880000228998000024000000001085299800003}
   \end{center}
-\end{frame}
-
-\begin{frame}{Contract Languages}
-  \begin{itemize}
-    \item JML: Has a Java-like syntax written in special comments,
-      allows actual Java to define model methods.
-
-    \item BCSL \& BML: Use Java class attributes to store encoded
-      contracts in a binary format.
-  \end{itemize}
-
-  Static proof tools exist for both, runtime instrumentation and
-  monitoring exists for JML.
 \end{frame}
 
 \subsubsection{Re-using the Host Language}
