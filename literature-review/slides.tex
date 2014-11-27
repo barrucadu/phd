@@ -427,26 +427,17 @@
   \footnotetext[5]{Communicating Sequential Processes}
 \end{frame}
 
-\begin{frame}{Motivating Example}
-  Financial transaction systems need fraud detection and handling.
+\begin{frame}{Motivating Example: \small See (\cite{compensate} \S7)}
+  \begin{itemize}
+    \item Financial transaction systems need fraud detection and
+      handling.
+    \item Users can be considered separate `processes' with their own
+      traces.
+    \item Monitoring happens on a per-user basis, and fraud is
+      characterised by unusual behaviour (sub-traces).
+  \end{itemize}
 
-  \vspace{0.25cm}
-
-  Users can be considered separate `processes' with their own traces.
-
-  \vspace{0.25cm}
-
-  Monitoring happens on a per-user basis, and fraud is characterised
-  by unusual behaviour (sub-traces).
-
-  \vspace{0.25cm}
-
-  Not easy to see how to specify with contracts.
-
-  \vspace{0.25cm}
-
-  See (\cite{compensate} \S7).
-
+  It's not easy to see how to specify this with contracts.
 \end{frame}
 
 \begin{frame}{Trace Logics: \small EREs \parencite{eres}}
