@@ -547,15 +547,27 @@
 \begin{frame}{Combined approaches}
   % PAPERS: statver, unified
 
-  Work has been done on:
+  Runtime verification
 
   \begin{itemize}
-    \item Static verification of dynamically-detected
-      invariants \parencite{statver},
-
-    \item Using static verification to simplify or even eliminate
-      monitoring obligations \parencite{unified}.
+    \item only reasons about the current execution;
+    \item ``more decidable'' than static analysis,
+    \item but not incompatible with static analysis!
   \end{itemize}
+
+  \vspace{0.25cm}
+
+  \visible<2->{
+    Work has been done on:
+
+    \begin{itemize}
+      \item Static verification of dynamically-detected
+        invariants \parencite{statver},
+
+      \item Using static verification to simplify or even eliminate
+        monitoring obligations \parencite{unified}.
+    \end{itemize}
+  }
 \end{frame}
 
 \begin{frame}
@@ -584,16 +596,6 @@
     \item Static/runtime boundary assumptions \parencite{explicit}, if
       we verify contingent upon some runtime-checked property, we need
       to be able to explicitly state and reason about that assumption.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Runtime Verification: \small A Summary}
-  \begin{itemize}
-    \item<1-> Only reasons about the current execution
-    \item<1-> ``More decidable'' than static analysis
-    \item<2-> But not incompatible with static analysis!
-    \item<3-> Still a lot to be done in efficient and safe monitoring
-      / error recovery
   \end{itemize}
 \end{frame}
 
