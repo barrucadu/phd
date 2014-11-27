@@ -197,10 +197,10 @@
 \subsubsection{Domain-specific Languages}
 \label{sec:runver-dbc-dsl}
 
-\begin{frame}[fragile]{Contract Languages: \small JML}
+\begin{frame}[fragile]{Contract Languages: \small JML \parencite{jml}}
   % PAPERS: jml
 
-  JML \parencite{jml} has
+  JML has
 
   \begin{itemize}
     \item data and loop invariants,
@@ -222,10 +222,10 @@
   \inputminted[fontsize=\footnotesize, firstline=15]{java}{jmlstack.java}
 \end{frame}
 
-\begin{frame}{Contract Languages: \small BCSL / BML}
+\begin{frame}{Contract Languages: \small BCSL / BML \parencite{bcsl}}
   % PAPERS: bcsl, bml
 
-  BCSL \parencite{bcsl} (later BML \parencite{bml})
+  BCSL (later BML; \cite{bml})
 
   \begin{itemize}
     \item JML analogue for Java bytecode
@@ -363,12 +363,12 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Host Language: \small jContractor}
+\begin{frame}{Host Language: \small jContractor \parencite{jcontractor}}
   % PAPERS: jcontractor
 
-  jContractor \parencite{jcontractor} specifies contracts for methods
-  in separate methods following a naming scheme, with checking
-  implemented by on-the-fly bytecode manipulation.
+  jContractor specifies contracts for methods in separate methods
+  following a naming scheme, with checking implemented by on-the-fly
+  bytecode manipulation.
 
   \begin{itemize}
     \item Overhead is only incurred if the code is run with
