@@ -237,7 +237,8 @@
 
 \begin{frame}[fragile]{BML Example}
   \footnotesize
-  \begin{tikzpicture}[level/.style={sibling distance=6cm/#1}]
+  \begin{center}
+  \begin{tikzpicture}[level/.style={sibling distance=5cm/#1, level distance=1.33cm}]
     \node (a) {\&\&}
       child {node (b) {==}
         child {node (c) {\#}
@@ -278,11 +279,13 @@
     \path (m) -- (n);
     \path (n) -- (o);
   \end{tikzpicture}
+  \end{center}
 \end{frame}
 
 \begin{frame}[fragile]{BML Example}
   \footnotesize
-  \begin{tikzpicture}[level/.style={sibling distance=6cm/#1}]
+  \begin{center}
+  \begin{tikzpicture}[level/.style={sibling distance=6cm/#1, level distance=1.33cm}]
     \node (a) {0x02}
       child {node (b) {0x08}
         child {node (c) {0x80}
@@ -323,6 +326,9 @@
     \path (m) -- (n);
     \path (n) -- (o);
   \end{tikzpicture}
+
+  \textbf{0x020880000228998000024000000001085299800003}
+  \end{center}
 \end{frame}
 
 \begin{frame}{Contract Languages}
