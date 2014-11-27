@@ -575,10 +575,15 @@
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Open Problems}
+\begin{frame}{Example Open Problems}
   \begin{itemize}
-    \item Simultaneous compensation \parencite{compensate}.
-    \item Static/runtime boundary assumptions \parencite{explicit}.
+    \item Simultaneous compensation \parencite{compensate}, only being
+      able to compensate one thing at a time results in race
+      conditions.
+
+    \item Static/runtime boundary assumptions \parencite{explicit}, if
+      we verify contingent upon some runtime-checked property, we need
+      to be able to explicitly state and reason about that assumption.
   \end{itemize}
 \end{frame}
 
