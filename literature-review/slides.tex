@@ -21,6 +21,12 @@
 
 \usepackage{lmodern}
 
+% LTL example
+\DeclareMathOperator{\lX}{\textbf{X}}
+\DeclareMathOperator{\lU}{\textbf{U}}
+\DeclareMathOperator{\lG}{\textbf{G}}
+\newcommand{\holds}[2]{\mathrm{holds}_{\left(#1,#2\right)}}
+
 \author{Michael Walker}
 \title{Runtime Verification}
 \subtitle{A Literature Review}
@@ -411,7 +417,7 @@
   }
 \end{frame}
 
-\begin{frame}{Trace Analysis: \small Motivating Example}
+\begin{frame}{Motivating Example}
   Financial transaction systems need fraud detection and handling.
 
   \vspace{0.25cm}
@@ -433,32 +439,44 @@
 
 \end{frame}
 
-\begin{frame}{Trace Analysis: \small Logics}
-  % PAPERS: ltl, eres
+\begin{frame}{Trace Logics: \small EREs \parencite{eres}}
+  Extended regular expressions (EREs) are one way of expressing
+  properties of traces, where trace elements consist of one of a few
+  well-defined values.
 
-  \only<1>{
-    Extended regular expressions (EREs) are one way of expressing
-    properties of traces \parencite{eres}, where trace elements
-    consist of one of a few well-defined values.
+  \vspace{0.25cm}
 
-    \vspace{0.25cm}
+  EREs add complementation to regular expressions.
 
-    EREs add complementation to regular expressions.
-  }
+  \vspace{0.25cm}
 
-  \only<2>{
-    Linear Temporal Logic (LTL) is common in runtime verification, and
-    can be used to synthesise monitors \parencite{ltl}.
+  \textit{e.g.} an iterator must always have items remaining before
+  reading, so valid traces are of the form,
 
-    \begin{align*}
-      \mathbf{X} p   &\equiv \mbox{$p$ is true in the next time step}\\
-      w \models \mathbf{X} p &\Leftrightarrow w_{1} \models p\\\\
-      p \mathbf{U} q &\equiv \mbox{$q$ is true until $p$ becomes true}\\
-      w \models p \mathbf{U} q &\Leftrightarrow \left(\exists i \geq
-        0,\ w_{i} \models p \land \forall 0 \leq k < i,\ w_{k}
-        \models q\right)\\
-    \end{align*}
-  }
+  \begin{center}
+    \texttt{(hasNext next)*}
+  \end{center}
+\end{frame}
+
+\begin{frame}{Trace Logics: \small LTL \parencite{ltl}}
+  Linear Temporal Logic (LTL) is a modal logic,
+
+  \begin{align*}
+    \lX p &\equiv \mbox{$p$ is true in the next time step}\\
+    w \models \lX p &\Leftrightarrow w_{1} \models p\\\\
+    p \lU q &\equiv \mbox{$p$ is true until $q$ becomes true}\\
+    w \models p \lU q &\Leftrightarrow \left(\exists i \geq 0,\ w_{i}
+      \models p \land \forall 0 \leq k < i,\ w_{k}
+      \models q\right)\\
+  \end{align*}
+
+  \textit{e.g.} checking that a process doesn't undergo lock
+  reversal \parencite{hask},
+
+  \begin{align*}
+    \lG \lnot\left(\holds{j}{x} \land \lnot \holds{j}{y} \land
+      \left(\holds{j}{x} \lU \holds{j}{y}\right)\right)\\
+  \end{align*}
 \end{frame}
 
 %%%%%%%%%% 1 Minutes (21)
