@@ -182,7 +182,7 @@
     & Learning curve & Automated reasoning\\
 
     \hline
-    \textbf{DSL} & \cellcolor{red!25} {\Large \frownie} &
+    \textbf{DSL\footnotemark} & \cellcolor{red!25} {\Large \frownie} &
     \cellcolor{green!25} {\Large \smiley}\\
 
     \hline
@@ -192,6 +192,8 @@
     \hline
   \end{tabularx}
   \endgroup
+
+  \footnotetext[1]{Domain Specific Language}
 \end{frame}
 
 \subsubsection{Domain-specific Languages}
@@ -200,7 +202,7 @@
 \begin{frame}[fragile]{Contract Languages: \small JML \parencite{jml}}
   % PAPERS: jml
 
-  JML has
+  JML\footnotemark{} has
 
   \begin{itemize}
     \item data and loop invariants,
@@ -211,6 +213,8 @@
 
   Contracts can be compiled to executable code, producing runtime
   monitors.
+
+  \footnotetext[2]{Java Modelling Language}
 \end{frame}
 
 \begin{frame}{JML Example}
@@ -225,7 +229,7 @@
 \begin{frame}{Contract Languages: \small BCSL / BML \parencite{bcsl}}
   % PAPERS: bcsl, bml
 
-  BCSL (later BML; \cite{bml})
+  BCSL\footnotemark{} (later BML\footnotemark; \cite{bml})
 
   \begin{itemize}
     \item JML analogue for Java bytecode
@@ -233,6 +237,9 @@
     \item Developed for the possibility of proof-carrying code
     \item Compact binary representation of contracts
   \end{itemize}
+
+  \footnotetext[2]{Bytecode Specification Language}
+  \footnotetext[4]{Bytecode Modelling Language}
 \end{frame}
 
 \begin{frame}[fragile]{BML Example}
@@ -401,7 +408,7 @@
   % PAPERS: cspthy
 
   \begin{itemize}
-    \item Introduced in 1984 in CSP \parencite{cspthy}.
+    \item Introduced in 1984 in CSP\footnotemark{} \parencite{cspthy}.
     \item Execution of a program specified in terms of a sequence of events.
   \end{itemize}
 
@@ -415,6 +422,8 @@
       \item monitor adherence to a specification.
     \end{itemize}
   }
+
+  \footnotetext[5]{Communicating Sequential Processes}
 \end{frame}
 
 \begin{frame}{Motivating Example}
@@ -440,9 +449,8 @@
 \end{frame}
 
 \begin{frame}{Trace Logics: \small EREs \parencite{eres}}
-  Extended regular expressions (EREs) are one way of expressing
-  properties of traces, where trace elements consist of one of a few
-  well-defined values.
+  EREs\footnotemark{} are one way of expressing properties of traces,
+  where trace elements consist of one of a few well-defined values.
 
   \vspace{0.25cm}
 
@@ -456,10 +464,12 @@
   \begin{center}
     \texttt{(hasNext next)*}
   \end{center}
+
+  \footnotetext[6]{Extended Regular Expressions}
 \end{frame}
 
 \begin{frame}{Trace Logics: \small LTL \parencite{ltl}}
-  Linear Temporal Logic (LTL) is a modal logic,
+  LTL\footnotemark{} is a modal logic,
 
   \begin{align*}
     \lX p &\equiv \mbox{$p$ is true in the next time step}\\
@@ -477,6 +487,8 @@
     \lG \lnot\left(\holds{j}{x} \land \lnot \holds{j}{y} \land
       \left(\holds{j}{x} \lU \holds{j}{y}\right)\right)\\
   \end{align*}
+
+  \footnotetext[7]{Linear Temporal Logic}
 \end{frame}
 
 %%%%%%%%%% 1 Minutes (21)
