@@ -9,4 +9,107 @@
 % the relative strengths and weaknesses of the major lines of work
 % pursued to date."
 
-\todo{Literature review}
+\todo{Intro and chapter outline.}
+
+\section{Static Analysis \& Verification}
+\label{sec:litrev-stat}
+
+\todo{Intro to static analysis/verification, why it's very good when
+  feasible, what makes it difficult, undecidability issues.}
+
+\subsection{Proofs of Software Correctness}
+\label{sec:litrev-stat-proof}
+
+\todo{Outline of the process of proving software correct, why this is
+  good if possible, where this sort of thing is done.}
+
+\subsection{Case Study: Type Systems}
+\label{sec:litrev-stat-types}
+
+\todo{Quick history of static type systems, compare primitive ones
+  (eg, ALGOL) and modern dependent type systems (eg, Agda), taking
+  care to highlight decidability issues that arise with increased
+  complexity.}
+
+\section{Runtime Verification}
+\label{sec:litrev-run}
+
+\todo{Intro to RV, why it's often acceptable, split focus on just
+  monitoring and also enforcement.}
+
+\subsection{Design by Contract}
+\label{sec:litrev-run-dbc}
+
+\todo{Intro to DbC, how we can check contracts at runtime, dsl/host
+  language choice.}
+
+\subsubsection{Case Study: Java Modelling Language}
+\label{sec:litrev-run-dbc-jml}
+
+\todo{Critical evaluation of JML, talk a little about BML as well.}
+
+\subsubsection{Case Study: jContractor}
+\label{sec:litrev-run-dbc-jcon}
+
+\todo{Critical evaluation of jContractor.}
+
+\subsection{Trace Analysis}
+\label{sec:litrev-run-trace}
+
+\todo{Intro to trace analysis, difference in sorts of properties we
+  can talk about with contracts and with traces, how we can monitor
+  traces at runtime.}
+
+\subsubsection{Case Study: Regular Expressions}
+\label{sec:litrev-run-trace-regex}
+
+\todo{Critical evaluation of regex, in terms of what sorts of
+  properties we can state and how used it is.}
+
+\subsubsection{Case Study: Linear Temporal Logic}
+\label{sec:litrev-run-trace-ltl}
+
+\todo{Critical evaluation of ltl, in terms of what sorts of properties
+  we can state (compare with regex), and how used it is.}
+
+\subsection{Combined Contract/Trace Monitors}
+\label{sec:litrev-run-trcon}
+
+\todo{How we can combine the two.}
+
+\subsection{Runtime Enforcement}
+\label{sec:litrev-run-enforce}
+
+\todo{Overview of enforcement, potential pros and cons.}
+
+\subsection{Offline Analysis}
+\label{sec:litrev-run-offline}
+
+\todo{Overview of offline analysis, potential pros and cons.}
+
+\subsection{Open Problems}
+\label{sec:litrev-run-probs}
+
+\todo{Big open problems in RV.}
+
+\section{Combined Static/Runtime Verification}
+\label{sec:litrev-both}
+
+\todo{Why combining both might be good, outline of how we can do that.}
+
+\subsection{Static-informed Runtime Verification}
+\label{sec:litrev-both-sir}
+
+\todo{Using static analysis to inform or optimise runtime
+  verification.}
+
+\subsection{Runtime-informed Static Verification}
+\label{sec:litrev-both-ris}
+
+\todo{Using runtime verification to provide evidence for or discharge
+  static obligations.}
+
+\subsection{Open Problems}
+\label{sec:litrev-both-probs}
+
+\todo{Big open problems in S+R V.}
