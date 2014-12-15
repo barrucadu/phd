@@ -40,6 +40,10 @@
 \usepackage{perpage}
 \MakePerPage{footnote}
 
+% Citations
+\usepackage[backend=biber, style=ieee, sorting=ynt]{biblatex}
+\addbibresource{references.bib}
+
 % Advanced maths features
 \usepackage{amsmath}
 \usepackage{amssymb}
@@ -121,7 +125,7 @@
 
 % Misc
 \newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
-
+\newcommand{\sect}[1]{\S\ref{sec:#1}}
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
 
 \title{%
@@ -182,7 +186,6 @@ Supervisor: Colin Runciman
 \include{03-proposal}
 \include{04-prelims}
 
-\bibliographystyle{plain}
-\bibliography{references}
+\printbibliography
 
 \end{document}
