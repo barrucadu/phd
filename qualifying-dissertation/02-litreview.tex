@@ -9,135 +9,83 @@
 % the relative strengths and weaknesses of the major lines of work
 % pursued to date."
 
-This chapter motivates the field of runtime verification by first
-discussing some of the techniques and difficulties of static analysis
-and verification in \sect{litrev-stat}. Runtime Verification is then
-explored in \sect{litrev-run}, focusing on the Design by Contract and
-trace analysis approaches. Runtime Enforcement, an extension of
-Runtime Verification which aims to guarantee correct functioning by
-correcting deviations, is discussed in
-\sect{litrev-run-enforce}. Finally, the section is concluded by a
-discussion of performing offline analysis of runtime-gathered data in
-\sect{litrev-run-offline}, and some of the major open problems in the
-field in \sect{litrev-run-probs}. Case studies of particular
-approaches are given throughout.
+\todo{Overview of chapter. Explanation of concurrency in
+  Haskell (monadic concurrency, io). Why nondeterministic concurrency
+  is tricky.}
 
-The chapter closes with a discussion of the combination of both
-runtime and static verification in \sect{litrev-both}, with some open
-problems in this area in \sect{litrev-both-probs}.
+\section{Systematic Concurrency Testing}
+\label{sec:litrev-sct}
 
-\section{Static Analysis \& Verification}
-\label{sec:litrev-stat}
+\todo{Why we can't just unit test concurrent
+  programs. Heisenbugs. What is SCT. How it solves the problem.}
 
-Static analysis is the process of automatically proving nontrivial
-properties of programs without executing them\cite{secure}, in effect
-reasoning over all possible executions. Analysis techniques range from
-the simple, such as type systems\cite{types}, to the complex, such as
-memory safety\cite{infer} and deadlock freedom\cite{racerx}. Static
-analysis can be a very useful technique, achieving powerful results
-about our programs, and giving very strong guarantees of their
-behaviour.
+\subsection{Implementation of SCT}
+\label{sec:litrev-sct-impl}
 
-Static verification typically refers to verification of correctness
-properties of programs beyond typical static analyses, such as proofs
-of correctness.
+\todo{How it's implemented in terms of primitive operations. The
+  problem of computing schedules, and the systematic/random
+  approaches. PULSE as an example.}
 
-Unfortunately, most properties of Turing-complete systems are
-undecidable\cite{turing}\cite{rice} meaning there is a fundamental
-limitation on what can be achieved with a fully automated program
-analysis. Proof assistants\cite{proofassists} are an attempt to work
-around this issue, where as much is automated as possible, but where
-key decisions in the proof process are made by a guiding human
-overseer. Another approach is to use non-Turing complete systems,
-which are typically much more decidable, such as (most) type systems.
+\subsection{Schedule Bounding}
+\label{sec:litrev-sct-sched}
 
-\subsection{Case Study: Type Systems}
-\label{sec:litrev-stat-types}
+\todo{Discuss the various types of schedule bounding, with a focus on
+  pre-emption and delay bounding. Enumerate pros/cons of each and
+  suggest where each may do better than the other.}
 
-\todo{Quick history of static type systems, compare primitive ones
-  (eg, ALGOL) and modern dependent type systems (eg, Agda), taking
-  care to highlight decidability issues that arise with increased
-  complexity.}
+\subsection{Tools}
+\label{sec:litrev-sct-tools}
 
-\section{Runtime Verification}
-\label{sec:litrev-run}
-
-\todo{Intro to RV, why it's often acceptable, split focus on just
-  monitoring and also enforcement.}
-
-\subsection{Design by Contract}
-\label{sec:litrev-run-dbc}
-
-\todo{Intro to DbC, how we can check contracts at runtime, dsl/host
-  language choice.}
-
-\subsubsection{Case Study: Java Modelling Language}
-\label{sec:litrev-run-dbc-jml}
-
-\todo{Critical evaluation of JML, talk a little about BML as well.}
-
-\subsubsection{Case Study: jContractor}
-\label{sec:litrev-run-dbc-jcon}
-
-\todo{Critical evaluation of jContractor.}
-
-\subsection{Trace Analysis}
-\label{sec:litrev-run-trace}
-
-\todo{Intro to trace analysis, difference in sorts of properties we
-  can talk about with contracts and with traces, how we can monitor
-  traces at runtime.}
-
-\subsubsection{Case Study: Regular Expressions}
-\label{sec:litrev-run-trace-regex}
-
-\todo{Critical evaluation of regex, in terms of what sorts of
-  properties we can state and how used it is.}
-
-\subsubsection{Case Study: Linear Temporal Logic}
-\label{sec:litrev-run-trace-ltl}
-
-\todo{Critical evaluation of ltl, in terms of what sorts of properties
-  we can state (compare with regex), and how used it is.}
-
-\subsection{Combined Contract/Trace Monitors}
-\label{sec:litrev-run-trcon}
-
-\todo{How we can combine the two.}
-
-\subsection{Runtime Enforcement}
-\label{sec:litrev-run-enforce}
-
-\todo{Overview of enforcement, potential pros and cons.}
-
-\subsection{Offline Analysis}
-\label{sec:litrev-run-offline}
-
-\todo{Overview of offline analysis, potential pros and cons.}
+\todo{Major tools for SCT, and what languages they support.}
 
 \subsection{Open Problems}
-\label{sec:litrev-run-probs}
+\label{sec:litrev-sct-probs}
 
-\todo{Big open problems in RV.}
+\todo{``major open problems and prospects for their solution and the
+  relative strengths and weaknesses of the major lines of work pursued
+  to date.''}
 
-\section{Combined Static/Runtime Verification}
-\label{sec:litrev-both}
+\section{Deterministic Concurrency}
+\label{sec:litrev-det}
 
-\todo{Why combining both might be good, outline of how we can do that.}
+\todo{Communication is the source of all concurrency
+  nondeterminism. Shared state is an example of communication, as is
+  message passing. Communication must be limited. This makes
+  deterministic concurrency more limited than nondeterministic
+  concurrency.}
 
-\subsection{Static-informed Runtime Verification}
-\label{sec:litrev-both-sir}
+\subsection{Evaluation Strategies}
+\label{sec:litrev-det-strats}
 
-\todo{Using static analysis to inform or optimise runtime
-  verification.}
+\todo{Overview of Strategies. Limitations, use-cases.}
 
-\subsection{Runtime-informed Static Verification}
-\label{sec:litrev-both-ris}
+\subsection{The Par Monad}
+\label{sec:litrev-det-par}
 
-\todo{Using runtime verification to provide evidence for or discharge
-  static obligations.}
+\todo{Overview of Par. Strengths wrt Strategies. Limitations,
+  use-cases.}
+
+\subsection{LVish}
+\label{sec:litrev-det-lvish}
+
+\todo{Overview of LVish. Strengths wrt Par. Limitations, use-cases.}
+
+\subsection{State Revisions}
+\label{sec:litref-det-revs}
+
+\todo{Overview of state revisions. Strengths wrt
+  Strategies. Comparison with par/lvish. Limitations, use-cases.}
 
 \subsection{Open Problems}
-\label{sec:litrev-both-probs}
+\label{sec:litrev-det-probs}
 
-\todo{Big open problems in S+R V.}
+\todo{``major open problems and prospects for their solution and the
+  relative strengths and weaknesses of the major lines of work pursued
+  to date.''}
+
+\section{Summary}
+\label{sec:litrev-sum}
+
+\todo{Summarise prior sections. Why can't always use deterministic
+  concurrency. Using SCT to test deterministic impls. What must be
+  kept in mind when reading the following chapters.}
