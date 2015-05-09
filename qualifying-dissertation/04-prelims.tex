@@ -4,4 +4,1138 @@
 % "describe research work you have already undertaken; report any
 % results you have already obtained and discuss their significance."
 
-\todo{Preliminary results}
+\todo{Dump in Search Party paper when complete enough. Intro to
+  \dejafu{} and Search Party and their significance.}
+
+\section{\dejafu{}}
+\label{sec:prelims-dejafu}
+
+\dejafu{}\footnote{[\dejafu{} is] A martial art in which the user's
+  limbs move in time as well as space, [\ldots{}] It is best described
+  as ``the feeling that you have been kicked in the head this way
+  before''. \attrib{Terry Pratchett, Thief of Time}} is a library for
+SCT in Haskell. It provides a generalisation of the standard IO-using
+concurrency API, allowing for non-IO implementations to be used for
+testing purposes. Schedule bounding\cite{pbound} is used by the
+default test runner, although other test runners can be written.
+
+\begin{justspacing}
+\paragraph{Example}
+
+\begin{minted}{haskell}
+main :: IO ()
+main = do
+  shared <- newMVar 0
+  forkIO . void $ swapMVar shared 1
+  forkIO . void $ swapMVar shared 2
+  readMVar shared >>= print
+\end{minted}
+
+As we shall see in \sect{prelims-dejafu-testing}, this program can be
+tested to produce traces showing the three possible results:
+
+\begin{verbatim}
+[pass] Never Deadlocks (checked: 23)
+[pass] No Exceptions (checked: 23)
+[fail] Consistent Result (checked: 1)
+  0 S0-------
+  2 S0----P2---S0---
+  1 S0----P1---S0---
+\end{verbatim}
+
+Here each of the last three lines represents a possible execution of
+the program: ``S'' indicates the start of execution of a thread, ``P''
+indicates the pre-emption of the running thread by another, and each
+dash represents one step of execution.
+\end{justspacing}
+
+The rest of the section is organised as follows.
+
+\begin{itemize}
+  \item \sect{prelims-dejafu-conc} presents the typeclass concurrency-abstraction,
+    emphasising a few points where it departs from the usual
+    concurrency model.
+
+  \item \sect{prelims-dejafu-testing} introduces writing tests with \dejafu{}.
+
+  \item \sect{prelims-dejafu-impl} explains how the library implements systematic
+    concurrency testing.
+
+  \item \sect{prelims-dejafu-example} presents two small examples of concurrent
+    applications.
+
+  \item \sect{prelims-dejafu-related} gives pointers to existing concurrency testing
+    work in both Haskell and other programming languages.
+
+  \item \sect{prelims-dejafu-conclusion} draws conclusions and suggest further work
+    from what has been presented in this paper.
+\end{itemize}
+
+\subsection{The \dejafu{} Concurrency API}
+\label{sec:prelims-dejafu-conc}
+
+Readers already familiar with Haskell's concurrency primitives may
+wish to just skim this subsection to see the syntactic differences in the
+\dejafu{} variant.
+
+\begin{departure}
+  Departures from the semantics of the traditional concurrency
+  abstraction are highlighted like this.
+\end{departure}
+
+If we remove the limitations, allowing non-blocking reads and multiple
+writes, we get to Haskell's traditional concurrency abstraction in the
+IO
+monad. \dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu}}
+generalises a very large subset of that abstraction to work in
+arbitrary members of a typeclass, named MonadConc.
+
+To make use of the \dejafu{} library, we must first import the class:
+
+\begin{minted}{haskell}
+import Control.Monad.Conc.Class
+\end{minted}
+
+\subsubsection*{Threads}
+\label{sec:prelims-dejafu-conc-threads}
+
+Threads let a program do multiple things at once. Every program has at
+least one thread, which starts where \texttt{main} does and runs until
+the program terminates. A thread is the basic unit of concurrency, it
+lets us pretend (with parallelism, it might even be true!) that we're
+computing multiple things at once.
+
+We can start a new thread with the \texttt{fork} function\footnote{To
+  save on horizontal space, a \texttt{MonadConc m =>} has been dropped
+  from the start of every type signature.}:
+
+\begin{minted}{haskell}
+fork :: m () -> m (ThreadId m)
+\end{minted}
+
+This starts evaluating its argument in a separate thread. It also
+gives us back a (monad-specific) \texttt{ThreadId} value, which we can
+use to kill the thread later on, if we want.
+
+In a real machine, there are of course a number of processors and
+cores. It may be that a particular application of concurrency is only
+a net gain if every thread is operating on a separate core, so that
+threads are not interrupting each other. The GHC runtime refers to the
+number of Haskell threads that can run truly simultaneously as the
+number of \textit{capabilities}. We can query this value, and fork
+threads which are bound to a particular capability:
+
+\begin{minted}{haskell}
+getNumCapabilities :: m Int
+forkOn :: Int -> m () -> m (ThreadId m)
+\end{minted}
+
+\texttt{forkOn} interprets the capability number modulo the value
+returned by \texttt{getNumCapabilities}.
+
+\begin{departure}
+  \texttt{getNumCapabilities} is not required to return a true
+  result. The testing instances return ``2'' despite executing
+  everything in the same capability, to encourage more
+  concurrency. The IO instance does return a true result.
+\end{departure}
+
+Sometimes we just want the special case of evaluating something in a
+separate thread, for which we can use \texttt{spawn} (implemented in
+terms of \texttt{fork}):
+
+\begin{minted}{haskell}
+spawn :: m a -> m (CVar m a)
+\end{minted}
+
+This returns a CVar (\textit{Concurrent Variable}), to which we can
+apply \texttt{readCVar}, blocking until the computation is done and
+the value is stored.
+
+
+\subsubsection*{Mutable State}
+\label{conc-crefs}
+
+Threading by itself is not really enough. We need to be able to
+\textit{communicate} between threads: we've already seen an instance
+of this with the \texttt{spawn} function.
+
+The simplest type of mutable shared state provided is the CRef
+(\textit{Concurrent Reference}). CRefs are shared variables which can
+be written to and read from by any thread which has a reference:
+
+\begin{minted}{haskell}
+newCRef    :: a -> m (CRef m a)
+readCRef   :: CRef m a -> m a
+modifyCRef :: CRef m a -> (a -> (a, b)) -> m b
+writeCRef  :: CRef m a -> a -> m ()
+\end{minted}
+
+\begin{departure}
+  IORef actions be re-ordered\cite{ioref}, but this is not the case
+  for CRef actions. \texttt{modifyCRef} corresponds to
+  \texttt{atomicModifyIORef}, and \texttt{writeCRef} corresponds to
+  \texttt{atomicWriteIORef}.
+\end{departure}
+
+As \textit{any} thread can write at \textit{any} time, then we risk
+threads overwriting each other's work! At least \texttt{modifyCRef} is
+atomic: no thread can update it between the value being read and the
+new value being stored, as could happen if \texttt{readCRef} and
+\texttt{writeCRef} were composed. Even so, CRefs quickly fall down if
+we want to do anything complicated. We need something more robust.
+
+\subsubsection*{Mutual Exclusion}
+\label{sec:prelims-dejafu-conc-cvars}
+
+A CVar is a shared variable under \textit{mutual exclusion} It has two
+possible states: \textit{full} or \textit{empty}. Writing to a full
+CVar blocks until it is empty, and reading or taking from an empty
+CVar blocks until it is full. There are also non-blocking functions
+which return an indication of success:
+
+\begin{minted}{haskell}
+putCVar     :: CVar m a -> a -> m ()
+tryPutCVar  :: CVar m a -> a -> m Bool
+readCVar    :: CVar m a -> m a
+takeCVar    :: CVar m a -> m a
+tryTakeCVar :: CVar m a -> m (Maybe a)
+\end{minted}
+
+Unfortunately, the mutual exclusion behaviour of CVars means that
+computations can become deadlocked. For example, deadlock occurs if
+every thread tries to take from the same CVar. The GHC runtime can
+detect this (and will complain if it does), and so can \dejafu{} in a
+more informative way, as we shall see in \sect{prelims-dejafu-testing}.
+
+\subsubsection*{Software Transactional Memory}
+\label{sec:prelims-dejafu-conc-stm}
+
+CVars are nice, until we need more than one, and find they need to be
+kept synchronised. As we can only claim \textit{one} CVar atomically,
+it seems we need to introduce a CVar to control access to CVars! This
+is unwieldy and prone to bugs.
+
+\textit{Software transactional memory} (STM) is the solution. STM uses
+CTVars, or \textit{Concurrent Transactional Variables}, and is based
+upon the idea of atomic \textit{transactions}. An STM transaction
+consists of one or more operations over a collection of CTVars, and
+the programmer can bail out of a transaction part-way through if they
+want. If the transaction fails, \textit{none of its effects take
+  place}, and the thread blocks until the transaction can
+succeed. This means we need to limit the possible actions in an STM
+transaction, so we have another typeclass:
+
+\begin{minted}{haskell}
+import Control.Monad.STM.Class
+\end{minted}
+
+CTVars always contain a value, as shown in the types of the functions:
+
+\begin{minted}{haskell}
+newCTVar   :: MonadSTM s => a -> stm (CTVar s a)
+readCTVar  :: MonadSTM s => CTVar s a -> s a
+writeCTVar :: MonadSTM s => CTVar s a -> a -> s ()
+\end{minted}
+
+If we read a CTVar and don't like the value it has, the transaction
+can be aborted, and the thread will block until any of the referenced
+CTVars have been mutated:
+
+\begin{minted}{haskell}
+retry :: MonadSTM s => s a
+check :: MonadSTM s => Bool -> s ()
+\end{minted}
+
+We can also try executing a transaction, and do something else if it
+fails:
+
+\begin{minted}{haskell}
+orElse :: MonadSTM s => s a -> s a -> s a
+\end{minted}
+
+The nice thing about STM transactions is that they
+\textit{compose}. We can take small STM transactions and build bigger
+transactions from them, and the whole is still executed
+atomically. This means we can do complex state operations involving
+multiple shared variables without worrying!
+
+We have emphasised that STM transactions are atomic. Here is the
+function which executes a transaction:
+
+\begin{minted}{haskell}
+atomically :: STMLike m a -> m a
+\end{minted}
+
+\begin{departure}
+  Every MonadConc has an associated MonadSTM, whereas there is just
+  one STM normally. This is so that STM transactions can be tested
+  without needing to bring IO into the test runner. The IO MonadConc
+  instance uses STM as its MonadSTM.
+\end{departure}
+
+For example, if we have a collection of worker threads which can
+either produce a result or fail, we might want to block until either
+\textit{one} completes successfully and then kill the other threads,
+or until \textit{all} fail. We can implement this using CTMVars, an
+analogue of CVars built from CTVars:
+
+\begin{minted}{haskell}
+awaitResult :: MonadConc m => [(ThreadId m, CTMVar (STMLike m) (Maybe a))]
+  -> m (Maybe a)
+awaitResult workers = do
+  out <- atomically $ do
+    progress <- mapM (tryReadCTMVar . snd) workers
+    let finished = catMaybes progress
+    case catMaybes finished of
+      (x:_) -> return $ Just x
+      [] -> check (length finished < length workers)
+            >> return Nothing
+  mapM_ (killThread . fst) workers
+  return out
+\end{minted}
+
+We can of course test STM transactions individually. The result may be
+a success (along with the value returned), a failure due to a
+\texttt{retry}, or a failure due to an uncaught exception:
+
+\begin{minted}{haskell}
+import Test.DejaFu.STM
+runTransaction :: (forall t. STMLike t (ST t) (STRef t) a) -> Result a
+\end{minted}
+
+The type is a bit scary, but if we program against the MonadSTM
+interface, things will just work.
+
+\subsubsection*{Exceptions}
+\label{sec:prelims-dejafu-conc-excs}
+
+Exceptions are a way to bail out of a computation early. Whether
+they're a good solution to that problem is a question of style, but
+they can be used to quickly jump to error handling code when
+necessary. The basic functions for dealing with exceptions are:
+
+\begin{minted}{haskell}
+catch :: Exception e => m a -> (e -> m a) -> m a
+throw :: Exception e => e -> m a
+\end{minted}
+
+Where \texttt{throw} causes the computation to jump back to the
+nearest enclosing \texttt{catch} capable of handling the particular
+exception. As exceptions belong to a typeclass, rather than being a
+concrete type, different \texttt{catch} functions can be nested, to
+handle different types of exceptions.
+
+\begin{departure}
+  The IO \texttt{catch} function can catch exceptions from pure
+  code. This is not true in general for MonadConc instances,
+  unfortunately meaning that some things which work normally may not
+  work in testing. This is a small cost, however, as exceptions from
+  pure code are things like pattern match failures and evaluating
+  \texttt{undefined}, which are arguably bugs.
+\end{departure}
+
+Exceptions can be used to kill a thread:
+
+\begin{minted}{haskell}
+throwTo    :: Exception e => ThreadId m -> e -> m ()
+killThread :: ThreadId m -> m ()
+\end{minted}
+
+These functions block until the target thread is in an appropriate
+state to receive the exception.
+
+What if we don't want our threads to be subject to destruction in this
+way? A thread also has a \textit{masking state}, which can be used to
+block exceptions from other threads. There are three masking states:
+\textit{unmasked}, in which a thread can have exceptions thrown to it;
+\textit{interruptible}, in which a thread can only have exceptions
+thrown to it if it is blocked; and \textit{uninterruptible}, in which
+a thread cannot have exceptions thrown to it. When a thread is
+started, it inherits the masking state of its parent, and the
+\texttt{forkWithUnmask} function forks a thread and passes it a
+function which can be used to execute a subcomputation in the unmasked
+state. We can also execute a subcomputation with a new masking state:
+
+\begin{minted}{haskell}
+mask                :: ((forall a. m a -> m a) -> m b) -> m b
+uninterruptibleMask :: ((forall a. m a -> m a) -> m b) -> m b
+forkWithUnmask      :: ((forall a. m a -> m a) -> m ()) -> m (ThreadId m)
+\end{minted}
+
+STM can also do exceptions, with its \texttt{throwSTM} and
+\texttt{catchSTM} functions. If an STM exception propagates uncaught
+to the top of a transaction, that transaction is aborted.
+
+\subsection{Testing using \dejafu{}}
+\label{sec:prelims-dejafu-testing}
+
+Testing with \dejafu{} consists in writing a unit test-like concurrent
+computation to test, and some predicates over the return value and
+traces produced. Predicates may be lazy, and so not need to examine
+the entire output before determining whether the test has passed or
+failed:
+
+\begin{minted}{haskell}
+type Predicate a = [(Either Failure a, Trace)] -> Result a
+
+runTest :: Eq a => Predicate a -> (forall t. Conc t a) a
+\end{minted}
+
+Helper functions lift predicates over a single result to predicates
+over the collection:
+
+\begin{minted}{haskell}
+alwaysTrue    :: (Either Failure a -> Bool) -> Predicate a
+somewhereTrue :: (Either Failure a -> Bool) -> Predicate a
+\end{minted}
+
+There are also variants which take predicates of two arguments for
+checking properties over the entire collection as a whole, for
+example:
+
+\begin{minted}{haskell}
+alwaysSame :: Eq a => Predicate a
+alwaysSame = alwaysTrue2 (==)
+
+alwaysTrue2    :: (Either Failure a -> Either Failure a -> Bool) -> Predicate a
+somewhereTrue2 :: (Either Failure a -> Either Failure a -> Bool) -> Predicate a
+\end{minted}
+
+The functions \texttt{alwaysTrue2} and \texttt{somewhereTrue2} only
+check the predicate between values adjacent in the result list, the
+order of which depends on the scheduling algorithm used, and so should
+only be used for properties which are symmetric and transitive. There
+is also a collection of standard predicates, for doing things like
+checking for the existence of deadlock.
+
+Let's see what we get from testing the example from the start of this
+paper. We'll have it return the value, rather than print it, though:
+
+\begin{minted}{haskell}
+import Control.Concurrent.CVar (swapCVar)
+import Control.Monad (void)
+import Control.Monad.Conc.Class
+
+bad :: (Functor m, MonadConc m) => m Int
+bad = do
+  shared <- newCVar 0
+  fork . void $ swapCVar shared 1
+  fork . void $ swapCVar shared 2
+  readCVar shared
+\end{minted}
+
+Firstly let's put it through \texttt{autocheck}:
+
+\begin{verbatim}
+> import Test.DejaFu
+> autocheck bad
+[pass] Never Deadlocks (checked: 23)
+[pass] No Exceptions (checked: 23)
+[fail] Consistent Result (checked: 1)
+  0 S0-------
+  2 S0----P2---S0---
+  1 S0----P1---S0---
+False
+\end{verbatim}
+
+\dejafu{} reports three distinct failures! Two failures are distinct
+if they have different results, or the same result but one trace is
+not a simplification of another. For each failure, the result is
+shown, along with the trace that led to it. ``Sx'' means that thread
+``x'' started execution; ``Px'' means that thread ``x'' pre-empted the
+running thread; and the number of dashes indicates how many steps each
+thread ran for. So this output means that we get a ``0'' if there is
+no pre-emption, a ``1'' if thread 1 pre-empts the initial thread
+before the read, and a ``2'' if thread 2 pre-empts the initial thread
+before the read.
+
+This output is nice for automated test suites, but perhaps not so
+friendly for interactive debugging. There are functions to run tests
+and return a more detailed result:
+
+\begin{verbatim}
+> runTest alwaysSame bad
+Result {_pass = False, _casesChecked = 1
+       , _casesTotal = 23, _failures = [...]}
+\end{verbatim}
+
+The Result value tells us testing failed after looking at 1 case,
+there are 23 cases in total, and there is a simplified list of
+failures. These are quite long, so here is the second only:
+
+\begin{minted}{haskell}
+( Right 2
+, [ (Start 0,[],New 1)
+  , (Continue,[],Put 1 [])
+  , (Continue,[],Fork 1)
+  , (Continue,[SwitchTo 1],Fork 2)
+  , (SwitchTo 2,[Continue,SwitchTo 1],Take 1 [])
+  , (Continue,[SwitchTo 0,SwitchTo 1],Put 1 [])
+  , (Continue,[SwitchTo 0,SwitchTo 1],Stop)
+  , (Start 0,[Start 1],Read 1)
+  , (Continue,[SwitchTo 1],Lift)
+  , (Continue,[SwitchTo 1],Stop)])
+\end{minted}
+
+We have the result returned, and a log of what decision the scheduler
+made at each step, what alternative decisions it \textit{could} have
+made, and what the thread did. Each thread and CVar (and CRef/CTVar)
+has its own unique identifier. In particular, we can see that when
+thread 2 pre-empted thread 0, it modified CVar 1, and the final result
+was determined by CVar 1 (well, we don't actually see that bit, but we
+see that CVar 1 was read just before the main thread terminated), this
+should suggest to us that maybe CVar 1 is the culprit, and lead us to
+look more closely at that rough area of the program. It may seem
+difficult to keep track of which thread is which, but studies have
+found\cite{empirical} that many errors are exposed with as few as two
+threads, giving us encouragement to write small test cases;
+alternatively, there could be provided an optional mechanism to assign
+names to threads.
+
+\subsubsection*{Testing Aids}
+\label{sec:prelims-dejafu-testing-aids}
+
+Some other functions generically defined for the typeclass only alter
+the running of the code during testing. They are provided to make it
+easier to write good tests.
+
+Firstly, there is \texttt{\_concNoTest}, it indicates that a
+subcomputation already has its own tests, and so it should not be
+tested again \textit{here}. Specifically, the test runner executes the
+argument of \texttt{\_concNoTest} atomically. This allows tests to
+compose without repeating work:
+
+\begin{minted}{haskell}
+big :: MonadConc m => m Int
+big = do
+  a <- _concNoTest little1
+  b <- _concNoTest little2
+  combine a b
+\end{minted}
+
+If ``little1'' and ``little2'' already have their own tests, and have
+been verified to work, there is no need to test them again when
+testing ``big''.
+
+Secondly, there are cases where the main thread may be blocked on some
+CVar or CTVar, to which no other thread has a reference. This should
+cause immediate failure with deadlock as the reason. By default
+\dejafu{} cannot detect deadlocks of this kind. However, the user has
+the option to provide extra information, indicating which shared
+variables a thread knows about:
+
+\begin{minted}{haskell}
+bad :: MonadConc m Int
+bad = do
+  _concAllKnown
+  a <- newEmptyCVar
+  b <- newEmptyCVar
+  fork $ do
+    _concKnowsAbout (Left a)
+    _concAllKnown
+    let loop = takeCVar a >> loop in loop
+  fork $ do
+    _concKnowsAbout (Left a)
+    _concAllKnown
+    let loop = putCVar a 1 >> loop in loop
+  takeCVar b
+\end{minted}
+
+The main thread is blocked on ``b'', which neither of the other two
+threads has a reference to. By adding the annotations, this can be
+detected and reported. There are three annotations:
+\texttt{\_concKnowsAbout}, which records that the current thread has a
+reference to a CVar or CTVar; \texttt{\_concForgets}, which records
+that the current thread will never touch the referenced CVar or CTVar
+again; and \texttt{\_concAllKnown}, which indicates that all CVars or
+CTVars which were passed in to the thread have been recorded. If every
+thread is in a known state, then detection of non-global deadlock is
+enabled. In the example above, without this, the computation would
+never terminate, as the two forked threads will run forever, even
+though the main thread can never progress.
+
+Note that misuse of these aids can lead to invalid test results. In
+particular, \texttt{\_concNoTest} should only be used for actions
+which involve no shared variables from a larger scope. If two threads
+with a reference to the same shared variable are executed under
+\texttt{\_concNoTest}, then the test runner will not consider possible
+interleavings of those threads.
+
+\subsubsection*{IO}
+\label{sec:prelims-dejafu-testing-io}
+
+By itself, MonadConc cannot do IO. However, by adding in a MonadIO
+context and applying \texttt{liftIO} as appropriate, concurrency
+can be separated from other IO, allowing testing.
+
+However, once IO is involved, the test runner loses control of what's
+going on. If a thread, during some IO, blocks on the action of another
+thread, this cannot be detected, and deadlock may arise. Furthermore,
+it is assumed for testing that the only source of nondeterminism is
+the scheduler (see \sect{prelims-dejafu-impl}). Any IO that is done should be
+deterministic enough to not invalidate test results, although this is
+good practice in any sort of testing. Finally, the test runner cannot
+pre-empt within a \texttt{liftIO} block, they should be as small as
+possible to avoid the risk of obscuring bugs.
+
+\subsection{Implementation}
+\label{sec:prelims-dejafu-impl}
+
+Readers who just want to use the \dejafu{} library can skip over this
+subsection and go straight to the example applications in \sect{prelims-dejafu-example}.
+
+\subsubsection*{Primitive Actions and Threading}
+\label{impl-prims}
+
+The Conc and ConcIO monads represent threads as continuations over
+primitive actions, with the entire computation actually happening in a
+single Haskell thread. The primitives actions are as follows (in
+abbreviated form):
+
+\begin{minted}{haskell}
+data Action ... =
+    AFork     thread_action action
+  | AMyTId    (thread_id -> action)
+  | APut      cvar new_value action
+  | ATryPut   cvar new_value (Bool -> action)
+  | AGet      cvar (value -> action)
+  | ATake     cvar (value -> action)
+  | ATryTake  cvar (Maybe value -> action)
+  | AReadRef  cref (value -> action)
+  | AModRef   cref function (result -> action)
+  | AAtom     stm_action (result -> action)
+  | ANew      action
+  | ANewRef   action
+  | ALift     (underlying_monad action)
+  | AThrow    exc
+  | AThrowTo  thread_id exc action
+  | ACatching handler action (result -> action)
+  | AMasking  mask_state action (result -> action)
+  | AStop
+\end{minted}
+
+There are also a few other primitives omitted here introduced as a
+side-effect of evaluating other primitives (for example, resetting the
+masking state). Execution happens in the context of an underlying
+monad, which implements mutable variables. For \texttt{Conc t} this is
+\texttt{ST t}, hence the type parameter. For \texttt{ConcIO t} it is
+\texttt{IO}, the parameter is retained to keep types similar.
+
+Threads are stored in a map, from thread IDs to a record of the
+current state:
+
+\begin{minted}{haskell}
+data Thread ... = Thread
+  { _continuation :: Action ...
+  , _blocking     :: Maybe BlockedOn
+  , _handlers     :: [Handler ...]
+  , _masking      :: MaskingState
+  }
+\end{minted}
+
+Evaluation is defined as repeating a single-step function until the
+main thread terminates, or deadlock is detected.
+
+\subsubsection*{Shared State and Blocking}
+\label{sec:prelims-dejafu-impl-state}
+
+CRefs and CVars are both implemented in terms of the reference type of
+the underlying monad, as a pair (id, value), where CVars have a maybe
+value.
+
+\begin{minted}{haskell}
+data BlockedOn =
+    OnCVarFull CVarId
+  | OnCVarEmpty CVarId
+  | OnCTVar [CTVarId]
+  | OnMask ThreadId deriving Eq
+\end{minted}
+
+When a CVar is accessed, the running thread is blocked if the CVar is
+in an inappropriate state. Otherwise the action of the thread is
+replaced with the relevant continuation. If the CVar has been mutated,
+then all threads blocked on reading that CVar (if it was put in to) or
+writing (if it was taken from) are unblocked. This unblocking
+behaviour is slightly different to MVars, where there the order of
+awakening is FIFO.
+
+STM is implemented in terms of its own primitive actions. CTVars are
+implemented in the same way as CRefs. Executing an STM transaction
+returns a result (or indication of failure), a list of CTVars written
+to (if success) or read from (if failure), and an action in the
+underlying monad to undo the effects of the transaction:
+
+\begin{minted}{haskell}
+data STMAction ... =
+    ACatch  action handler (result -> action)
+  | ARead   ctvar (value -> action)
+  | AWrite  ctvar new_value action
+  | AOrElse action action (result -> action)
+  | ANew    action
+  | ALift   (underlying_monad action)
+  | AThrow  SomeException
+  | ARetry
+  | AStop
+\end{minted}
+
+Blocking is implemented by checking if a transaction terminated due to
+an \texttt{ARetry} action, at which point the thread is blocked, and
+unblocked by a future \texttt{AAtom} action which modifies at least
+one of the CTVars referenced in the failing transaction.
+
+\subsubsection*{Exceptions}
+\label{sec:prelims-dejafu-impl-excs}
+
+A thread has a stack of exception handlers. Upon entering a
+\texttt{catch}, the handler is pushed to the stack, and a primitive
+action to pop it is inserted at the end of the enclosed action. A
+handler, when invoked, replaces the action of the thread entirely,
+this works by jumping to the continuation of the \texttt{catch} after
+the programmer-supplied function terminates:
+
+\begin{minted}{haskell}
+data Handler ... = forall e. Exception e => Handler (e -> Action ...)
+\end{minted}
+
+Upon evaluating a \texttt{throw}, the exception handler stack is
+popped until a handler capable of handling the exception is
+reached. The action of the thread is then replaced with the handler,
+and the new stack is stored. If no handler is found, the thread is
+killed. If this is the main thread, the entire computation terminates
+with an error.
+
+When a mask is entered, a primitive action to restore the masking
+state is added on to the end of the subcomputation, similarly to how
+the \texttt{catch} function works.
+
+As an STM transaction is executed all in one go, this greatly
+simplifies the implementation of exceptions. An STM catch action is
+implemented by simply executing the entire subcomputation and pattern
+matching on the return value: if it is a success, the value is
+returned; if it is an exception of the appropriate type, it is passed
+to the handler; and if it is a different exception, it is propagated
+upwards.
+
+\subsubsection*{Detecting Deadlock}
+\label{sec:prelims-dejafu-impl-tests}
+
+Deadlock detection is implemented in GHC as part of garbage
+collection: if a thread is blocked on a variable which no running
+thread has a reference to, that thread is deadlocked. Unfortunately,
+the garbage collector is out of the reach of \dejafu{} (and even if it
+wasn't, would require everything to be in IO), and so by default the
+only deadlock detection is global: where every thread is blocked
+simultaneously.
+
+Deadlock where the main thread is blocked on a shared variable no
+other thread has a reference to is optionally implemented with special
+\texttt{\_conc} functions, as seen in \sect{prelims-dejafu-testing}. These record for
+each thread which shared variables are known about, allowing largely
+the same approach as the GC one if the state of every thread is fully
+known. The only downside is that if these functions are incorrectly
+used, there may be false results of testing.
+
+\subsubsection*{Schedule Bounding}
+\label{sec:prelims-dejafu-impl-bound}
+
+Testing in \dejafu{} is, by default, implemented using pre-emption
+bounding with a bound of two, which is itself a specialisation of the
+explicit support for schedule bounding. Enough of the internals are
+exposed such that other SCT runners could be implemented.
+
+An execution is parameterised with a deterministic scheduler which may
+have some state, and the execution returns the result, an execution
+trace, and the final scheduler state. Using the scheduler state, we
+can implement a very simple scheduler which takes some list of initial
+decisions to make (a schedule prefix), and which makes non-pre-emptive
+decisions after that point. Schedule bounding is implemented in terms
+of generating new schedules from a schedule prefix and suffix.
+
+Specifically, given a schedule suffix, there are functions to generate
+\textit{siblings} and \textit{offspring}. A sibling is a new partial
+prefix which, when appended to any prefix at all, does not result in a
+prefix in a different bounding level. An offspring is a new partial
+prefix which, when appended to any prefix at all, results in a prefix
+in the next bounding level up. In the case of pre-emption bounding,
+siblings are partial prefixes with no pre-emptions, and offspring are
+partial prefixes with one pre-emption, so producing a prefix with
+$n+1$ pre-emptions when appended to the original prefix.
+
+\begin{justspacing}
+\paragraph{Example}
+
+\begin{minted}{haskell}
+prefix = [Start 0]
+suffix = [(Continue, [], Fork 1)
+         ,(Continue, [SwitchTo 1], Stop)]
+\end{minted}
+
+Given this prefix and suffix, under pre-emption bounding there are no
+siblings, as the only available alternative choice would introduce a
+pre-emption. There is one offspring, by making the alternative
+decision at step 2 of the suffix:
+
+\begin{minted}{haskell}
+siblings suffix == []
+offspring suffix == [[Continue, SwitchTo 1]]
+\end{minted}
+
+This offspring would not be generated, however, as pre-emptions are
+only introduced around actions where it may effect the final result,
+such as access to a CVar. \hfill $\qed$
+\end{justspacing}
+
+This splitting into prefixes and suffixes makes it easy to prevent
+duplicate schedules. The schedule bounding runner stops generating
+offspring when the bound is reached, and explores schedules in a
+mostly breadth-first fashion. A negative bound can be passed in to
+explore all schedules, although this may take some time.
+
+Also implemented is a delay-bounding scheduler. A \textit{delay} is a
+deviation from an otherwise deterministic scheduler, and so
+delay-bounding has the advantage that the number of schedules grows
+more slowly than pre-emption bounding, as there is exactly one
+schedule with a delay count of 0, but potentially many with a
+pre-emption count of 0. The default testing mechanisms use pre-emption
+bounding because the guarantees that delay-bounding gives are
+influenced by the choice of scheduler, whereas pre-emption bounding
+gives a global property of all schedules, although both methods tend
+to perform about the same in terms of bug-finding
+ability\cite{empirical}.
+
+\subsection{Examples}
+\label{sec:prelims-dejafu-example}
+
+Two very different examples are discussed. The first is a variation of
+an example in \textit{Parallel and Concurrent Programming in
+  Haskell}\cite{parconc} of a concurrent message logger, into which a
+bug has intentionally been introduced. The entire program is
+presented, as it is very small. The second is a bug that arose,
+unintentionally, in the implementation of a library for performing
+search problems in parallel, where an incorrect use of CTMVars allowed
+a user of the library to obtain an incomplete result.
+
+\subsubsection*{Message Logger}
+\label{example-logger}
+
+We want a concurrent message logger with the following properties:
+
+\begin{itemize}
+  \item The logger can be sent a message, or it can be told to stop;
+    when told to stop, all messages sent before that point are
+    returned to the thread which stopped it.
+
+  \item Messages from the same thread should be in order, but messages
+    from different threads may be in any order.
+\end{itemize}
+
+Firstly, we shall define the types we're going to use:
+
+\begin{minted}{haskell}
+data Logger m   = Logger (CVar m LogCommand) (CVar m [String])
+data LogCommand = Message String | Stop
+
+initLogger :: MonadConc m => m (Logger m)
+initLogger = do
+  cmd <- newEmptyCVar
+  log <- newCVar []
+  let l = Logger cmd log
+  fork $ logger l
+  return l
+\end{minted}
+%$
+
+Now we need to be able to send a message to the logger. As CVars are
+being used, these functions will block if there is already a command
+there, we don't need to worry about thread overwriting each other's
+commands.
+
+\begin{minted}{haskell}
+logMsg :: MonadConc m => Logger m -> String -> m ()
+logMsg (Logger cmd _) = putCVar cmd . Message
+
+logStop :: MonadConc m => Logger m -> m [String]
+logStop (Logger cmd log) = do
+  putCVar cmd Stop
+  readCVar log
+\end{minted}
+
+Finally, we have the main loop of the logger. It blocks on taking a
+command and then, if it's a new message, appends the message to the
+list and loops, otherwise it terminates.
+
+\begin{minted}{haskell}
+logger :: MonadConc m => Logger m -> m ()
+logger (Logger cmd log) = loop where
+  loop = do
+    command <- takeCVar cmd
+    case command of
+      Message str -> do
+        strs <- takeCVar log
+        putCVar log $ strs ++ [str]
+        loop
+      Stop -> return ()
+\end{minted}
+%$
+
+One immediate thing to note is that if at least two threads attempt to
+communicate with the logger after it has been stopped, one will block
+indefinitely. If we assume one supervising process which orchestrates
+the concurrency (for example, a managing thread which starts a logger
+and a collection of worker threads, which report their status to the
+log), then this isn't a problem as the program can be structured to
+avoid this.
+
+The actual bug is less obvious, so let's write a simple test case and
+see what \texttt{autocheck} does for us:
+
+\begin{minted}{haskell}
+test :: MonadConc m => m [(ThreadId m, String)]
+test = do
+  l <- initLogger
+  j1 <- spawn (logMsg l "a" >> logMsg l "b")
+  j2 <- spawn (logMsg l "c" >> logMsg l "d")
+  readCVar j1; readCVar j2
+  logStop l
+\end{minted}
+
+Here we start a logger, fork off two threads which each write two
+messages to the log, wait for them to terminate, and stop the
+logger. We should always see 4 log entries, with ``a'' before ``b'',
+``c'' before ``d'', but all other orderings.
+
+Running with \texttt{autocheck}, we see\footnote{Traces have been
+  broken into multiple lines here, but the tool does not do any output
+  wrapping by itself.} the following:
+
+\begin{verbatim}
+> autocheck test
+[pass] Never Deadlocks (checked: 104626)
+[pass] No Exceptions (checked: 104626)
+[fail] Consistent Result (checked: 5)
+  ["a","b","c"] S0---------S2-----S3---S1----S2--
+    -S1----S3---S1----S3---S1-P0------
+  ["a","b","c","d"] S0---------S2-----S1----S2---
+    S1----S3-----S1----S3---S1----S0------
+  ["a","b","c"] S0---------S2-----S1----S2---S1--
+    --S3-----S1----S3---S0---S1-P0----
+  ["a",c","b"] S0---------S2-----S1----S3-----S2-
+    S1----S2---S1----S3---S1-P0------
+  ["a","c","b","d"] S0---------S2-----S1----S3---
+    --S1----S2---S1----S3---S1----S0------
+  ...
+False
+\end{verbatim}
+
+Well, we found a bug: sometimes the last message gets missed. Also,
+the cases where the last message is dropped all appear to end with a
+pre-emption of thread 1 (the logger thread) by thread 0 (the initial
+thread). We can restrict the results by checking a different
+condition:
+
+\begin{verbatim}
+> dejafu test
+  ( "4 Values"
+  , alwaysTrue $ \(Right xs) -> length xs == 4)
+[fail] 4 Values (checked: 16)
+  ["a","b","c"] S0---------S2-----S3---S1----S2--
+    -S1----S3---S1----S3---S1-P0------
+  ["a","b","c"] S0---------S2-----S1----S2---S1--
+    --S3-----S1----S3---S0---S1-P0----
+  ["a","c","b"] S0---------S2-----S1----S3-----S2
+    -S1----S2---S1----S3---S1-P0------
+  ["a","c","d"] S0---------S2-----S1----S3-----S1
+    ----S3---S2-S1----S2---S1-P0------
+  ["a","c","b"] S0---------S2-----S1----S3-----S1
+    ----S2---S1----S3---S0---S1-P0----
+  ...
+False
+\end{verbatim}
+
+We see that the pattern continues. Upon a closer inspection of
+\texttt{logger}, we can see that if it is pre-empted between the
+\texttt{takeCVar cmd} and the \texttt{takeCVar log}, a stop command
+can be written without blocking, and an incomplete log returned. One
+solution to this would be to replace the first \texttt{takeCVar} with
+a \texttt{readCVar}, and only empty the CVar when the processing of
+the command is complete.
+
+\subsubsection*{Parallel Search}
+\label{sec:prelims-dejafu-example-searchparty}
+
+A library called
+\textit{search-party}\footnote{\url{https://github.com/barrucadu/search-party}}
+has been developed, for speculative parallelism in generate-and-test
+search problems. It is motivated by the consideration that: if
+multiple acceptable solutions exist, it doesn't matter which one is
+returned, as long as one is guaranteed to be returned. Initially, only
+single results could be returned, but support for returning all
+results was later added, incorrectly, introducing a bug.
+
+The key piece of code causing the problem was this part of the worker
+loop:
+
+\begin{minted}{haskell}
+case maybea of
+  Just a -> do
+    atomically $ do
+      val <- tryTakeCTMVar res
+      case val of
+        Just (Just as) -> putCTMVar res $ Just (a:as)
+        _ -> putCTMVar res $ Just [a]
+    unless shortcircuit $
+      process remaining res
+  Nothing -> process remaining res
+\end{minted}
+
+Here ``maybea'' is a value indicating whether the particular
+computation just evaluated was successful. The intended behaviour is
+that, when gathering all results, if a computation is successful it is
+added to the list in the ``res'' CTMVar, and then in any case
+processing continues. This CTMVar is exposed indirectly to the user of
+the library, it is blocked upon when the final result of the search is
+requested.
+
+There are some small tests in search-party, verifying that deadlocks
+and exceptions don't arise, and that results are as expected. Upon
+introducing this new functionality, tests began to fail with differing
+result lists returned for different schedules:
+
+\begin{minted}{haskell}
+checkResultLists :: Eq a => Predicate [a]
+checkResultLists = alwaysTrue2 check
+  where
+  check (Right as) (Right bs) =
+    as `elem` permutations bs
+  check a b = a == b
+\end{minted}
+
+Given this predicate, we can very clearly see the problem:
+
+\begin{verbatim}
+> dejafu (runFind $ [0..2] @! const True)
+         ("Result Lists", checkResultLists)
+[fail] Result Lists (checked: 46)
+  Just [2,1] S0----S1-----S2-P3-----------S0----
+  Just [0,2,1] S0----S1-----S2-P3-----------S2---
+    ---S0----
+  Just [2,1] S0----S1-----S2--P3-----------S0----
+  Just [0,2,1] S0----S1-----S2--P3-----------S2--
+    ---S0----
+  Just [2,1] S0----S1-----S2---P3-----------S0----
+  ...
+False
+\end{verbatim}
+
+In this case, fixing the failure did not require any interactive
+debugging, as only one place had been modified in introducing the new
+functionality, and re-reading the code with the possibility of error
+in mind led immediately to noticing the bug. However, the ability to
+produce a test case which reliably reproduces the problem allows
+confidence that it will be caught if it is reintroduced in a future
+version of the library.
+
+Specifically, there was no indication that a list-producing
+computation had finished. As results were written directly to the
+CTMVar, partial result lists could be read depending on how the worker
+threads and the main thread were interleaved.
+
+\subsection{Related Work}
+\label{sec:prelims-dejafu-related}
+
+Pre-emption bounding testing tools exist for both C\cite{maple} and
+Java\footnote{LazyLocks (Paul Thomson), to appear.} at least. SCT in
+Java is particularly nice, as the bytecode can be instrumented to
+support SCT at runtime, by the test runner. This frees the programmer
+from the need to structure their code in such a way to support SCT,
+they can just program as they have always done. This also allows
+legacy concurrent applications to be tested easily.
+
+PULSE\cite{pulse} is a concurrency testing tool for Erlang, where
+processes are synchronised by communicating with a scheduler process,
+and QuickCheck is used for schedule generation.  PULSE supports
+automatic code instrumented to support this style of testing. As
+Erlang processes may be distributed, pre-emption bounding may not be
+suitable, as it assumes everything is executing on a single
+processor. Whilst there has been work on Erlang-style concurrency for
+Haskell\cite{cloudhaskell}, it is still relatively unpopular; in this
+case a PULSE-style approach may be better there.
+
+Whilst the MonadConc typeclass was structured to be similar to the
+standard concurrency primitives, the inspiration for this approach,
+and the basic idea behind how to do SCT in Haskell, was provided by a
+blog post\cite{typeclass}. However, both the family of primitives and
+the approach to testing have been significantly advanced.
+
+\subsection{Conclusions \& Further Work}
+\label{sec:prelims-dejafu-conclusion}
+
+Although a common joke amongst Haskell programmers is that ``if it
+compiles, it works'', this is demonstrably not the case. A number of
+profiling and debugging tools exist, typically requiring special
+runtime support. Concurrency is a particularly difficult area to get
+right, as everyone who has had to move outside the realm of guaranteed
+determinism will know. Yet there are no debugging tools for concurrent
+Haskell programs (ThreadScope\cite{threadscope} is a profiling tool,
+and merely gathers information on sample executions). This paper
+contributes such a tool, at the cost of a programmer having to use a
+generalisation of the familiar concurrency abstraction.
+
+Is this cost too high? Programmers are notoriously unwilling to
+restructure their code to allow for easier analysis or testing, unless
+the current situation is truly unbearable. It is generally regarded in
+the Haskell community as good practice to write IO-using functions as
+thin wrappers around calls to pure code, which hopefully will reduce
+the amount of change needed. The MonadConc and MonadSTM interfaces
+have been kept intentionally very similar to the IO and STM
+interfaces, typically all that a programmer needs to do will be to
+change some imports, some names, and a few type signatures.
+
+We implemented a library for fast parallel search on top of this
+abstraction, and some shortcomings were identified and rectified. In
+particular, there was originally no CRef type, as IORefs operations
+can potentially be re-ordered\cite{ioref}. However, IORefs with
+non-reorderable updates turned out to be exactly the abstraction
+needed for search-party's work stealing scheduler, and so it was
+added.
+
+Naturally, there is still work to be done:
+
+\begin{itemize}
+  \item Swapping out the regular concurrency primitives for the
+    MonadConc primitives could be done at compile- or link-time, rather
+    than at the level of code. This would allow testing of legacy code,
+    and also free the programmer from needing to modify their code,
+    however it would require recompiling all dependencies with this
+    functionality enabled (as is currently the case when building
+    something with profiling enabled).
+
+  \item It is impossible in the current implementation to include
+    functions like \texttt{threadDelay}, as testing assumes that any
+    nondeterminism is due to the scheduler, but causing a thread to
+    sleep is a notoriously nondeterministic operation, with the actual
+    amount of time slept depending partly on the operating system's
+    scheduler, which remains out of reach.
+
+  \item If a thread enters an infinite loop, or something similar, in
+    one primitive action call, the entire test runner will lock up,
+    even if that would not happen when executing normally. This is
+    because the test runner cannot do things on a granularity smaller
+    than one primitive action.
+
+  \item Whilst some work is done to not explore uninteresting
+    schedules, it is very naive. Dynamic partial-order reduction
+    (DPOR)\cite{dpor} is a technique for dynamically deciding which
+    traces will not be interesting based on thread interactions, and
+    so greatly reducing the search space. This would increase testing
+    performance, and make feasible the testing of large programs.
+
+  \item In practice, schedulers are biased towards a particular subset
+    of the possible schedules. They may try to guarantee fairness, for
+    example. At the cost of less complete results, schedules which are
+    not sufficiently fair could be ignored, reducing the search space.
+\end{itemize}
+
+Despite these limitations, our tool solves a problem, and makes
+writing reliable Haskell programs a little easier.

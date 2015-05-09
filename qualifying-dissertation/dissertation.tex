@@ -1,4 +1,4 @@
-\documentclass[11pt,a4paper,twoside,openany]{report}
+\documentclass[10pt,a4paper,twoside,openany]{report}
 
 % Nicer fonts
 \usepackage[T1]{fontenc}
@@ -26,6 +26,9 @@
 \DeclareCaptionFormat{underlined}{#1#2#3\hrulefill}
 \captionsetup[figure]{format=underlined}
 
+% Listings
+\usepackage{minted}
+
 % Stuff at the end
 \usepackage[toc,page]{appendix}
 \usepackage[xindy]{glossaries}
@@ -40,7 +43,8 @@
 \usepackage{perpage}
 \MakePerPage{footnote}
 
-% Citations
+% Citations & Quotes
+\usepackage{attrib}
 \usepackage[backend=biber, style=ieee, sorting=ynt]{biblatex}
 \addbibresource{references.bib}
 
@@ -48,8 +52,24 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsfonts}
+
 % Conditional macros
 \usepackage{xifthen}
+
+% "departures" in dejafu
+\usepackage{framed}
+\usepackage{amsthm}
+
+\newenvironment{justspacing}{%
+\def\FrameCommand{\hspace{0pt}}%
+\MakeFramed {\advance\hsize-\width \FrameRestore}}%
+{\endMakeFramed}
+
+\newenvironment{departure}%
+{\begin{justspacing}%
+\noindent%
+\paragraph{Departure}}%
+{\hfill $\qed$ \end{justspacing}}
 
 % Definitions and theorems
 \usepackage{amsthm}
@@ -76,11 +96,6 @@
 \newtheorem{example}{Example}[section]
 
 \renewenvironment{proof}{{\noindent \bfseries Proof.}}{\qed}
-
-% Drawings
-\usepackage[usenames,dvipsnames]{color}
-\usepackage{tikz}
-\usetikzlibrary{trees}
 
 % Page layout jiggery pokery
 \usepackage{pdflscape}
@@ -127,6 +142,7 @@
 \newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
 \newcommand{\sect}[1]{\S\ref{sec:#1}}
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+\newcommand{\dejafu}{D\'{e}j\`{a} Fu}
 
 \title{%
 {\normalsize\scshape University of York}\\
