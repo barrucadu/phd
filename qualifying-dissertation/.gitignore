@@ -3,3 +3,5 @@
 !*.tex
 !*.bib
 !glossary.glo
+!space/
+!space/*.eps

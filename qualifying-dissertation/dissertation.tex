@@ -22,9 +22,19 @@
 % Figures
 \usepackage{float}
 \usepackage{caption}
-\DeclareCaptionFormat{default}{#1#2#3}
+\usepackage{subcaption}
+\usepackage{caption}
+
 \DeclareCaptionFormat{underlined}{#1#2#3\hrulefill}
 \captionsetup[figure]{format=underlined}
+
+\DeclareCaptionFormat{normal}{#1#2#3}
+\captionsetup[subfigure]{format=normal}
+
+% Tables
+\usepackage{tabularx}
+\usepackage{array}
+\newcommand{\cen}{\centering\arraybackslash}
 
 % Listings
 \usepackage{minted}

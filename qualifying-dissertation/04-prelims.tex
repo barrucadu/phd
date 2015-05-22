@@ -1139,3 +1139,1248 @@ Naturally, there is still work to be done:
 
 Despite these limitations, our tool solves a problem, and makes
 writing reliable Haskell programs a little easier.
+
+\section{Search Party}
+\label{sec:prelims-searchparty}
+
+\subsection{Introduction}
+\label{sec:prelims-searchparty-intro}
+
+Generate-and-test computations are very common in functional programs,
+whether these be in the form of generating and testing statements in
+list comprehensions, or chained calls to \verb|map| and
+\verb|filter|. Although Haskell compilers generating sequential code
+are now very good at optimising this sort of thing, the opportunity
+for parallelism is enticing.
+
+List comprehensions are only one facet of generate-and-test problems,
+however. Searches which return a successful result, if one exists,
+from a pool of candidates can be regarded as a non-deterministic
+generate-and-test. Sometimes this nondeterministic result itself may
+be required, in which case the computation falls into \verb|IO|, but
+other times merely the presence or absence of a result must be known,
+restoring determinism.
+
+This paper presents a monad for search computations, which can either
+return the first successful result, or any successful result
+nondeterministically, with the constraint that \textit{if} a
+successful result exists, \textit{one} will definitely be returned. A
+generalisation is then developed to produce a stream of all such
+results.
+
+For example, we can find (nondeterministically) a perfect number:
+
+\begin{minted}{haskell}
+perfect :: IO Integer
+perfect = runFind $ [1..] ! isperfect
+  where
+  isperfect n =
+    sum [x | x <- [1..n - 1], n `rem` == 0] == n
+\end{minted}
+%$
+
+\subsection*{Contributions}
+
+We make the following contributions:
+
+\begin{itemize}
+  \item a new library called Search
+    Party\footnote{\url{https://github.com/barrucadu/search-party}}
+    for lazy parallel search;
+
+  \item several illustrative examples of varying complexity;
+
+  \item benchmark results showing how the library performs.
+\end{itemize}
+
+\subsection*{Roadmap}
+
+The rest of the section is organised as follows:
+
+\begin{itemize}
+  \item \sect{prelims-searchparty-api} presents the API of the library developed, explaining
+    the semantics of the operations.
+
+  \item \sect{prelims-searchparty-impl} discusses the implementation, including the
+    complete implementation of a parallel worker.
+
+  \item \sect{prelims-searchparty-examples} shows how Search Party has been applied to a
+    small number of existing programs. Benchmark results for both time and space
+    under varying degrees of parallelism are also displayed, compared
+    with the original programs.
+
+  \item \sect{prelims-searchparty-related} discusses related work, such as the Par
+    monad\cite{par} and how this work differs.
+
+  \item \sect{prelims-searchparty-concs} summarises the work done and draws conclusions.
+\end{itemize}
+
+\subsection{The \texttt{Find} Monad}
+\label{sec:prelims-searchparty-api}
+
+The goal of this work is to provide a parallel abstraction over
+generate-and-test powerful enough to handle many instances of this
+pattern. The interface is structured around a monad, \verb|Find|:
+
+\begin{minted}{haskell}
+newtype Find a
+instance Functor     Find
+instance Applicative Find
+instance Alternative Find
+instance Monad       Find
+instance MonadPlus   Find
+instance Monoid o => Monoid (Find o)
+\end{minted}
+
+Results in the \verb|Find| monad can be extracted with \verb|runFind|:
+
+\begin{minted}{haskell}
+runFind :: Find a -> IO (Maybe a)
+\end{minted}
+
+As can be seen from the type, a \verb|Find a|\footnote{\texttt{Find}
+  is actually also parametrised by the underlying concurrency monad,
+  using the \texttt{MonadConc} typeclass from \dejafu{}, which allows
+  testing. IO and the standard concurrency primitives are used here
+  for simplicity of presentation.} value represents a computation
+that, when executed, might \textit{fail}.
+
+The intuition behind the \verb|Find| monad is:
+
+\begin{itemize}
+  \item if there is a solution, we want one;
+
+  \item if there are multiple solutions, we don't care which we get;
+
+  \item as searching may be expensive, parallelism should be exploited
+    as much as possible.
+\end{itemize}
+
+There are also some functions to extract results using
+\verb|unsafePerformIO|:
+
+\begin{minted}{haskell}
+hasResult :: Find a -> Bool
+toMaybe   :: Find a -> Maybe a
+\end{minted}
+
+Note that \verb|toMaybe| is only pure if the result found is
+deterministic.
+
+A \verb|Find| computation is defined in terms of work items, which are
+explored in parallel. The Functor and Applicative instances preserve
+parallelism by deferring blocking on a result until it is actually
+required. The magic happens in the Applicative \verb|<*>| operator:
+
+\begin{minted}{haskell}
+(Find mf) <*> (Find ma) = Find $ do
+  -- Begin computing 'f' and 'a' in parallel.
+  f <- mf
+  a <- ma
+
+  -- Block until they are both done, or until
+  -- one fails.
+  successful <- blockOn [void f, void a]
+
+  if successful
+  then do
+    -- Extract the results
+    fres <- unsafeResult f
+    ares <- unsafeResult a
+
+    -- Return the result
+    workItem' . Just $ fres ares
+
+  else workItem' Nothing
+\end{minted}
+
+Similarly to Haxl\cite{haxl}, both sides of the \verb|<*>| are
+explored in parallel for a result, rather than the traditional
+approach which would examine the first argument and then the
+second. Binding the monadic value inside the \verb|Find| newtype
+begins the parallel search for a result. The \verb|blockOn| function
+blocks until one of the provided work items fails, or until all
+succeed. As this computation is wrapped up inside a \verb|Find|, it
+will not be executed until the result is demanded.
+
+The Alternative and MonadPlus instances correspond to a
+nondeterministic choice if both arguments succeed, and the Monoid
+instance \verb|mappend|s the results together.
+
+The basic building-blocks for \verb|Find| computations are
+\verb|oneOf|, \verb|success|, and \verb|failure|, which together allow
+transforming a sequential search into a parallel one, by returning a
+successful result nondeterministically:
+
+\begin{minted}{haskell}
+oneOf   :: Foldable t  => t (Find a) -> Find a
+success :: a -> Find a
+failure :: Find a
+\end{minted}
+
+From these, many combinators can be derived, such as \verb|!| (so
+called because it is a kind of indexing operation), and \verb|?|
+(because it's a kind of indexing operation using \verb|Maybe|):
+
+\vfill
+\begin{minted}{haskell}
+(!) :: Foldable t  => t a -> (a -> Bool) -> Find a
+as ! p = oneOf . map p' $ toList as where
+  p' a = if p a then success a else failure
+
+(?) :: Foldable t => t a -> (a -> Maybe b) -> Find b
+as ? f = oneOf . map f'  $ toList as where
+  f' = maybe failure success . f
+\end{minted}
+
+\subsubsection{Generalising to \texttt{Stream}s}
+\label{sec:prelims-searchparty-api-stream}
+
+A natural progression from finding a single successful result is to
+find \textit{all} such results:
+
+\begin{minted}{haskell}
+allOf :: Foldable t => t (Find a) -> IO (Stream a)
+\end{minted}
+
+A \verb|Stream| is like a \verb|Find| which contains multiple
+values.
+
+\begin{minted}{haskell}
+newtype Stream a
+instance Functor     Stream
+instance Applicative Stream
+\end{minted}
+
+\noindent where the Applicative instance zips two \verb|Stream|s
+together with \verb|($)|.
+
+For example, we can find all perfect numbers:
+
+\begin{minted}{haskell}
+perfect :: [Integer]
+perfect = toList $ [1..] >! isperfect
+  where
+  isperfect n =
+    sum [x | x <- [1..n - 1], n `rem` == 0] == n
+\end{minted}
+%$
+
+Naturally, \verb|Stream|s can be read from, which has the side-effect
+of removing the head element:
+
+\begin{minted}{haskell}
+readStream :: Stream a -> IO (Maybe a)
+\end{minted}
+
+Where the result is deterministic, a \verb|Stream| can also be turned
+into a lazy list,
+
+\begin{minted}{haskell}
+toList       :: IO (Stream a) -> [a]
+unsafeToList :: Stream a -> [a]
+\end{minted}
+
+The \verb|unsafeToList| function is so called because it combines
+side-effectful reading with \verb|unsafePerformIO| internally. It is
+only safe, then, if the \verb|Stream| is \textit{never used again}
+after passing it to \verb|unsafeToList|. The \verb|toList| function is
+safer as, rather than taking a \verb|Stream| directly, it takes a
+computation which produces a \verb|Stream|.
+
+A \verb|Stream| does not ``wrap up'' a concurrent computation, and as
+reading from a stream has a monadic side-effect, \verb|Stream| as it
+currently is cannot have a Monad instance. This does not seem to be a
+hindrance in practice, as the main use of \verb|Stream| has been in
+parallelising list comprehensions.
+
+\subsubsection{Regaining Determinism}
+\label{sec:prelims-searchparty-api-det}
+
+Both \verb|Find| and \verb|Stream| have functions to extract results
+which are only pure when the result is deterministic. So far the
+presented functions can only be deterministic if there is a single
+successful result, in which case the distinction between \verb|Find|
+and \verb|Stream| is rather meaningless!
+
+Determinism can be restored, however, by returning results in the
+order that they appear in the \verb|Foldable.toList| enumeration of
+their container. In the case of \verb|Find| this means returning the
+first successful result \textit{in the list}, rather than the first
+successful result \textit{to finish computing}. Two new basic
+functions are thus provided:
+
+\begin{minted}{haskell}
+firstOf   :: Foldable t => t (Find a) -> Find a
+orderedOf :: Foldable t => t (Find a) -> IO (Stream a)
+\end{minted}
+
+Unfortunately, this ordering property, which is needed to produce a
+deterministic result, requires additional synchronisation between
+parallel workers, and so introduces additional blocking. This is why
+the nondeterministic functions are still provided, as they may be
+faster.
+
+\subsection{Implementation}
+\label{sec:prelims-searchparty-impl}
+
+A \verb|Find| computation is defined in terms of work items, where a
+work item contains a \textit{future} result, along with a monadic
+action to terminate the computation early.
+
+\begin{minted}{haskell}
+newtype Find a = Find
+  { unFind :: IO (WorkItem a) }
+
+newtype WorkItem a = WorkItem
+  { unWrap :: forall x. WorkItem' x a }
+
+data WorkItem' x a = WorkItem'
+  { _result :: TMVar (Maybe x)
+  , _mapped :: x -> a
+  , _killme :: IO ()
+  }
+
+result :: WorkItem a -> IO (Maybe a)
+result f = fmap (_mapped $ unWrap f) `liftM` res
+  where
+  res = atomically . readTMVar . _result $ unWrap f
+\end{minted}
+
+The \verb|_mapped| value allows a stored function to be applied
+to the result when it is demanded. The \verb|_killme| value allows
+a stored action to terminate the parallel computation before it
+completes.
+
+The purpose of the existential quantification wrapping the
+\verb|WorkItem'| is to prevent the type variable in \verb|_result|
+from propagating outwards. The type of the result doesn't matter, as
+long as there is a function to convert it to a known type.
+
+The scheduler, when invoked, takes a Boolean indicating whether to
+produce a \verb|Stream| or a \verb|Find|; a Boolean indicating whether
+the values returned should be in-order; a list of
+\verb|IO (WorkItem a)| values to process; and returns either a
+read-only channel, or a \verb|TMVar|. Initial experiments simply used
+a \verb|Find [a]| type for streams, but getting a result out of that
+requires blocking until the entire list is computed as \verb|>>=| for
+IO is strict, which is undesirable. As many worker threads are created
+as there are \textit{capabilities} available.
+
+A capability is an opportunity for true parallelism. For example, a
+single quad-core processor has up to four capabilities, depending on
+how the program is invoked. The number of capabilities used is a
+parameter of the run-time system, and defaults to 1.
+
+The worker threads are implemented with the \verb|explorer| function,
+shown in Figures \ref{fig:impl-explorer1} and
+\ref{fig:impl-explorern}, which step through the list of work items,
+writing results found to an output \verb|TMVar|.
+
+\subsubsection{One capability}
+\label{sec:prelims-searchparty-impl-one}
+
+If there is only one capability, there is only one worker, so most
+synchronisation can be avoided. This reduces the cost of using Search
+Party, but as seen in Figure \ref{fig:examples-time}, it is not
+eliminated entirely. The remaining overhead is due to how results are
+communicated to the consumer. In a sequential list-using computation,
+once a result has been computed it is available to the consumer very
+cheaply. Search Party sends all results through \verb|TMVar|s, which
+involves STM, an additional cost which is not involved at all in the
+sequential case.
+
+\begin{figure}[t]
+  \centering
+  \begin{minted}{haskell}
+explorer looping _ 1 items wf _ liveworkers var = do
+  work <- atomically $ readTVar items
+  loop work
+  atomically $ writeTVar liveworkers 0
+
+  where
+  loop ((item,_):rest) =
+    item >>= result >>= maybe (loop rest) (\a -> do
+      atomically . putTMVar var $ wf a
+      when looping $ loop rest)
+
+  loop [] = return ()
+  \end{minted}
+  \caption{\texttt{explorer} function for one capability}
+  \label{fig:impl-explorer1}
+\end{figure}
+
+In Figure \ref{fig:impl-explorer1}, two arguments of \verb|explorer|
+are ignored, as they are not necessary when there is a single
+worker. The remaining arguments are as follows:
+
+\begin{itemize}
+  \item \verb|looping| determines whether to keep going after finding
+    the first successful result;
+
+  \item \verb|1| is the number of capabilities;
+
+  \item \verb|items| is the list of work items, stored in a
+    \verb|TVar|;
+
+  \item \verb|wf| is a function to transform the result prior to
+    putting it in the output variable;
+
+  \item \verb|liveworkers| is a \verb|TVar| containing the number of
+    worker threads still running, it is used to detect termination
+    without finding a result;
+
+  \item \verb|var| is the \verb|TMVar| to store successful results
+    in.
+\end{itemize}
+
+This one-capability case atomically claims all work items from the
+list. It then walks down that list processing work items until it
+finds a successful one, which is written to the output variable. In
+this case, the result will always be in-order.
+
+\subsubsection{Multiple capabilities}
+\label{sec:prelims-searchparty-impl-multi}
+
+With multiple capabilities, additional synchronisation work must be
+done when producing an in-order result. If a worker finds a successful
+result, it \textit{cannot} communicate that result to the reading
+process until \textit{no other worker is processing a work item
+  earlier in the list}.
+
+Every argument is used here. The additional ones are:
+
+\begin{itemize}
+  \item \verb|inorder| determines whether to produce an in-order
+    result;
+
+  \item \verb|caps| is the number of capabilities;
+
+  \item \verb|currently| is a \verb|TVar| of \verb|(Int,Int)| pairs,
+    recording the minimum and maximum index of the work items that a
+    thread has currently claimed.
+\end{itemize}
+
+\subsubsection*{Reducing contention}
+\label{sec:prelims-searchparty-impl-multi-contention}
+
+The obvious approach is to have each worker thread claim a single work
+item, process it, and then loop. We can provide for in-order results
+by simply having a shared mutable list of \verb|Int|s, to record the
+index of the work item each thread is currently processing.
+
+Unfortunately, with large numbers of workers (beyond about 8 on the
+Amicable Pairs benchmark), the contention over the single shared work
+queue greatly reduces performance. One solution is to claim multiple
+work items every time the worker runs out. Initial experiments we
+tried suggested that claiming as many work items are there are
+capabilities worked well.
+
+However if the list is small relative to the number of capabilities,
+then there is a risk of loss of parallelism. A single worker may claim
+a significant portion of the work, leaving others with nothing to do.
+
+Furthermore, a mere list of \verb|Int|s is no longer sufficient for
+producing in-order results, as we now need to know how many
+\textit{unprocessed} work items a thread has claimed. As work item
+indices are in ascending order, we can instead have a shared list of
+\verb|(Int, Int)|, representing the minimum and maximum indices a
+thread has claimed.
+
+The current version of Search Party claims an increasing number of
+work items on every iteration, up to the number of capabilities. This
+then makes the main loop take a list of numbers of items to claim,
+
+\begin{minted}{haskell}
+explorer ... = loop ([1..caps] ++ repeat caps) []
+\end{minted}
+
+\subsubsection*{The main loop}
+\label{sec:prelims-searchparty-impl-multi-loop}
+
+\begin{figure}[t]
+  \centering
+  \begin{minted}{haskell}
+loop (n:ns) [] = do
+  items <- atomically $ do
+    witems <- readTVar items
+
+    case splitAt n witems of
+      ([], []) -> return Nothing
+
+      (mine, rest) -> do
+        writeTVar items rest
+        when inorder $ modifyTVar'' currently claim
+        return $ Just mine
+
+  maybe (atomically retire) (loop ns) items
+
+  where
+  claim  = ((snd $ head mine, snd $ last mine):)
+  retire = modifyTVar' liveworkers $ subtract 1
+  modifyTVar'' tvar = modifyTVar' tvar . force
+
+loop n ((item, idx):rest) = do
+  fwrap  <- item
+  maybea <- result fwrap
+
+  case maybea of
+    Just a -> do
+      atomically $ do
+        when inorder $ readTVar currently >>= block
+
+        putTMVar var $ wf a
+        when inorder unclaim
+
+        unless looping retire
+      when looping $ loop n rest
+    _ -> do
+      atomically $ when inorder unclaim
+      loop n rest
+
+  where
+  block = check . all ((>=idx) . fst)
+  retire = modifyTVar' liveworkers $ subtract 1
+  \end{minted}
+  \caption{\texttt{explorer} loop for multiple capabilities}
+  \label{fig:impl-explorern}
+\end{figure}
+
+The main loop is displayed in Figure \ref{fig:impl-explorern}. There
+are two cases to consider.
+
+If the worker runs out of work, more must be claimed. If no work items
+can be claimed, the worker decrements \verb|liveworkers| variable, and
+terminates. The use of a hyper-strict \verb|modifyTVar''| here
+prevents a large build-up of thunks in the heap, which caused
+excessive garbage collection and greatly reduced performance when
+there were more than about 4 workers.
+
+If the worker still has work to do, the main loop is a simple
+recursion down this list. The only complications arising from in-order
+results. Upon finding a successful result, if in-order results are
+required, the worker blocks until every other worker is working on a
+work item with a higher index. It also notifies every other worker
+when it is done with a work item. Here \verb|unclaim| updates the
+shared list of work items every thread owns. As all workers share the
+same output \verb|TMVar|, workers may be holding on to a successful
+result, waiting for this variable to be read. The effect is to build
+up a small buffer of results which can be read in quick succession
+without needing to wait.
+
+\subsection{Examples and Performance}
+\label{sec:prelims-searchparty-examples}
+
+% This is here to make it appear at the top of the examples page.
+\begin{figure*}[ht]
+  \centering
+  \begin{tabularx}{\textwidth}{|r|X|X|X|X|X|X|X|}
+    \hline & \multicolumn{7}{c|}{\textbf{Version}}\\
+    \hline \cen\textbf{Program} & \cen\textbf{Original}
+                                & \cen\textbf{-N1}
+                                & \cen\textbf{-N2}
+                                & \cen\textbf{-N4}
+                                & \cen\textbf{-N8}
+                                & \cen\textbf{-N16}
+                                & \cen\textbf{-N24}\\
+
+    \hline Amicable Pairs & 179s (1x)
+                          & 222s (0.8x)
+                          & 134s (1.3x)
+                          & 72.1s (2.5x)
+                          & 39.2s (4.6x)
+                          & 28.6s (6.3x)
+                          & 26.8s (6.7x)\\
+
+           Mate-in-N      & 20.9s (1x)
+                          & 21.3s (1.0x)
+                          & 11.5s (1.8x)
+                          & 7.8s (2.7x)
+                          & 6.4s (3.3x)
+                          & 6.5s (3.2x)
+                          & 7.0s (3.0x)\\
+
+        %  CountDown (sols) & 22.4s (1x)
+        %                   & 25.9s (0.9x)
+        %                   & 14.8s (1.5x)
+        %                   & 8.6s (2.6x)
+        %                   & 6.8s (3.3x)
+        %                   & 7.6s (2.9x)
+        %                   & 9.2s (2.4x)\\
+        % CountDown (sols') & 1.67s (1x)
+        %                   & 2.5s (0.7x)
+        %                   & 1.5s (1.4x)
+        %                   & 0.89s (1.9x)
+        %                   & 0.73s (2.3x)
+        %                   & 0.84s (2.0x)
+        %                   & 1.1s (1.5x)\\
+               CountDown  & 0.49s (1x)
+                          & 0.55s (0.9x)
+                          & 0.35s (1.4x)
+                          & 0.21s (2.3x)
+                          & 0.16s (3.1x)
+                          & 0.16s (3.1x)
+                          & 0.18s (2.7x)\\
+
+           Iso. Checker   & 1.70s (1x)
+                          & 2.27s (0.8x)
+                          & 1.51s (1.1x)
+                          & 0.78s (2.2x)
+                          & 1.33s (1.3x)
+                          & 5.61s (0.3x)
+                          & 8.31s (0.2x)\\
+    \hline
+  \end{tabularx}  
+  \caption{Benchmark timing results, with the Search Party version
+    executed with differing numbers of threads.}
+  \label{fig:examples-time}
+\end{figure*}
+
+We now present some applications of Search Party to existing programs,
+ranging from the very simple (enumerating amicable pairs) to the
+complex (solving the mate-in-n problem for a given chess problem).
+
+We benchmarked on a machine with 4 AMD Opteron 6134 8-core processors
+at 2.3GHz, for a total of 32 cores. The OS was Ubuntu 14.04, using GHC
+7.6.3 with no optimisation flags. All timing results were averaged
+over 10 runs.
+
+Timing results and speed-up under differing degrees of parallelism are
+displayed in Figure \ref{fig:examples-time}. For some benchmarks,
+memory use of original and modified programs (with -N4) are displayed
+in Figure \ref{fig:examples-space}. As can be seen, the Search Party
+versions of the benchmarks consume more memory, but the usage is not
+as consistent. This is because of the induced producer-consumer
+pattern, as seen in the blocking behaviour of workers in \sect{prelims-searchparty-impl}.
+
+Of particular interest are the benchmark results for the most
+optimised variant of Hutton's Countdown solver. This is a hand-tuned,
+simple, program: it is even used as an example of how program
+transformations can be used for great performance gains! Even so, the
+Search Party version is able to outperform the original by a factor of
+three on eight cores, with no domain-specific optimisation to the
+parallelism.
+
+\begin{figure*}[t]
+  \centering
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{space/amis-orig.eps}
+    \caption{Amicable Pairs}
+    \label{fig:examples-space:amis-orig}
+  \end{subfigure}
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{space/amis-sp}
+    \caption{Amicable Pairs (Search Party)}
+    \label{fig:examples-space:amis-sp}
+  \end{subfigure}
+
+  % \begin{subfigure}{0.4\textwidth}
+  %   \includegraphics[width=\textwidth]{space/mate-orig}
+  %   \caption{Mate-in-N}
+  %   \label{fig:examples-space:mate-orig}
+  % \end{subfigure}
+  % \begin{subfigure}{0.4\textwidth}
+  %   \includegraphics[width=\textwidth]{space/mate-sp}
+  %   \caption{Mate-in-N (Search Party)}
+  %   \label{fig:examples-space:mate-sp}
+  % \end{subfigure}
+
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{space/sols-orig}
+    \caption{sols}
+    \label{fig:examples-space:sols-orig}
+  \end{subfigure}
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{space/sols-sp}
+    \caption{sols (Search Party)}
+    \label{fig:examples-space:sols-sp}
+  \end{subfigure}
+
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{space/sols2-orig}
+    \caption{sols'}
+    \label{fig:examples-space:sols2-orig}
+  \end{subfigure}
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{space/sols2-sp}
+    \caption{sols' (Search Party)}
+    \label{fig:examples-space:sols2-sp}
+  \end{subfigure}
+
+  % \begin{subfigure}{0.4\textwidth}
+  %   \includegraphics[width=\textwidth]{space/sols3-orig}
+  %   \caption{sols''}
+  %   \label{fig:examples-space:sols3-orig}
+  % \end{subfigure}
+  % \begin{subfigure}{0.4\textwidth}
+  %   \includegraphics[width=\textwidth]{space/sols3-sp}
+  %   \caption{sols'' (Search Party)}
+  %   \label{fig:examples-space:sols3-sp}
+  % \end{subfigure}
+
+  % \begin{subfigure}{0.4\textwidth}
+  %   \includegraphics[width=\textwidth]{space/iso-orig}
+  %   \caption{Iso. Checker}
+  %   \label{fig:examples-space:iso-orig}
+  % \end{subfigure}
+  % \begin{subfigure}{0.4\textwidth}
+  %   \includegraphics[width=\textwidth]{space/iso-sp}
+  %   \caption{Iso. Checker (Search Party)}
+  %   \label{fig:examples-space:iso-sp}
+  % \end{subfigure}
+
+  \caption{Benchmark memory results, with the Search Party version
+    executed with 4 threads.}
+  \label{fig:examples-space}
+\end{figure*}
+
+\subsection*{Amicable Pairs}
+\label{sec:prelims-searchparty-examples-amis}
+
+An \textit{amicable pair} is a pair of numbers such that the sum of
+the proper divisors of each equals the other. For example, $(220,
+284)$ is an amicable pair, as we have:
+
+\begin{align*}
+  D(220) &= \left\{1,~2,~4,~5,~10,~11,~20,~22,~44,~55,~110\right\}\\
+  D(284) &= \left\{1,~2,~4,~71,~142\right\}\\
+  220    &= 1 + 2 + 4 + 71 + 142\\
+  284    &= 1 + 2 + 4 + 5 + 10 + 11 + 20 + 22 + 44 + 55 + 110
+\end{align*}
+
+Where $D(x)$ here is the set of proper divisors of $x$. This benchmark
+enumerates and prints the first 100 amicable pairs. We can enumerate
+the set of amicable pairs with a list comprehension:
+
+\begin{minted}{haskell}
+amicablePairs :: [(Integer, Integer)]
+amicablePairs =
+  [ (n, sn)
+  | n <- [2..]
+  , let sn = sigmaBar n
+  , sn > n
+  , sigmaBar sn == n]
+\end{minted}
+
+\noindent where \verb|sigmaBar| computes this divisor sum. To avoid
+duplication, the elements of each pair are in ascending order.
+
+Initially pairs are found very quickly, but the pace of enumeration
+slows towards the end. As \verb|amicablePairs| is a generate-and-test
+computation with a simple generator and a more complex test, we aim to
+derive a new version using Search Party.
+
+We can obtain it by a fairly mechanical translation of the original:
+
+\begin{enumerate}
+  \item Split the implicit \verb|filter| out of the comprehension,
+\begin{minted}{haskell}
+amicablePairs =
+  filter (\(n,sn) -> sn > n && sigmaBar sn == n)
+  [(n,sigmaBar n) | n <- [2..]]
+\end{minted}
+
+  \item Factor out the predicate,
+\begin{minted}{haskell}
+amicablePairs =
+  filter ami [(n,sigmaBar n) | n <- [2..]]
+  where
+  ami (n, sn) = sn > n && sigmaBar sn == n
+\end{minted}
+
+  \item Turn the \verb|filter| into an \verb|inOrder|,
+\begin{minted}{haskell}
+amicablePairs =
+  inOrder ami [(n,sigmaBar n) | n <- [2..]]
+  where
+  ami (n, sn) = sn > n && sigmaBar sn == n
+\end{minted}
+
+  \item Replace \verb|inOrder| with \verb|>!|, which is just
+    \verb|flip inOrder|,
+\begin{minted}{haskell}
+amicablePairs =
+  [(n,sigmaBar n) | n <- [2..]] >! ami
+  where
+  ami (n, sn) = sn > n && sigmaBar sn == n
+\end{minted}
+
+  \item Convert the \verb|Stream| back into a list,
+\begin{minted}{haskell}
+amicablePairs =
+  toList $ [(n,sigmaBar n) | n <- [2..]] >! ami
+  where
+  ami (n, sn) = sn > n && sigmaBar sn == n
+\end{minted}
+\end{enumerate}
+%$
+
+This final version isn't too dissimilar to the \verb|filter| version
+in step 2. In fact, we could have stopped in step 3, had we added a
+call to \verb|toList| as well. As can hopefully be seen, for list
+comprehensions with a single generator, the introduction of
+parallelism is quite simple.
+
+\begin{figure}[t]
+  \centering
+  \begin{tabularx}{\linewidth}{|X|X|X|X|}
+    \hline \textbf{Version} & \textbf{Optimum} & \textbf{Actual} & \\
+    \hline -N1  & 179s (1x)   & 222s (0.8x)  & 0.8x \\
+           -N2  & 89.5s (2x)  & 134s (1.3x)  & 0.7x \\
+           -N4  & 44.8s (4x)  & 72.1s (2.5x) & 0.6x \\
+           -N8  & 22.4s (8x)  & 39.2s (4.6x) & 0.6x \\
+           -N16 & 11.2s (16x) & 28.6s (6.3x) & 0.4x \\
+           -N24 & 7.5s  (24x) & 26.8s (6.7x) & 0.3x \\
+    \hline
+  \end{tabularx}
+  \caption{Optimal speed-ups for Amicable Pairs}
+  \label{fig:examples-amis-amdahl}
+\end{figure}
+
+Figure \ref{fig:examples-amis-amdahl} shows optimal speed-ups for this
+benchmark, calculated using Amdahl's law after profiling revealed a
+negligible proportion of overall execution time sequentially consuming
+the list. The entire \verb|amicablePairs| comprehension, rather than
+just the explicit tests, was profiled. Due to lazy evaluation,
+parallelisation of the test also parallelises the generation to some
+extent.
+
+\subsection*{Mate-in-N}
+\label{sec:prelims-searchparty-examples-mate}
+
+The applicability of Search Party depends on the overall structure of
+a computation including a generate-and-test search. There is some
+sequential prefix doing some set-up, a period amenable to parallelism,
+and then a sequential suffix producing the final result. Ideally, the
+sequential prefix and suffix are very small compared to the parallel
+middle. This was certainly the case in the Amicable Pairs example.
+
+In the Mate-in-N benchmark, the prefix and suffix computations are
+more significant. This program attempts to solve the Mate-in-N
+problem. A chess position is presented where one side can mate the
+other in $n$ moves. The challenge is to find a pruned game-tree
+demonstrating the win no matter what moves the opponent makes. Here is
+an example input to the program (a position that actually arises in
+Kohtz v. Kockelkorn, 1875):
+
+\begin{verbatim}
+- - - - - - - K 
+- - - - - - - - 
+- - - - - n - p 
+- - - - - - - - 
+- - - - - - - - 
+- - - - - B P - 
+- - - - - - - - 
+b - - - - - k - 
+
+White to move and mate in 5
+\end{verbatim}
+
+Due to differing difficulties, timing results were averaged over 10
+different problems.
+
+The program is structured as generating a game tree, which can be done
+in parallel, but then pruning it sequentially to produce a minimal
+tree.
+
+The introduction of parallelism is a little more complex than in the
+Amicable Pairs, using an additional function parameter to prevent
+nested parallelism, which Search Party currently does not cope well
+with.
+
+\vspace{1cm}
+The original definition
+
+\begin{minted}{haskell}
+solution :: Board -> Colour -> Int -> Maybe Solution
+solution bd c n | n > 0 = 
+  let mds = moveDetailsFor c bd
+  in foldr solnOr Nothing mds
+\end{minted}
+
+\noindent is altered as follows.
+
+\begin{minted}{haskell}
+solution :: Bool
+         -> Board -> Colour -> Int -> Maybe Solution
+solution top bd c n | n > 0 = 
+  let mds = moveDetailsFor c bd
+  in if top
+     then toMaybe $ mds .? (flip solnOr Nothing)
+     else foldr solnOr Nothing mds
+\end{minted}
+%$
+
+The \verb|top| parameter indicates whether this is a ``top-level
+search'', or a search begun when constructing some lower level of the
+game tree. The candidate solutions for parallel exploration correspond
+to the possible initial moves.
+
+\begin{figure}[t]
+  \centering
+  \begin{tabularx}{\linewidth}{|X|X|X|X|}
+    \hline \textbf{Version} & \textbf{Optimum} & \textbf{Actual} & \\
+    \hline -N1  & 20.9s (1.0x) & 21.3s (1.0x) & 1.0x \\
+           -N2  & 11.6s (1.8x) & 11.5s (1.8x) & 1.0x \\
+           -N4  & 6.9s (3.0x)  & 7.8s (2.7x)  & 0.8x \\
+           -N8  & 4.6s (4.6x)  & 6.4s (3.3x)  & 0.7x \\
+           -N16 & 3.4s (6.2x)  & 6.5s (3.2x)  & 0.5x \\
+           -N24 & 3.0s (7.0x)  & 7.0s (3.0x)  & 0.4x \\
+    \hline
+  \end{tabularx}
+  \caption{Optimal speed-ups for Mate-in-N}
+  \label{fig:examples-mate-amdahl}
+\end{figure}
+
+Figure \ref{fig:examples-mate-amdahl} shows optimal speed-ups for this
+benchmark, assuming that 89.4\% of the work could be
+parallelised. This is optimistic, as it assumes every (recursive) call
+to \verb|solution| could be executed in parallel. Search Party is not
+suitable for expressing this sort of recursive generation of new work,
+as it does not currently share worker threads. As the result of the
+computation is finite and used in full, the Par monad may be a more
+viable approach here.
+
+\subsection*{Hutton's Countdown Solver}
+\label{sec:prelims-searchparty-examples-hutton}
+
+\textit{Countdown} is a gameshow where one of the components is a
+number game. Contestants choose a collection of 6 number cards, and
+then must get as close as possible to a randomly-generated three-digit
+number using only addition, subtraction, multiplication, and
+division. Not all numbers must be used, a number may be used as many
+times as it appears on the chosen number cards, and all stages of the
+calculation must involve integer values.
+
+Graham Hutton produced a series of programs\footnote{Timing results
+  for only the most optimal are shown.} to solve the
+\textit{Countdown} numbers game\cite{hutton}, with different levels of
+intelligence in how the problem was approached. The simplest is just a
+brute-force generation of all possible legal expressions; then there
+is a version which eliminates invalid solutions more rapidly; and
+finally there is a version exploiting arithmetical properties.
+
+The key elements of the three programs are list comprehensions, and
+are as follows,
+
+\begin{minted}{haskell}
+sols, sols', sols'' :: [Int] -> Int -> [Expr]
+sols ns n   = [e | ns' <- choices ns
+                 , e   <- exprs   ns'
+                 , eval e == [n]]
+
+sols' ns n  = [e | ns'   <- choices ns
+                 , (e,m) <- results ns'
+                 , m == n]
+
+sols'' ns n = [e | ns'   <- choices  ns
+                 , (e,m) <- results' ns'
+                 , m == n]
+\end{minted}
+
+Where \verb|Expr| is an ADT representing expressions composed of the
+operators legal in the game.
+
+One hundred random \verb|(input, target)| pairs were generated, and
+the following benchmark constructed,
+
+\begin{minted}{haskell}
+main :: IO ()
+main = mapM_ (print . length . uncurry solutions) ...
+\end{minted}
+
+Timing results are divided by 100, to represent the time taken to
+solve an ``average'' \textit{Countdown} challenge.
+
+Parallelising the na\"{\i}ve solution proved to be a little tricky. A
+fairly straightforward transformation would be something like:
+
+\begin{minted}{haskell}
+sols ns n = parFilter (\e -> eval e == [n]) .
+  concatMap exprs $ choices ns
+\end{minted}
+%$
+
+\noindent where \verb|parFilter| is a function built out of the pieces
+we have seen so far. Unfortunately, this performed poorly, and
+contention over the list of expressions seemed to be the
+problem.
+
+Another version constructs the lists in separate threads and
+concatenates at the end.
+
+\begin{minted}{haskell}
+sols ns n = concat . parMap go $ choices ns where
+  go ns' = [e | e <- exprs ns', eval e == [n]]
+\end{minted}
+%$
+
+Here \verb|parMap| is defined to evaluate each element of the result
+to weak-head normal form, to ensure work is being done in
+parallel. This performed better, but still rather slowly. The problem
+with this sort of approach is that if any empty lists are produced, we
+will waste time concatenating them at the end, sequentially. It would
+be preferable to discard empty results in parallel.
+
+This observation lead to a final version:
+
+\begin{minted}{haskell}
+sols ns n = concat . go $ choices ns where
+  go xs = toList $ xs >? (check . es)
+  es ns' = [e | e <- exprs ns', eval e == [n]]
+
+  check [] = Nothing
+  check xs = Just xs
+\end{minted}
+
+Now, if a choice produces an empty list of expressions, it is
+discarded, we only concatenate nonempty lists, and so no time is
+wasted on useless results after the parallel computation finishes.
+
+In addition to providing a collection of ``primitive'' functions to
+parallelise in terms of \verb|Find| and \verb|Stream|, a part of the
+goal of Search Party is to be easy to integrate into existing code.
+So functions like \verb|parMap|, \verb|parFilter|, and
+\verb|parConcatMap| have been included in the library, to help
+approach this goal.
+
+With the insight that the generation of results from choices had to
+happen in the parallel threads, producing parallel variants of the two
+optimised functions was simple,
+
+\begin{minted}{haskell}
+sols'  ns n = parConcatMap
+  (\ns' -> [e | (e,m) <- results  ns', m == n]) $
+  choices ns
+
+sols'' ns n = parConcatMap
+  (\ns' -> [e | (e,m) <- results' ns', m == n]) $
+  choices ns
+\end{minted}
+
+\begin{figure}[t]
+  \centering
+  \begin{tabularx}{\linewidth}{|X|X|X|X|}
+    \hline \textbf{Version} & \textbf{Optimum} & \textbf{Actual} & \\
+    \hline -N1  & 0.49s (1.0x) & 0.55s (0.9x) & 0.9x \\
+           -N2  & 0.25s (1.9x) & 0.35s (1.4x) & 0.7x \\
+           -N4  & 0.14s (3.6x) & 0.21s (2.3x) & 0.6x \\
+           -N8  & 0.08s (6.4x) & 0.16s (3.1x) & 0.5x \\
+           -N16 & 0.04s (10x)  & 0.16s (3.1x) & 0.3x \\
+           -N24 & 0.04s (13x)  & 0.18s (2.7x) & 0.2x \\
+    \hline
+  \end{tabularx}
+  \caption{Optimal speed-ups for Hutton's Countdown solver}
+  \label{fig:examples-hutton-amdahl}
+\end{figure}
+
+Figure \ref{fig:examples-hutton-amdahl} shows optimal speed-ups for
+this benchmark, assuming all of the work done in the \verb|exprs|,
+\verb|eval|, \verb|results| and \verb|results'| functions can be
+parallelised. As with the Mate-in-N problem, this is optimistic, due
+to the lazy evaluation of the rest of the comprehension.
+
+\subsection*{Isomorphism Checker}
+\label{sec:prelims-searchparty-examples-isos}
+
+GP2\cite{gp2} is a nondeterministic programming language based on
+graph transformation, and an important component of the reference
+interpreter is a program to check if two graphs are isomorphic. The
+isomorphism checker first checks that the graphs are the same size,
+and then searches for an isomorphism by generating candidate node
+morphisms respecting node labels and degrees, testing if a morphism is
+a bijection.
+
+The GP2 graph file format is very simple, and by permuting the list of
+nodes, different but isomorphic graphs can be produced. 100 random
+permutations of a graph containing (disjoint) Sierpinski order 2 and 3
+graphs were produced, with timing results averaged over this.
+
+The introduction of parallelism is quite simple:
+
+\begin{minted}{haskell}
+isomorphic :: (Ord a, Ord b)
+           => Graph a b -> Graph a b -> Bool
+isomorphic g1 g2 =
+  length ns1 == length ns2 &&
+  ( parAny
+    (edgesIso g1 g2)
+    (bijectionsWith (nodeAttribs g1) ns1
+                    (nodeAttribs g2) ns2)
+  )
+  where
+  ns1 = allNodeKeys g1
+  ns2 = allNodeKeys g2
+\end{minted}
+
+The introduction of a \verb|parAny| (in place of a regular \verb|any|)
+is the only change made. As can be seen in Figure
+\ref{fig:examples-time} performance begins to fall with more than 4
+parallel workers. It is possible that a more sophisticated
+introduction of parallelism could have yielded better results, but
+this was not pursued.
+
+\begin{figure}[t]
+  \centering
+  \begin{tabularx}{\linewidth}{|X|X|X|X|}
+    \hline \textbf{Version} & \textbf{Optimum} & \textbf{Actual} & \\
+    \hline -N1  & 1.7s  (1.0x) & 2.27s (0.7x) & 0.7x \\
+           -N2  & 0.91s (1.9x) & 1.51s (1.1x) & 0.6x \\
+           -N4  & 0.52s (3.3x) & 0.78s (2.2x) & 0.7x \\
+           -N8  & 0.33s (5.3x) & 1.33s (1.3x) & 0.2x \\
+           -N16 & 0.22s (7.6x) & 5.61s (0.3x) & 0.03x \\
+           -N24 & 0.19s (8.9x) & 8.31s (0.2x) & 0.02x \\
+    \hline
+  \end{tabularx}
+  \caption{Optimal speed-ups for the Isomorphism Checker}
+  \label{fig:examples-isos-amdahl}
+\end{figure}
+
+Figure \ref{fig:examples-isos-amdahl} shows optimal speed-ups for this
+benchmark. The results for $n \geq 8$ are poor. Looking at the source
+of \verb|bijectionsWith|, it appears to be very sequentially in its
+current incarnation. This imposes unnecessary sequentiality and
+blocking when claiming work items, and so much of the benefit of
+parallelism is lost.
+
+\subsection{Related Work}
+\label{sec:prelims-searchparty-related}
+
+Speculative computation\cite{spec} is, in some sense, the exact
+opposite of lazy evaluation. Whereas in most cases, we wish to delay a
+computation until its result is demanded, sometimes it can be worth
+computing something ahead of time, on the assumption that it is likely
+to be needed. Such efforts will be wasted if the assumption proves
+incorrect. The cost of \textit{speculating} on such results can be
+lessened by performing the evaluation in parallel with the main thread
+of control, giving a net gain if the assumption is correct.
+
+GUM\cite{gum} introduces speculative parallelism in Haskell with the
+\verb|par| combinator, which starts evaluating its first argument in
+parallel and returns its first, and demonstrates a speed-up even with
+this primitive operation alone. In contrast, Search Party uses much
+more controlled parallelism, with control of the scheduling taken from
+the runtime system. This prevents a risk of a large amount of parallel
+computation being started at once, which would increase resource
+contention, which could happen with liberal application of \verb|par|.
+
+One application of speculative parallelism in Haskell is the work of
+Cope, Gent, and Hammond on parallel heuristic search\cite{parsat}
+applied to SAT solvers. In this work they produce two sequential SAT
+solvers which would be amenable to parallelism, rather than attempt to
+produce an optimal sequential solver. Both algorithms include a
+splitting step, to turn a problem into two simpler cases. Relative
+speed-ups of between 0.92 and 4.8 are obtained by introduction of
+parallelism at this splitting step.
+
+A version with explicit speculation support, where the parallel
+computation returns a continuation if it executes for too long without
+finding a result, performs slightly worse than the naive, more eager,
+approach. The authors suggest this may be due to overhead in their
+implementation of this mechanism.
+
+The Strategies\cite{strategies} library provides for speculative
+computation in Haskell by allowing the programmer to write an
+\textit{evaluation strategy}, specifying how some data structure is to
+be evaluated. Such strategies may include, for example, evaluating
+elements of a list in parallel. The building blocks are \verb|rseq|,
+which forces sequential evaluation, and \verb|rpar|, which forces
+parallel evaluation.
+
+The \verb|Stream| combinators of Search Party are very much in a
+speculative style: values not yet requested by the programmer are
+being searched for in parallel, on the assumption that they are
+\textit{likely} to be needed. Unlike Strategies, the parallelism is
+much more precisely controlled: the number of parallel agents is
+fixed, and the agents block if results are not demanded. The
+\verb|Stream| combinators can be thought of as variants on a parallel
+\verb|mapMaybe| operation, which could be implemented na\"{\i}vely
+with Strategies as follows.
+
+\begin{minted}{haskell}
+import Control.Parallel.Strategies
+parMapMaybe :: (a -> Maybe b) -> [a] -> [b]
+parMapMaybe f = catMaybes . parMap rseq f
+\end{minted}
+
+However the Strategies \verb|parMap| sparks off each element of the
+list at once, resulting in a potentially huge degree of
+parallelism. This in turn can lead to more contention over resources,
+and lowered performance. A work-around, then, might be to introduce
+chunking,
+
+\begin{minted}{haskell}
+parMapMaybe f = withStrategy (parListChunk 16 rseq)
+              . map f
+\end{minted}
+
+But what should the chunk size be? Furthermore, with an infinite list,
+this will still result in a great number of sparks. As there is no way
+to check if a value has been evaluated, there is no way for the
+programmer to keep the number of parallel agents constant, or to pause
+work if the agents are producing new results significantly more
+quickly than they are being demanded.
+
+The \verb|Par| monad\cite{par} provides for deterministic parallelism,
+and so might be seen as an obvious candidate to use, rather than the
+deterministic \verb|Find| and \verb|Stream| combinators. However, as
+noted, relaxing the requirement of determinism can be faster in some
+cases.
+
+Gaining a speed-up with parallelism necessarily requires doing work in
+separate threads, which laziness can thwart. The \verb|Par| monad is
+fully strict by default. Using Search Party to map a function over a
+list in parallel requires careful forcing of values. For example, the
+\verb|parMap| and \verb|parConcatMap| functions evaluate results to
+WHNF in parallel. This sadly means that the convenience functions
+provided in Search Party are \textit{not} a drop-in replacement for
+the standard list-processing functions in the presence of $\bot$s, as
+can be seen in this simple example:
+
+\begin{minted}{haskell}
+bad = null . parMap (\_ -> last [1..])
+\end{minted}
+
+Here, \verb|bad [1,2,3]| is $\bot$, whereas if \verb|map| were used
+instead, the result would be \verb|False|.
+
+Perhaps nondeterminism is over-rated. Most programmers would only use
+a library like Search Party to parallelise list comprehensions and
+similar pure computations. Even here, the \verb|Par| monad may not be
+suitable, as when a \verb|Par| computation terminates, all parallelism
+must be complete, consider:
+
+\begin{minted}{haskell}
+import Control.Monad.Par
+parMapMaybe f = catMaybes . runPar . parMap f
+\end{minted}
+
+This \verb|parMap| function spawns one thread for every element of the
+list, but as we \textit{do} know if a thread has finished with
+\verb|Par|, we can rewrite this to refrain from spawning new threads
+until they are needed. The problem is that no such function will
+terminate until the \textit{entire} list has been processed. In the
+case of an infinite list, then, the result is $\bot$.
+
+\subsection{Conclusions}
+\label{sec:prelims-searchparty-concs}
+
+We have presented a new library for parallel generate-and-test style
+computations, and demonstrated that it can give a significant speed-up
+over the sequential case. Furthermore, we have shown that it is not
+feasible to achieve the same flexibility as Search Party with
+Strategies or the \verb|Par| monad.
+
+Parallelism and concurrency are generally seen as worthwhile tools to
+apply to large problems. Because of the difficulty of correctly using
+them, applying them to small problems is often simply not
+considered. However, we have shown here that this ``parallelism in the
+small'' \textit{can} and \textit{does} offer improved performance, and
+so should be considered also.
+
+Concurrent Search Party computations currently receive no special
+treatment. Worker threads are created for all computations, and may
+contend over execution time. This can be seen in the applicative
+instance for \verb|Find|, but also arises with nested Search Party
+computations. A solution worth pursuing would have a global pool of
+workers which all computations share.
