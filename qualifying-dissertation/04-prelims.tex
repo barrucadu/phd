@@ -1,38 +1,61 @@
-\chapter{Preliminary Results}
+\part{Preliminary Results}
 \label{sec:prelims}
 
 % "describe research work you have already undertaken; report any
 % results you have already obtained and discuss their significance."
 
-\todo{Dump in Search Party paper when complete enough. Intro to
-  \dejafu{} and Search Party and their significance.}
+\chapter{\dejafu{}: A Concurrency Testing Library for Haskell}
+\label{chp:dejafu}
 
-\section{\dejafu{}}
-\label{sec:prelims-dejafu}
+\textit{This chapter contains a paper submitted to the 2015 Haskell
+  Symposium workshop}\cite{dejafu}.
 
-\dejafu{}\footnote{[\dejafu{} is] A martial art in which the user's
-  limbs move in time as well as space, [\ldots{}] It is best described
-  as ``the feeling that you have been kicked in the head this way
-  before''. \attrib{Terry Pratchett, Thief of Time}} is a library for
-SCT in Haskell. It provides a generalisation of the standard IO-using
-concurrency API, allowing for non-IO implementations to be used for
-testing purposes. Schedule bounding\cite{pbound} is used by the
-default test runner, although other test runners can be written.
+\section{Introduction}
+\label{sec:dejafu-intro}
+
+Haskell provides a substantial collection of primitives for expressing
+parallelism\footnote{Doing multiple things at once.} and
+concurrency\footnote{Programming as if doing multiple things at
+  once.}. \textit{Deterministic} parallelism solutions, such as the
+Par monad\cite{parmonad} and Strategies\cite{strategies} are very
+suitable for data-parallel tasks where the difficulty is efficiently
+performing some pure computation. However, they achieve their
+determinism by constraining the functionality of shared state, and so
+lose some convenience and utility.
+
+In this paper, the interest is more general: computations with
+constrained \textit{nondeterminism}, or interaction with the real
+world, as a key part of their functioning. Though very general, such
+computations can give rise to race conditions and deadlocks.
 
 \begin{justspacing}
 \paragraph{Example}
 
-\begin{minted}{haskell}
-main :: IO ()
-main = do
-  shared <- newMVar 0
-  forkIO . void $ swapMVar shared 1
-  forkIO . void $ swapMVar shared 2
-  readMVar shared >>= print
-\end{minted}
+%\begin{minted}{haskell}
+%main :: IO ()
+%main = do
+%  shared <- newMVar 0
+%  forkIO . void $ swapMVar shared 1
+%  forkIO . void $ swapMVar shared 2
+%  readMVar shared >>= print
+%\end{minted}
 
-As we shall see in \sect{prelims-dejafu-testing}, this program can be
-tested to produce traces showing the three possible results:
+\begin{Verbatim}[commandchars=\\\{\}, ]
+\PY{n+nf}{main} \PY{o+ow}{::} \PY{k+kt}{IO} \PY{n+nb}{()}
+\PY{n+nf}{main} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{shared} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newMVar} \PY{l+m+mi}{0}
+  \PY{n}{forkIO} \PY{o}{.} \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{swapMVar} \PY{n}{shared} \PY{l+m+mi}{1}
+  \PY{n}{forkIO} \PY{o}{.} \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{swapMVar} \PY{n}{shared} \PY{l+m+mi}{2}
+  \PY{n}{readMVar} \PY{n}{shared} \PY{o}{\PYZgt{}\PYZgt{}=} \PY{n}{print}
+\end{Verbatim}
+
+This program may look like it will output either ``1'' or ``2''
+depending on the ordering of swaps. Actually, in Haskell a parent
+thread does not wait for child threads before
+terminating\cite{parconc}, so the output may also be ``0'', although
+this behaviour can only be exhibited in GHC with multiple OS
+threads. As we shall see in \sect{dejafu-testing}, this program can be tested
+to produce traces showing the three possible results:
 
 \begin{verbatim}
 [pass] Never Deadlocks (checked: 23)
@@ -46,37 +69,157 @@ tested to produce traces showing the three possible results:
 Here each of the last three lines represents a possible execution of
 the program: ``S'' indicates the start of execution of a thread, ``P''
 indicates the pre-emption of the running thread by another, and each
-dash represents one step of execution.
+dash represents one execution step.
 \end{justspacing}
 
-The rest of the section is organised as follows.
+\subsection*{Contributions}
+\label{sec:dejafu-intro-contribs}
+
+The contributions of this paper are:
 
 \begin{itemize}
-  \item \sect{prelims-dejafu-conc} presents the typeclass concurrency-abstraction,
+  \item a generalisation of the standard concurrency abstraction,
+    allowing different concrete implementations to be used;
+
+  \item a library called \dejafu{}\footnote{[\dejafu{} is] A martial
+      art in which the user's limbs move in time as well as space,
+      [\ldots{}] It is best described as ``the feeling that you have
+      been kicked in the head this way before''. \attrib{Terry
+        Pratchett, Thief of Time}} for systematically testing
+    concurrent Haskell programs for possible deadlocks,
+    race-conditions, or uncaught exceptions, with the testing
+    functionality based on \textit{monadic
+      concurrency}\cite{monadconc} and \textit{schedule
+      bounding}\cite{pbound}.
+\end{itemize}
+
+\subsection*{Roadmap}
+
+The rest of the paper is organised as follows.
+
+\begin{itemize}
+  \item \sect{dejafu-par} presents the solutions for deterministic
+    parallelism in Haskell, and highlights their limitations.
+
+  \item \sect{dejafu-conc} presents the typeclass concurrency-abstraction,
     emphasising a few points where it departs from the usual
     concurrency model.
 
-  \item \sect{prelims-dejafu-testing} introduces writing tests with \dejafu{}.
+  \item \sect{dejafu-testing} introduces writing tests with \dejafu{}.
 
-  \item \sect{prelims-dejafu-impl} explains how the library implements systematic
+  \item \sect{dejafu-impl} explains how the library implements systematic
     concurrency testing.
 
-  \item \sect{prelims-dejafu-example} presents two small examples of concurrent
-    applications.
+  \item \sect{dejafu-example} presents a small selection of case studies.
 
-  \item \sect{prelims-dejafu-related} gives pointers to existing concurrency testing
+  \item \sect{dejafu-related} gives pointers to existing concurrency testing
     work in both Haskell and other programming languages.
 
-  \item \sect{prelims-dejafu-conclusion} draws conclusions and suggest further work
+  \item \sect{dejafu-conclusion} draws conclusions and suggest further work
     from what has been presented in this paper.
 \end{itemize}
 
-\subsection{The \dejafu{} Concurrency API}
-\label{sec:prelims-dejafu-conc}
+\section{Deterministic Parallelism and Concurrency in Haskell}
+\label{sec:dejafu-par}
+
+\subsection*{The Eval Monad}
+\label{sec:dejafu-par-eval}
+
+The Eval monad, and the Strategies\cite{strategies} package built on
+top of it, is a way of evaluating data structures in parallel. The
+programmer is provided with primitives to evaluate something
+sequentially, in parallel (without blocking), and to run an Eval
+computation.
+
+The following example\cite{parconc} applies a function to both
+elements of a tuple in parallel, waits until the evaluation is
+complete, and returns the result:
+
+%\begin{minted}{haskell}
+%tupleMap :: (a -> b) -> (a, a) -> (b, b)
+%tupleMap f (x, y) = runEval $ do
+%  x' <- rpar $ f x
+%  y' <- rpar $ f y
+%  rseq x'
+%  rseq y'
+%  return (x', y')
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{tupleMap} \PY{o+ow}{::} \PY{p}{(}\PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{b}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{n}{a}\PY{p}{,} \PY{n}{a}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{n}{b}\PY{p}{,} \PY{n}{b}\PY{p}{)}
+\PY{n+nf}{tupleMap} \PY{n}{f} \PY{p}{(}\PY{n}{x}\PY{p}{,} \PY{n}{y}\PY{p}{)} \PY{o+ow}{=} \PY{n}{runEval} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+  \PY{n}{x\PYZsq{}} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{rpar} \PY{o}{\PYZdl{}} \PY{n}{f} \PY{n}{x}
+  \PY{n}{y\PYZsq{}} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{rpar} \PY{o}{\PYZdl{}} \PY{n}{f} \PY{n}{y}
+  \PY{n}{rseq} \PY{n}{x\PYZsq{}}
+  \PY{n}{rseq} \PY{n}{y\PYZsq{}}
+  \PY{n}{return} \PY{p}{(}\PY{n}{x\PYZsq{}}\PY{p}{,} \PY{n}{y\PYZsq{}}\PY{p}{)}
+\end{Verbatim}
+
+There is no notion of threading, or of shared mutable state. The Eval
+monad is for the use-case of having a large data structure which is
+expensive to compute.
+
+\subsection*{The Par Monad}
+\label{sec:dejafu-par-par}
+
+The Par monad\cite{parmonad} is a library providing a
+traditional-looking concurrency abstraction, providing the programmer
+with threads and mutable state, however it maintains determinism by
+restricting its shared variables to one write, and operations to read
+block until a value has been written. Thus, Par's IVars are a
+variable, not really \textit{mutable} state. Par uses a work-stealing
+scheduler running on multiple operating system threads, fully
+evaluating values on their own threads before inserting them into an
+IVar. Despite its limitations, the Par monad can be very effective in
+speeding up pure code.
+
+The following example maps a function in parallel over a list, fully
+evaluating it. Of course, laziness is generally what is desired in
+Haskell programs, but often it is known that an entire result will
+definitely be needed:
+
+%\begin{minted}{haskell}
+%parMap :: NFData b => (a -> b) -> [a] -> [b]
+%parMap f as = runPar $ do
+%  bs <- mapM (spawnP . f) as
+%  mapM get bs
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{parMap} \PY{o+ow}{::} \PY{k+kt}{NFData} \PY{n}{b} \PY{o+ow}{=\PYZgt{}} \PY{p}{(}\PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{b}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{[}\PY{n}{a}\PY{p}{]} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{[}\PY{n}{b}\PY{p}{]}
+\PY{n+nf}{parMap} \PY{n}{f} \PY{n}{as} \PY{o+ow}{=} \PY{n}{runPar} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+  \PY{n}{bs} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{mapM} \PY{p}{(}\PY{n}{spawnP} \PY{o}{.} \PY{n}{f}\PY{p}{)} \PY{n}{as}
+  \PY{n}{mapM} \PY{n}{get} \PY{n}{bs}
+\end{Verbatim}
+
+However, with a lack of multi-write shared variables and non-blocking
+reads, Par is unsuitable for long-lived concurrent programs with a
+central shared state. It could not be used to implement a
+multi-threaded work-stealing scheduler, such as the one underpinning
+Par itself.
+
+\subsection*{LVish}
+\label{sec:dejafu-par-lvish}
+
+A recent development is the LVish\cite{lvish} library, which overcomes
+some of the limitations of the Par monad by allowing multiple writes,
+as long as they only ever add information to the shared structure. To
+maintain determinism, reads \textit{of the same kind} return the same
+value that they always did. LVish allows shared state which forms a
+lattice, and reads correspond to seeing a small part of that lattice.
+
+Necessarily, reads block until there is enough information in the
+structure to determine the result. This approach means that the entire
+data structure must be kept around for as long as there is a single
+reference, even if that reference is only ever used to read a small
+part of the data.
+
+\section{\dejafu{}: Concurrency and Haskell Revisited}
+\label{sec:dejafu-conc}
 
 Readers already familiar with Haskell's concurrency primitives may
-wish to just skim this subsection to see the syntactic differences in the
-\dejafu{} variant.
+find it enough to skim this section noting the syntactic differences
+in the \dejafu{} variant.
 
 \begin{departure}
   Departures from the semantics of the traditional concurrency
@@ -88,30 +231,42 @@ writes, we get to Haskell's traditional concurrency abstraction in the
 IO
 monad. \dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu}}
 generalises a very large subset of that abstraction to work in
-arbitrary members of a typeclass, named MonadConc.
+arbitrary members of a typeclass, named MonadConc. There is an
+instance of MonadConc for \texttt{IO}, and so existing code using only
+the functions generalised over can be made suitable for testing quite
+simply. Existing code which makes use of more functionality may
+require a light dusting of \texttt{liftIO}s.
 
 To make use of the \dejafu{} library, we must first import the class:
 
-\begin{minted}{haskell}
-import Control.Monad.Conc.Class
-\end{minted}
+%\begin{minted}{haskell}
+%import Control.Monad.Conc.Class
+%\end{minted}
 
-\subsubsection*{Threads}
-\label{sec:prelims-dejafu-conc-threads}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{import} \PY{n+nn}{Control.Monad.Conc.Class}
+\end{Verbatim}
+
+\subsection*{Threads}
+\label{sec:dejafu-conc-threads}
 
 Threads let a program do multiple things at once. Every program has at
 least one thread, which starts where \texttt{main} does and runs until
-the program terminates. A thread is the basic unit of concurrency, it
+the program terminates. A thread is the basic unit of concurrency. It
 lets us pretend (with parallelism, it might even be true!) that we're
 computing multiple things at once.
 
-We can start a new thread with the \texttt{fork} function\footnote{To
-  save on horizontal space, a \texttt{MonadConc m =>} has been dropped
-  from the start of every type signature.}:
+We can start a new thread with the \texttt{fork}\footnote{To save on
+  horizontal space, a \texttt{MonadConc m =>} has been omitted from
+  type signatures.} function:
 
-\begin{minted}{haskell}
-fork :: m () -> m (ThreadId m)
-\end{minted}
+% \begin{minted}{haskell}
+% fork :: MonadConc m => m () -> m (ThreadId m)
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{fork} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{n+nb}{()} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{ThreadId} \PY{n}{m}\PY{p}{)}
+\end{Verbatim}
 
 This starts evaluating its argument in a separate thread. It also
 gives us back a (monad-specific) \texttt{ThreadId} value, which we can
@@ -125,13 +280,18 @@ number of Haskell threads that can run truly simultaneously as the
 number of \textit{capabilities}. We can query this value, and fork
 threads which are bound to a particular capability:
 
-\begin{minted}{haskell}
-getNumCapabilities :: m Int
-forkOn :: Int -> m () -> m (ThreadId m)
-\end{minted}
+% \begin{minted}{haskell}
+% getNumCapabilities :: MonadConc m => m Int
+% forkOn :: MonadConc m => Int -> m () -> m (ThreadId m)
+% \end{minted}
 
-\texttt{forkOn} interprets the capability number modulo the value
-returned by \texttt{getNumCapabilities}.
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{getNumCapabilities} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{k+kt}{Int}
+\PY{n+nf}{forkOn} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Int} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{ThreadId} \PY{n}{m}\PY{p}{)}
+\end{Verbatim}
+
+The \texttt{forkOn} function interprets the capability number modulo
+the value returned by \texttt{getNumCapabilities}.
 
 \begin{departure}
   \texttt{getNumCapabilities} is not required to return a true
@@ -144,17 +304,20 @@ Sometimes we just want the special case of evaluating something in a
 separate thread, for which we can use \texttt{spawn} (implemented in
 terms of \texttt{fork}):
 
-\begin{minted}{haskell}
-spawn :: m a -> m (CVar m a)
-\end{minted}
+% \begin{minted}{haskell}
+% spawn :: MonadConc m => m a -> m (CVar m a)
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{spawn} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{CVar} \PY{n}{m} \PY{n}{a}\PY{p}{)}
+\end{Verbatim}
 
 This returns a CVar (\textit{Concurrent Variable}), to which we can
 apply \texttt{readCVar}, blocking until the computation is done and
 the value is stored.
 
-
-\subsubsection*{Mutable State}
-\label{conc-crefs}
+\subsection*{Mutable State}
+\label{sec:dejafu-conc-crefs}
 
 Threading by itself is not really enough. We need to be able to
 \textit{communicate} between threads: we've already seen an instance
@@ -164,29 +327,36 @@ The simplest type of mutable shared state provided is the CRef
 (\textit{Concurrent Reference}). CRefs are shared variables which can
 be written to and read from by any thread which has a reference:
 
-\begin{minted}{haskell}
-newCRef    :: a -> m (CRef m a)
-readCRef   :: CRef m a -> m a
-modifyCRef :: CRef m a -> (a -> (a, b)) -> m b
-writeCRef  :: CRef m a -> a -> m ()
-\end{minted}
+% \begin{minted}{haskell}
+% newCRef    :: MonadConc m => a -> m (CRef m a)
+% readCRef   :: MonadConc m => CRef m a -> m a
+% modifyCRef :: MonadConc m => CRef m a -> (a -> (a, b)) -> m b
+% writeCRef  :: MonadConc m => CRef m a -> a -> m ()
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{newCRef}    \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{CRef} \PY{n}{m} \PY{n}{a}\PY{p}{)}
+\PY{n+nf}{readCRef}   \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CRef} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}
+\PY{n+nf}{modifyCRef} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CRef} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{n}{a}\PY{p}{,} \PY{n}{b}\PY{p}{)}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{b}
+\PY{n+nf}{writeCRef}  \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CRef} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}
+\end{Verbatim}
 
 \begin{departure}
-  IORef actions be re-ordered\cite{ioref}, but this is not the case
-  for CRef actions. \texttt{modifyCRef} corresponds to
-  \texttt{atomicModifyIORef}, and \texttt{writeCRef} corresponds to
+  IORef actions can be re-ordered\cite{ioref}, but this is not the
+  case for CRef actions. The \texttt{modifyCRef} function corresponds
+  to \texttt{atomicModifyIORef}, and \texttt{writeCRef} corresponds to
   \texttt{atomicWriteIORef}.
 \end{departure}
 
-As \textit{any} thread can write at \textit{any} time, then we risk
-threads overwriting each other's work! At least \texttt{modifyCRef} is
-atomic: no thread can update it between the value being read and the
-new value being stored, as could happen if \texttt{readCRef} and
+As \textit{any} thread can write at \textit{any} time, we risk threads
+overwriting each other's work! At least \texttt{modifyCRef} is atomic:
+no thread can update it between the value being read and the new value
+being stored, as could happen if \texttt{readCRef} and
 \texttt{writeCRef} were composed. Even so, CRefs quickly fall down if
 we want to do anything complicated. We need something more robust.
 
-\subsubsection*{Mutual Exclusion}
-\label{sec:prelims-dejafu-conc-cvars}
+\subsection*{Mutual Exclusion}
+\label{sec:dejafu-conc-cvars}
 
 A CVar is a shared variable under \textit{mutual exclusion} It has two
 possible states: \textit{full} or \textit{empty}. Writing to a full
@@ -194,22 +364,31 @@ CVar blocks until it is empty, and reading or taking from an empty
 CVar blocks until it is full. There are also non-blocking functions
 which return an indication of success:
 
-\begin{minted}{haskell}
-putCVar     :: CVar m a -> a -> m ()
-tryPutCVar  :: CVar m a -> a -> m Bool
-readCVar    :: CVar m a -> m a
-takeCVar    :: CVar m a -> m a
-tryTakeCVar :: CVar m a -> m (Maybe a)
-\end{minted}
+% \begin{minted}{haskell}
+% putCVar     :: MonadConc m => CVar m a -> a -> m ()
+% tryPutCVar  :: MonadConc m => CVar m a -> a -> m Bool
+% readCVar    :: MonadConc m => CVar m a -> m a
+% takeCVar    :: MonadConc m => CVar m a -> m a
+% tryTakeCVar :: MonadConc m => CVar m a -> m (Maybe a)
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{putCVar}     \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CVar} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}
+\PY{n+nf}{tryPutCVar}  \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CVar} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{k+kt}{Bool}
+\PY{n+nf}{readCVar}    \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CVar} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}
+\PY{n+nf}{takeCVar}    \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CVar} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}
+\PY{n+nf}{tryTakeCVar} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CVar} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{Maybe} \PY{n}{a}\PY{p}{)}
+\end{Verbatim}
 
 Unfortunately, the mutual exclusion behaviour of CVars means that
-computations can become deadlocked. For example, deadlock occurs if
-every thread tries to take from the same CVar. The GHC runtime can
-detect this (and will complain if it does), and so can \dejafu{} in a
-more informative way, as we shall see in \sect{prelims-dejafu-testing}.
+computations can become \textit{deadlocked}. For example, deadlock
+occurs if every thread tries to take from the same CVar. The GHC
+runtime can detect this (and will complain if it does), and so can
+\dejafu{} in a more informative way, as we shall see in
+\sect{dejafu-testing}.
 
-\subsubsection*{Software Transactional Memory}
-\label{sec:prelims-dejafu-conc-stm}
+\subsection*{Software Transactional Memory}
+\label{sec:dejafu-conc-stm}
 
 CVars are nice, until we need more than one, and find they need to be
 kept synchronised. As we can only claim \textit{one} CVar atomically,
@@ -219,40 +398,59 @@ is unwieldy and prone to bugs.
 \textit{Software transactional memory} (STM) is the solution. STM uses
 CTVars, or \textit{Concurrent Transactional Variables}, and is based
 upon the idea of atomic \textit{transactions}. An STM transaction
-consists of one or more operations over a collection of CTVars, and
-the programmer can bail out of a transaction part-way through if they
-want. If the transaction fails, \textit{none of its effects take
+consists of one or more operations over a collection of CTVars, where
+a transaction may be aborted part-way through depending on their
+values. If the transaction fails, \textit{none of its effects take
   place}, and the thread blocks until the transaction can
 succeed. This means we need to limit the possible actions in an STM
 transaction, so we have another typeclass:
 
-\begin{minted}{haskell}
-import Control.Monad.STM.Class
-\end{minted}
+%\begin{minted}{haskell}
+%import Control.Monad.STM.Class
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{import} \PY{n+nn}{Control.Monad.STM.Class}
+\end{Verbatim}
 
 CTVars always contain a value, as shown in the types of the functions:
 
-\begin{minted}{haskell}
-newCTVar   :: MonadSTM s => a -> stm (CTVar s a)
-readCTVar  :: MonadSTM s => CTVar s a -> s a
-writeCTVar :: MonadSTM s => CTVar s a -> a -> s ()
-\end{minted}
+%\begin{minted}{haskell}
+%newCTVar   :: MonadSTM s => a -> s (CTVar s a)
+%readCTVar  :: MonadSTM s => CTVar s a -> s a
+%writeCTVar :: MonadSTM s => CTVar s a -> a -> s ()
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{newCTVar}   \PY{o+ow}{::} \PY{k+kt}{MonadSTM} \PY{n}{s} \PY{o+ow}{=\PYZgt{}} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{s} \PY{p}{(}\PY{k+kt}{CTVar} \PY{n}{s} \PY{n}{a}\PY{p}{)}
+\PY{n+nf}{readCTVar}  \PY{o+ow}{::} \PY{k+kt}{MonadSTM} \PY{n}{s} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CTVar} \PY{n}{s} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{s} \PY{n}{a}
+\PY{n+nf}{writeCTVar} \PY{o+ow}{::} \PY{k+kt}{MonadSTM} \PY{n}{s} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{CTVar} \PY{n}{s} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{s} \PY{n+nb}{()}
+\end{Verbatim}
 
 If we read a CTVar and don't like the value it has, the transaction
 can be aborted, and the thread will block until any of the referenced
 CTVars have been mutated:
 
-\begin{minted}{haskell}
-retry :: MonadSTM s => s a
-check :: MonadSTM s => Bool -> s ()
-\end{minted}
+%\begin{minted}{haskell}
+%retry :: MonadSTM s => s a
+%check :: MonadSTM s => Bool -> s ()
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{retry} \PY{o+ow}{::} \PY{k+kt}{MonadSTM} \PY{n}{s} \PY{o+ow}{=\PYZgt{}} \PY{n}{s} \PY{n}{a}
+\PY{n+nf}{check} \PY{o+ow}{::} \PY{k+kt}{MonadSTM} \PY{n}{s} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Bool} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{s} \PY{n+nb}{()}
+\end{Verbatim}
 
 We can also try executing a transaction, and do something else if it
 fails:
 
-\begin{minted}{haskell}
-orElse :: MonadSTM s => s a -> s a -> s a
-\end{minted}
+%\begin{minted}{haskell}
+%orElse :: MonadSTM s => s a -> s a -> s a
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{orElse} \PY{o+ow}{::} \PY{k+kt}{MonadSTM} \PY{n}{s} \PY{o+ow}{=\PYZgt{}} \PY{n}{s} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{s} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{s} \PY{n}{a}
+\end{Verbatim}
 
 The nice thing about STM transactions is that they
 \textit{compose}. We can take small STM transactions and build bigger
@@ -260,12 +458,16 @@ transactions from them, and the whole is still executed
 atomically. This means we can do complex state operations involving
 multiple shared variables without worrying!
 
-We have emphasised that STM transactions are atomic. Here is the
-function which executes a transaction:
+We have emphasised that STM transactions are atomic. The function
+which atomically executes a transaction:
 
-\begin{minted}{haskell}
-atomically :: STMLike m a -> m a
-\end{minted}
+% \begin{minted}{haskell}
+% atomically :: MonadConc m => STMLike m a -> m a
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{atomically} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{STMLike} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}
+\end{Verbatim}
 
 \begin{departure}
   Every MonadConc has an associated MonadSTM, whereas there is just
@@ -274,51 +476,64 @@ atomically :: STMLike m a -> m a
   instance uses STM as its MonadSTM.
 \end{departure}
 
-For example, if we have a collection of worker threads which can
-either produce a result or fail, we might want to block until either
-\textit{one} completes successfully and then kill the other threads,
-or until \textit{all} fail. We can implement this using CTMVars, an
-analogue of CVars built from CTVars:
+For example, suppose we have a collection of worker threads each of
+which can either produce a result or fail. We might want to block
+until either \textit{one} completes successfully and kill the other
+threads, or until \textit{all} fail. We can implement this using
+CTMVars, an analogue of CVars built from CTVars:
 
-\begin{minted}{haskell}
-awaitResult :: MonadConc m => [(ThreadId m, CTMVar (STMLike m) (Maybe a))]
-  -> m (Maybe a)
-awaitResult workers = do
-  out <- atomically $ do
-    progress <- mapM (tryReadCTMVar . snd) workers
-    let finished = catMaybes progress
-    case catMaybes finished of
-      (x:_) -> return $ Just x
-      [] -> check (length finished < length workers)
-            >> return Nothing
-  mapM_ (killThread . fst) workers
-  return out
-\end{minted}
+%\begin{minted}{haskell}
+%awaitResult :: MonadConc m
+%    => [(ThreadId m, CTMVar (STMLike m) (Maybe a))]
+%    -> m (Maybe a)
+%awaitResult workers = do
+%  out <- atomically $ do
+%    progress <- mapM (tryReadCTMVar . snd) workers
+%    let finished = catMaybes progress
+%    case catMaybes finished of
+%      (x:_) -> return $ Just x
+%      [] -> check (length finished < length workers)
+%            >> return Nothing
+%  mapM_ (killThread . fst) workers
+%  return out
+%\end{minted}
 
-We can of course test STM transactions individually. The result may be
-a success (along with the value returned), a failure due to a
-\texttt{retry}, or a failure due to an uncaught exception:
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{awaitResult} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m}
+    \PY{o+ow}{=\PYZgt{}} \PY{p}{[}\PY{p}{(}\PY{k+kt}{ThreadId} \PY{n}{m}\PY{p}{,} \PY{k+kt}{CTMVar} \PY{p}{(}\PY{k+kt}{STMLike} \PY{n}{m}\PY{p}{)} \PY{p}{(}\PY{k+kt}{Maybe} \PY{n}{a}\PY{p}{)}\PY{p}{)}\PY{p}{]}
+    \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{Maybe} \PY{n}{a}\PY{p}{)}
+\PY{n+nf}{awaitResult} \PY{n}{workers} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{out} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{atomically} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+    \PY{n}{progress} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{mapM} \PY{p}{(}\PY{n}{tryReadCTMVar} \PY{o}{.} \PY{n}{snd}\PY{p}{)} \PY{n}{workers}
+    \PY{k+kr}{let} \PY{n}{finished} \PY{o+ow}{=} \PY{n}{catMaybes} \PY{n}{progress}
+    \PY{k+kr}{case} \PY{n}{catMaybes} \PY{n}{finished} \PY{k+kr}{of}
+      \PY{p}{(}\PY{n}{x}\PY{k+kt}{:}\PY{k+kr}{\PYZus{}}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{return} \PY{o}{\PYZdl{}} \PY{k+kt}{Just} \PY{n}{x}
+      \PY{k+kt}{[]} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{check} \PY{p}{(}\PY{n}{length} \PY{n}{finished} \PY{o}{\PYZlt{}} \PY{n}{length} \PY{n}{workers}\PY{p}{)}
+            \PY{o}{\PYZgt{}\PYZgt{}} \PY{n}{return} \PY{k+kt}{Nothing}
+  \PY{n}{mapM\PYZus{}} \PY{p}{(}\PY{n}{killThread} \PY{o}{.} \PY{n}{fst}\PY{p}{)} \PY{n}{workers}
+  \PY{n}{return} \PY{n}{out}
+\end{Verbatim}
 
-\begin{minted}{haskell}
-import Test.DejaFu.STM
-runTransaction :: (forall t. STMLike t (ST t) (STRef t) a) -> Result a
-\end{minted}
+Here \texttt{tryReadCTMVar} attempts to read from a CTMVar and, if
+there is no value present, calls \texttt{retry}.
 
-The type is a bit scary, but if we program against the MonadSTM
-interface, things will just work.
-
-\subsubsection*{Exceptions}
-\label{sec:prelims-dejafu-conc-excs}
+\subsection*{Exceptions}
+\label{sec:dejafu-conc-excs}
 
 Exceptions are a way to bail out of a computation early. Whether
 they're a good solution to that problem is a question of style, but
-they can be used to quickly jump to error handling code when
+they can be used to jump quickly to error handling code when
 necessary. The basic functions for dealing with exceptions are:
 
-\begin{minted}{haskell}
-catch :: Exception e => m a -> (e -> m a) -> m a
-throw :: Exception e => e -> m a
-\end{minted}
+% \begin{minted}{haskell}
+% catch :: (MonadConc m, Exception e) => m a -> (e -> m a) -> m a
+% throw :: (MonadConc m, Exception e) => e -> m a
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{catch} \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{MonadConc} \PY{n}{m}\PY{p}{,} \PY{k+kt}{Exception} \PY{n}{e}\PY{p}{)} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{n}{e} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}
+\PY{n+nf}{throw} \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{MonadConc} \PY{n}{m}\PY{p}{,} \PY{k+kt}{Exception} \PY{n}{e}\PY{p}{)} \PY{o+ow}{=\PYZgt{}} \PY{n}{e} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}
+\end{Verbatim}
 
 Where \texttt{throw} causes the computation to jump back to the
 nearest enclosing \texttt{catch} capable of handling the particular
@@ -328,19 +543,24 @@ handle different types of exceptions.
 
 \begin{departure}
   The IO \texttt{catch} function can catch exceptions from pure
-  code. This is not true in general for MonadConc instances,
-  unfortunately meaning that some things which work normally may not
-  work in testing. This is a small cost, however, as exceptions from
+  code. This is not true in general for MonadConc instances.  So some
+  things which work normally may not work in testing, and we risk
+  false negatives. This is a small cost, however, as exceptions from
   pure code are things like pattern match failures and evaluating
   \texttt{undefined}, which are arguably bugs.
 \end{departure}
 
 Exceptions can be used to kill a thread:
 
-\begin{minted}{haskell}
-throwTo    :: Exception e => ThreadId m -> e -> m ()
-killThread :: ThreadId m -> m ()
-\end{minted}
+% \begin{minted}{haskell}
+% throwTo    :: (MonadConc m, Exception e) => ThreadId m -> e -> m ()
+% killThread :: MonadConc m => ThreadId m -> m ()
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{throwTo}    \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{MonadConc} \PY{n}{m}\PY{p}{,} \PY{k+kt}{Exception} \PY{n}{e}\PY{p}{)} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{ThreadId} \PY{n}{m} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{e} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}
+\PY{n+nf}{killThread} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{ThreadId} \PY{n}{m} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}
+\end{Verbatim}
 
 These functions block until the target thread is in an appropriate
 state to receive the exception.
@@ -357,78 +577,177 @@ started, it inherits the masking state of its parent, and the
 function which can be used to execute a subcomputation in the unmasked
 state. We can also execute a subcomputation with a new masking state:
 
-\begin{minted}{haskell}
-mask                :: ((forall a. m a -> m a) -> m b) -> m b
-uninterruptibleMask :: ((forall a. m a -> m a) -> m b) -> m b
-forkWithUnmask      :: ((forall a. m a -> m a) -> m ()) -> m (ThreadId m)
-\end{minted}
+% \begin{minted}{haskell}
+% mask :: MonadConc m => ((forall a. m a -> m a) -> m b) -> m b
+% uninterruptibleMask
+%      :: MonadConc m => ((forall a. m a -> m a) -> m b) -> m b
+% forkWithUnmask
+%      :: MonadConc m => ((forall a. m a -> m a) -> m ())
+%      -> m (ThreadId m)
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{mask} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{p}{(}\PY{p}{(}\PY{n}{forall} \PY{n}{a}\PY{o}{.} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{b}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{b}
+\PY{n+nf}{uninterruptibleMask}
+     \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{p}{(}\PY{p}{(}\PY{n}{forall} \PY{n}{a}\PY{o}{.} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{b}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{b}
+\PY{n+nf}{forkWithUnmask}
+     \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{p}{(}\PY{p}{(}\PY{n}{forall} \PY{n}{a}\PY{o}{.} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}\PY{p}{)}
+     \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{ThreadId} \PY{n}{m}\PY{p}{)}
+\end{Verbatim}
 
 STM can also do exceptions, with its \texttt{throwSTM} and
 \texttt{catchSTM} functions. If an STM exception propagates uncaught
 to the top of a transaction, that transaction is aborted.
 
-\subsection{Testing using \dejafu{}}
-\label{sec:prelims-dejafu-testing}
+\section{Testing using \dejafu{}}
+\label{sec:dejafu-testing}
 
-Testing with \dejafu{} consists in writing a unit test-like concurrent
+Testing with \dejafu{} consists in writing a small concurrent
 computation to test, and some predicates over the return value and
-traces produced. Predicates may be lazy, and so not need to examine
-the entire output before determining whether the test has passed or
-failed:
+traces produced. Predicates may be lazy: they need not examine the
+entire output before determining whether the test has passed or
+failed.
 
-\begin{minted}{haskell}
-type Predicate a = [(Either Failure a, Trace)] -> Result a
+%\begin{minted}{haskell}
+%import Test.DejaFu
 
-runTest :: Eq a => Predicate a -> (forall t. Conc t a) a
-\end{minted}
+%runTest :: Eq a
+%    => Predicate a -> (forall t. Conc t a)
+%    -> Result a
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{import} \PY{n+nn}{Test.DejaFu}
+
+\PY{n+nf}{runTest} \PY{o+ow}{::} \PY{k+kt}{Eq} \PY{n}{a}
+    \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Predicate} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{n}{forall} \PY{n}{t}\PY{o}{.} \PY{k+kt}{Conc} \PY{n}{t} \PY{n}{a}\PY{p}{)}
+    \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Result} \PY{n}{a}
+\end{Verbatim}
+
+The abstract \texttt{Conc t} type is one of the instances of MonadConc
+for testing purposes (there's also \texttt{ConcIO t} for computations
+which do IO). The locally quantified type \texttt{t} prevents mutable
+state from leaking out of the computation, similarly to the ST monad.
+
+% \begin{minted}{haskell}
+% type Predicate a
+%     = [(Either Failure a, Trace)] -> Result a
+% \end{minted}
+% \begin{minted}{haskell}
+% data Result a = Result
+%   { _pass         :: Bool
+%   , _casesChecked :: Int
+%   , _casesTotal   :: Int
+%   , _failures     :: [(Either Failure a, Trace)]
+%   } deriving (Show, Eq)
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{type} \PY{k+kt}{Predicate} \PY{n}{a}
+    \PY{o+ow}{=} \PY{p}{[}\PY{p}{(}\PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a}\PY{p}{,} \PY{k+kt}{Trace}\PY{p}{)}\PY{p}{]} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Result} \PY{n}{a}
+\end{Verbatim}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{data} \PY{k+kt}{Result} \PY{n}{a} \PY{o+ow}{=} \PY{k+kt}{Result}
+  \PY{p}{\PYZob{}} \PY{n}{\PYZus{}pass}         \PY{o+ow}{::} \PY{k+kt}{Bool}
+  \PY{p}{,} \PY{n}{\PYZus{}casesChecked} \PY{o+ow}{::} \PY{k+kt}{Int}
+  \PY{p}{,} \PY{n}{\PYZus{}casesTotal}   \PY{o+ow}{::} \PY{k+kt}{Int}
+  \PY{p}{,} \PY{n}{\PYZus{}failures}     \PY{o+ow}{::} \PY{p}{[}\PY{p}{(}\PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a}\PY{p}{,} \PY{k+kt}{Trace}\PY{p}{)}\PY{p}{]}
+  \PY{p}{\PYZcb{}} \PY{k+kr}{deriving} \PY{p}{(}\PY{k+kt}{Show}\PY{p}{,} \PY{k+kt}{Eq}\PY{p}{)}
+\end{Verbatim}
+
+A \texttt{Result} consists of a Boolean flag indicating whether the
+test passed, the number of results checked to arrive at that
+conclusion, the total number of results, and a list of all failing
+cases.
 
 Helper functions lift predicates over a single result to predicates
 over the collection:
 
-\begin{minted}{haskell}
-alwaysTrue    :: (Either Failure a -> Bool) -> Predicate a
-somewhereTrue :: (Either Failure a -> Bool) -> Predicate a
-\end{minted}
+%\begin{minted}{haskell}
+%alwaysTrue
+%    :: (Either Failure a -> Bool) -> Predicate a
+%somewhereTrue
+%    :: (Either Failure a -> Bool) -> Predicate a
+%\end{minted}
 
-There are also variants which take predicates of two arguments for
-checking properties over the entire collection as a whole, for
-example:
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{alwaysTrue}
+    \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Bool}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Predicate} \PY{n}{a}
+\PY{n+nf}{somewhereTrue}
+    \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Bool}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Predicate} \PY{n}{a}
+\end{Verbatim}
 
-\begin{minted}{haskell}
-alwaysSame :: Eq a => Predicate a
-alwaysSame = alwaysTrue2 (==)
+There are also variants which take binary predicates for checking
+properties over the entire collection as a whole, for example:
 
-alwaysTrue2    :: (Either Failure a -> Either Failure a -> Bool) -> Predicate a
-somewhereTrue2 :: (Either Failure a -> Either Failure a -> Bool) -> Predicate a
-\end{minted}
+%\begin{minted}{haskell}
+%alwaysSame :: Eq a => Predicate a
+%alwaysSame = alwaysTrue2 (==)
+%
+%alwaysTrue2
+%   :: (Either Failure a -> Either Failure a -> Bool)
+%    -> Predicate a
+%somewhereTrue2
+%    :: (Either Failure a -> Either Failure a -> Bool)
+%    -> Predicate a
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{alwaysSame} \PY{o+ow}{::} \PY{k+kt}{Eq} \PY{n}{a} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Predicate} \PY{n}{a}
+\PY{n+nf}{alwaysSame} \PY{o+ow}{=} \PY{n}{alwaysTrue2} \PY{p}{(}\PY{o}{==}\PY{p}{)}
+
+\PY{n+nf}{alwaysTrue2}
+    \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Bool}\PY{p}{)}
+    \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Predicate} \PY{n}{a}
+\PY{n+nf}{somewhereTrue2}
+    \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Either} \PY{k+kt}{Failure} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Bool}\PY{p}{)}
+    \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Predicate} \PY{n}{a}
+\end{Verbatim}
 
 The functions \texttt{alwaysTrue2} and \texttt{somewhereTrue2} only
-check the predicate between values adjacent in the result list, the
-order of which depends on the scheduling algorithm used, and so should
-only be used for properties which are symmetric and transitive. There
-is also a collection of standard predicates, for doing things like
-checking for the existence of deadlock.
+check the predicate between values adjacent in the result list. The
+order of this list depends on the scheduling algorithm used, and so
+these functions should only be used for properties which are symmetric
+and transitive. There is also a collection of standard predicates, for
+doing things like checking for the existence of deadlock.
+
+For the common case of checking for determinism, deadlock freedom, and
+proper exception handling, there is an \texttt{autocheck} function:
+
+%\begin{minted}{haskell}
+%autocheck :: (Eq a, Show a)
+%    => (forall t. Conc t a) -> IO Bool
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{autocheck} \PY{o+ow}{::} \PY{p}{(}\PY{k+kt}{Eq} \PY{n}{a}\PY{p}{,} \PY{k+kt}{Show} \PY{n}{a}\PY{p}{)}
+    \PY{o+ow}{=\PYZgt{}} \PY{p}{(}\PY{n}{forall} \PY{n}{t}\PY{o}{.} \PY{k+kt}{Conc} \PY{n}{t} \PY{n}{a}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{IO} \PY{k+kt}{Bool}
+\end{Verbatim}
 
 Let's see what we get from testing the example from the start of this
 paper. We'll have it return the value, rather than print it, though:
 
-\begin{minted}{haskell}
-import Control.Concurrent.CVar (swapCVar)
-import Control.Monad (void)
-import Control.Monad.Conc.Class
+% \begin{minted}{haskell}
+% bad :: MonadConc m => m Int
+% bad = do
+%   shared <- newCVar 0
+%   fork . void $ swapCVar shared 1
+%   fork . void $ swapCVar shared 2
+%   readCVar shared
+% \end{minted}
 
-bad :: (Functor m, MonadConc m) => m Int
-bad = do
-  shared <- newCVar 0
-  fork . void $ swapCVar shared 1
-  fork . void $ swapCVar shared 2
-  readCVar shared
-\end{minted}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{bad} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{k+kt}{Int}
+\PY{n+nf}{bad} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{shared} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newCVar} \PY{l+m+mi}{0}
+  \PY{n}{fork} \PY{o}{.} \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{swapCVar} \PY{n}{shared} \PY{l+m+mi}{1}
+  \PY{n}{fork} \PY{o}{.} \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{swapCVar} \PY{n}{shared} \PY{l+m+mi}{2}
+  \PY{n}{readCVar} \PY{n}{shared}
+\end{Verbatim}
 
 Firstly let's put it through \texttt{autocheck}:
 
 \begin{verbatim}
-> import Test.DejaFu
 > autocheck bad
 [pass] Never Deadlocks (checked: 23)
 [pass] No Exceptions (checked: 23)
@@ -457,66 +776,106 @@ and return a more detailed result:
 \begin{verbatim}
 > runTest alwaysSame bad
 Result {_pass = False, _casesChecked = 1
-       , _casesTotal = 23, _failures = [...]}
+       , _casesTotal = 23, _failures = [MonadConc m]}
 \end{verbatim}
 
 The Result value tells us testing failed after looking at 1 case,
 there are 23 cases in total, and there is a simplified list of
 failures. These are quite long, so here is the second only:
 
-\begin{minted}{haskell}
-( Right 2
-, [ (Start 0,[],New 1)
-  , (Continue,[],Put 1 [])
-  , (Continue,[],Fork 1)
-  , (Continue,[SwitchTo 1],Fork 2)
-  , (SwitchTo 2,[Continue,SwitchTo 1],Take 1 [])
-  , (Continue,[SwitchTo 0,SwitchTo 1],Put 1 [])
-  , (Continue,[SwitchTo 0,SwitchTo 1],Stop)
-  , (Start 0,[Start 1],Read 1)
-  , (Continue,[SwitchTo 1],Lift)
-  , (Continue,[SwitchTo 1],Stop)])
-\end{minted}
+%\begin{minted}{haskell}
+%( Right 2
+%, [ (Start 0,[],New 1)
+%  , (Continue,[],Put 1 [])
+%  , (Continue,[],Fork 1)
+%  , (Continue,[SwitchTo 1],Fork 2)
+%  , (SwitchTo 2,[Continue,SwitchTo 1],Take 1 [])
+%  , (Continue,[SwitchTo 0,SwitchTo 1],Put 1 [])
+%  , (Continue,[SwitchTo 0,SwitchTo 1],Stop)
+%  , (Start 0,[Start 1],Read 1)
+%  , (Continue,[SwitchTo 1],Lift)
+%  , (Continue,[SwitchTo 1],Stop)])
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{p}{(} \PY{k+kt}{Right} \PY{l+m+mi}{2}
+\PY{p}{,} \PY{p}{[} \PY{p}{(}\PY{k+kt}{Start} \PY{l+m+mi}{0}\PY{p}{,}\PY{k+kt}{[]}\PY{p}{,}\PY{k+kt}{New} \PY{l+m+mi}{1}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,}\PY{k+kt}{[]}\PY{p}{,}\PY{k+kt}{Put} \PY{l+m+mi}{1} \PY{k+kt}{[]}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,}\PY{k+kt}{[]}\PY{p}{,}\PY{k+kt}{Fork} \PY{l+m+mi}{1}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,}\PY{p}{[}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,}\PY{k+kt}{Fork} \PY{l+m+mi}{2}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{2}\PY{p}{,}\PY{p}{[}\PY{k+kt}{Continue}\PY{p}{,}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,}\PY{k+kt}{Take} \PY{l+m+mi}{1} \PY{k+kt}{[]}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,}\PY{p}{[}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{0}\PY{p}{,}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,}\PY{k+kt}{Put} \PY{l+m+mi}{1} \PY{k+kt}{[]}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,}\PY{p}{[}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{0}\PY{p}{,}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,}\PY{k+kt}{Stop}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Start} \PY{l+m+mi}{0}\PY{p}{,}\PY{p}{[}\PY{k+kt}{Start} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,}\PY{k+kt}{Read} \PY{l+m+mi}{1}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,}\PY{p}{[}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,}\PY{k+kt}{Lift}\PY{p}{)}
+  \PY{p}{,} \PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,}\PY{p}{[}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,}\PY{k+kt}{Stop}\PY{p}{)}\PY{p}{]}\PY{p}{)}
+\end{Verbatim}
 
 We have the result returned, and a log of what decision the scheduler
 made at each step, what alternative decisions it \textit{could} have
 made, and what the thread did. Each thread and CVar (and CRef/CTVar)
 has its own unique identifier. In particular, we can see that when
-thread 2 pre-empted thread 0, it modified CVar 1, and the final result
-was determined by CVar 1 (well, we don't actually see that bit, but we
-see that CVar 1 was read just before the main thread terminated), this
-should suggest to us that maybe CVar 1 is the culprit, and lead us to
-look more closely at that rough area of the program. It may seem
-difficult to keep track of which thread is which, but studies have
-found\cite{empirical} that many errors are exposed with as few as two
-threads, giving us encouragement to write small test cases;
-alternatively, there could be provided an optional mechanism to assign
-names to threads.
+thread 2 pre-empted thread 0, it modified CVar 1, and there is
+evidence to suggest that the final result was determined by CVar 1 (as
+it was read just before the main thread terminated), this should
+suggest to us that maybe CVar 1 is the culprit, and lead us to look
+more closely at that area of the program.
 
-\subsubsection*{Testing Aids}
-\label{sec:prelims-dejafu-testing-aids}
+It may seem difficult to keep track of which thread is which. Studies
+have found\cite{empirical} that many errors are exposed with as few as
+two threads. This finding encourages us to write small test cases.
+However, there could be an optional mechanism to assign names to
+threads.
+
+We can of course test STM transactions individually. The result may be
+a success (along with the value returned), a failure due to a
+\texttt{retry}, or a failure due to an uncaught exception:
+
+% \begin{minted}{haskell}
+% import Test.DejaFu.STM
+% runTransaction :: (forall t. STMST t a) -> Result a
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{import} \PY{n+nn}{Test.DejaFu.STM}
+\PY{n+nf}{runTransaction} \PY{o+ow}{::} \PY{p}{(}\PY{n}{forall} \PY{n}{t}\PY{o}{.} \PY{k+kt}{STMST} \PY{n}{t} \PY{n}{a}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Result} \PY{n}{a}
+\end{Verbatim}
+
+The abstract \texttt{STMST t} type is the testing implementation of
+MonadSTM.
+
+\subsection*{Testing Aids}
+\label{sec:dejafu-testing-aids}
 
 Some other functions generically defined for the typeclass only alter
 the running of the code during testing. They are provided to make it
 easier to write good tests.
 
-Firstly, there is \texttt{\_concNoTest}, it indicates that a
+Firstly, there is \texttt{\_concNoTest}, used to indicate that a
 subcomputation already has its own tests, and so it should not be
 tested again \textit{here}. Specifically, the test runner executes the
 argument of \texttt{\_concNoTest} atomically. This allows tests to
 compose without repeating work:
 
-\begin{minted}{haskell}
-big :: MonadConc m => m Int
-big = do
-  a <- _concNoTest little1
-  b <- _concNoTest little2
-  combine a b
-\end{minted}
+%\begin{minted}{haskell}
+%big :: MonadConc m => m Int
+%big = do
+%  a <- _concNoTest little1
+%  b <- _concNoTest little2
+%  combine a b
+%\end{minted}
 
-If ``little1'' and ``little2'' already have their own tests, and have
-been verified to work, there is no need to test them again when
-testing ``big''.
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{big} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{k+kt}{Int}
+\PY{n+nf}{big} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{a} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{\PYZus{}concNoTest} \PY{n}{little1}
+  \PY{n}{b} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{\PYZus{}concNoTest} \PY{n}{little2}
+  \PY{n}{combine} \PY{n}{a} \PY{n}{b}
+\end{Verbatim}
+
+If \texttt{little1} and \texttt{little2} already have their own tests,
+and have been verified to work, there is no need to test them again
+when testing \texttt{big}.
 
 Secondly, there are cases where the main thread may be blocked on some
 CVar or CTVar, to which no other thread has a reference. This should
@@ -525,45 +884,61 @@ cause immediate failure with deadlock as the reason. By default
 the option to provide extra information, indicating which shared
 variables a thread knows about:
 
-\begin{minted}{haskell}
-bad :: MonadConc m Int
-bad = do
-  _concAllKnown
-  a <- newEmptyCVar
-  b <- newEmptyCVar
-  fork $ do
-    _concKnowsAbout (Left a)
-    _concAllKnown
-    let loop = takeCVar a >> loop in loop
-  fork $ do
-    _concKnowsAbout (Left a)
-    _concAllKnown
-    let loop = putCVar a 1 >> loop in loop
-  takeCVar b
-\end{minted}
+%\begin{minted}{haskell}
+%bad :: MonadConc m Int
+%bad = do
+%  _concAllKnown
+%  a <- newEmptyCVar
+%  b <- newEmptyCVar
+%  fork $ do
+%    _concKnowsAbout (Left a)
+%    _concAllKnown
+%    let loop = takeCVar a >> loop in loop
+%  fork $ do
+%    _concKnowsAbout (Left a)
+%    _concAllKnown
+%    let loop = putCVar a 1 >> loop in loop
+%  takeCVar b
+%\end{minted}
 
-The main thread is blocked on ``b'', which neither of the other two
-threads has a reference to. By adding the annotations, this can be
-detected and reported. There are three annotations:
-\texttt{\_concKnowsAbout}, which records that the current thread has a
-reference to a CVar or CTVar; \texttt{\_concForgets}, which records
-that the current thread will never touch the referenced CVar or CTVar
-again; and \texttt{\_concAllKnown}, which indicates that all CVars or
-CTVars which were passed in to the thread have been recorded. If every
-thread is in a known state, then detection of non-global deadlock is
-enabled. In the example above, without this, the computation would
-never terminate, as the two forked threads will run forever, even
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{bad} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{k+kt}{Int}
+\PY{n+nf}{bad} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{\PYZus{}concAllKnown}
+  \PY{n}{a} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newEmptyCVar}
+  \PY{n}{b} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newEmptyCVar}
+  \PY{n}{fork} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+    \PY{n}{\PYZus{}concKnowsAbout} \PY{p}{(}\PY{k+kt}{Left} \PY{n}{a}\PY{p}{)}
+    \PY{n}{\PYZus{}concAllKnown}
+    \PY{k+kr}{let} \PY{n}{loop} \PY{o+ow}{=} \PY{n}{takeCVar} \PY{n}{a} \PY{o}{\PYZgt{}\PYZgt{}} \PY{n}{loop} \PY{k+kr}{in} \PY{n}{loop}
+  \PY{n}{fork} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+    \PY{n}{\PYZus{}concKnowsAbout} \PY{p}{(}\PY{k+kt}{Left} \PY{n}{a}\PY{p}{)}
+    \PY{n}{\PYZus{}concAllKnown}
+    \PY{k+kr}{let} \PY{n}{loop} \PY{o+ow}{=} \PY{n}{putCVar} \PY{n}{a} \PY{l+m+mi}{1} \PY{o}{\PYZgt{}\PYZgt{}} \PY{n}{loop} \PY{k+kr}{in} \PY{n}{loop}
+  \PY{n}{takeCVar} \PY{n}{b}
+\end{Verbatim}
+
+The main thread is blocked on ``b'', to which neither of the other two
+threads has a reference. By adding annotations, this can be detected
+and reported. There are three annotations: \texttt{\_concKnowsAbout}
+records that the current thread has a reference to a CVar or CTVar;
+\texttt{\_concForgets} records that the current thread will never
+touch the referenced CVar or CTVar again; and \texttt{\_concAllKnown}
+indicates that all CVars or CTVars which were passed in to the thread
+have been recorded. If every thread is in a known state, then
+detection of non-global deadlock is enabled. Otherwise the example
+above never terminates, as the two forked threads run forever, even
 though the main thread can never progress.
 
-Note that misuse of these aids can lead to invalid test results. In
-particular, \texttt{\_concNoTest} should only be used for actions
-which involve no shared variables from a larger scope. If two threads
-with a reference to the same shared variable are executed under
-\texttt{\_concNoTest}, then the test runner will not consider possible
-interleavings of those threads.
+Misuse of these aids can lead to invalid test results. In particular,
+\texttt{\_concNoTest} should only be used for actions which involve no
+shared variables from a larger scope. If two threads with a reference
+to the same shared variable are executed under \texttt{\_concNoTest},
+then the test runner will not consider possible interleavings of those
+threads.
 
-\subsubsection*{IO}
-\label{sec:prelims-dejafu-testing-io}
+\subsection*{IO}
+\label{sec:dejafu-testing-io}
 
 By itself, MonadConc cannot do IO. However, by adding in a MonadIO
 context and applying \texttt{liftIO} as appropriate, concurrency
@@ -573,51 +948,147 @@ However, once IO is involved, the test runner loses control of what's
 going on. If a thread, during some IO, blocks on the action of another
 thread, this cannot be detected, and deadlock may arise. Furthermore,
 it is assumed for testing that the only source of nondeterminism is
-the scheduler (see \sect{prelims-dejafu-impl}). Any IO that is done should be
-deterministic enough to not invalidate test results, although this is
-good practice in any sort of testing. Finally, the test runner cannot
-pre-empt within a \texttt{liftIO} block, they should be as small as
-possible to avoid the risk of obscuring bugs.
+the scheduler (see \sect{dejafu-impl}). Any IO that is done should be
+deterministic given the same set of scheduling decisions, to not
+invalidate test results, although this is good practice in any sort of
+testing. Finally, the test runner cannot pre-empt within
+\texttt{liftIO} blocks, they should be as small as possible to avoid
+the risk of obscuring bugs.
 
-\subsection{Implementation}
-\label{sec:prelims-dejafu-impl}
+\section{Implementation}
+\label{sec:dejafu-impl}
 
 Readers who just want to use the \dejafu{} library can skip over this
-subsection and go straight to the example applications in \sect{prelims-dejafu-example}.
+section and go straight to the example applications in \sect{dejafu-example}.
 
-\subsubsection*{Primitive Actions and Threading}
-\label{impl-prims}
+\subsection*{Systematic Concurrency Testing}
+\label{sec:dejafu-impl-sct}
+
+Systematic concurrency testing\cite{empirical} (SCT) is a method for
+testing concurrent programs which works by forcing a particular set of
+scheduling decisions to be made. Different schedules can then be
+explored in order to try to find bugs. It is \textit{systematic}
+because the order of exploration is generally not random, but follows
+some deterministic search pattern.
+
+SCT can be implemented by overriding the concurrency primitives of the
+programming language, forcing all threads to run on one controlling
+thread, and making scheduling decisions between
+\textit{effectively-atomic} blocks. An effectively-atomic block
+consists of a number of thread-local actions followed by a single
+access to a shared resource. This is preferable to exploring all
+possible points for making scheduling decisions, as the order of
+interleaving of thread-local operations cannot affect the final
+result.
+
+There is some terminology associated with scheduling:
+
+\begin{description}
+  \item[Blocked] A thread awaiting access to a shared resource which is
+    currently unavailable.
+
+  \item[Blocking] An operation which may result in its thread becoming
+    blocked.
+
+  \item[Pre-emption] Pausing the execution of a thread which is not
+    blocked, and executing another in its place.
+
+  \item[Pre-emption count] The number of pre-emptions in a schedule.
+\end{description}
+
+One common SCT algorithm is \textit{pre-emption
+  bounding}\cite{pbound}, where all schedules with a fixed pre-emption
+count are explored. A variant is \textit{iterative pre-emption
+  bounding}, where all schedules with a count of 0, and then 1, and so
+on up to the limit, are explored. A common bound chosen is 2, as
+empirical studies have found that many concurrency errors arise within
+that limit\cite{pbound}\cite{empirical}.
+
+\subsection*{Primitive Actions and Threading}
+\label{sec:dejafu-impl-prims}
 
 The Conc and ConcIO monads represent threads as continuations over
 primitive actions, with the entire computation actually happening in a
-single Haskell thread. The primitives actions are as follows (in
-abbreviated form):
+single Haskell thread. The primitives actions are shown, in
+abbreviated form, in Figure \ref{fig:dejafu-impl-prims}. Execution is
+more similar to co-operative multitasking than pre-emptive
+multitasking on a single processor. If executing a primitive action
+fails to terminate, the entire computation would lock up.
 
-\begin{minted}{haskell}
-data Action ... =
-    AFork     thread_action action
-  | AMyTId    (thread_id -> action)
-  | APut      cvar new_value action
-  | ATryPut   cvar new_value (Bool -> action)
-  | AGet      cvar (value -> action)
-  | ATake     cvar (value -> action)
-  | ATryTake  cvar (Maybe value -> action)
-  | AReadRef  cref (value -> action)
-  | AModRef   cref function (result -> action)
-  | AAtom     stm_action (result -> action)
-  | ANew      action
-  | ANewRef   action
-  | ALift     (underlying_monad action)
-  | AThrow    exc
-  | AThrowTo  thread_id exc action
-  | ACatching handler action (result -> action)
-  | AMasking  mask_state action (result -> action)
-  | AStop
-\end{minted}
+\begin{figure}[t]
+  \centering
+%\begin{minted}{haskell}
+%data Action MonadConc m =
+%    AFork     thread_action action
+%  | AMyTId    (thread_id -> action)
+%  | APut      cvar new_value action
+%  | ATryPut   cvar new_value (Bool -> action)
+%  | AGet      cvar (value -> action)
+%  | ATake     cvar (value -> action)
+%  | ATryTake  cvar (Maybe value -> action)
+%  | AReadRef  cref (value -> action)
+%  | AModRef   cref function (result -> action)
+%  | AAtom     stm_action (result -> action)
+%  | ANew      action
+%  | ANewRef   action
+%  | ALift     (underlying_monad action)
+%  | AThrow    SomeException
+%  | AThrowTo  thread_id SomeException action
+%  | ACatching handler action (result -> action)
+%  | AMasking  mask_state action (result -> action)
+%  | AStop
+%
+%data STMAction MonadConc m =
+%    ACatch  action handler (result -> action)
+%  | ARead   ctvar (value -> action)
+%  | AWrite  ctvar new_value action
+%  | AOrElse action action (result -> action)
+%  | ANew    action
+%  | ALift   (underlying_monad action)
+%  | AThrow  SomeException
+%  | ARetry
+%  | AStop
+%\end{minted}
 
-There are also a few other primitives omitted here introduced as a
-side-effect of evaluating other primitives (for example, resetting the
-masking state). Execution happens in the context of an underlying
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{data} \PY{k+kt}{Action} \PY{o}{\ldots} \PY{o+ow}{=}
+    \PY{k+kt}{AFork}     \PY{n}{thread\PYZus{}action} \PY{n}{action}
+  \PY{o}{|} \PY{k+kt}{AMyTId}    \PY{p}{(}\PY{n}{thread\PYZus{}id} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{APut}      \PY{n}{cvar} \PY{n}{new\PYZus{}value} \PY{n}{action}
+  \PY{o}{|} \PY{k+kt}{ATryPut}   \PY{n}{cvar} \PY{n}{new\PYZus{}value} \PY{p}{(}\PY{k+kt}{Bool} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AGet}      \PY{n}{cvar} \PY{p}{(}\PY{n}{value} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{ATake}     \PY{n}{cvar} \PY{p}{(}\PY{n}{value} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{ATryTake}  \PY{n}{cvar} \PY{p}{(}\PY{k+kt}{Maybe} \PY{n}{value} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AReadRef}  \PY{n}{cref} \PY{p}{(}\PY{n}{value} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AModRef}   \PY{n}{cref} \PY{n}{function} \PY{p}{(}\PY{n}{result} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AAtom}     \PY{n}{stm\PYZus{}action} \PY{p}{(}\PY{n}{result} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{ANew}      \PY{n}{action}
+  \PY{o}{|} \PY{k+kt}{ANewRef}   \PY{n}{action}
+  \PY{o}{|} \PY{k+kt}{ALift}     \PY{p}{(}\PY{n}{underlying\PYZus{}monad} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AThrow}    \PY{k+kt}{SomeException}
+  \PY{o}{|} \PY{k+kt}{AThrowTo}  \PY{n}{thread\PYZus{}id} \PY{k+kt}{SomeException} \PY{n}{action}
+  \PY{o}{|} \PY{k+kt}{ACatching} \PY{n}{handler} \PY{n}{action} \PY{p}{(}\PY{n}{result} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AMasking}  \PY{n}{mask\PYZus{}state} \PY{n}{action} \PY{p}{(}\PY{n}{result} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AStop}
+
+\PY{k+kr}{data} \PY{k+kt}{STMAction} \PY{o}{\ldots} \PY{o+ow}{=}
+    \PY{k+kt}{ACatch}  \PY{n}{action} \PY{n}{handler} \PY{p}{(}\PY{n}{result} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{ARead}   \PY{n}{ctvar} \PY{p}{(}\PY{n}{value} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AWrite}  \PY{n}{ctvar} \PY{n}{new\PYZus{}value} \PY{n}{action}
+  \PY{o}{|} \PY{k+kt}{AOrElse} \PY{n}{action} \PY{n}{action} \PY{p}{(}\PY{n}{result} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{ANew}    \PY{n}{action}
+  \PY{o}{|} \PY{k+kt}{ALift}   \PY{p}{(}\PY{n}{underlying\PYZus{}monad} \PY{n}{action}\PY{p}{)}
+  \PY{o}{|} \PY{k+kt}{AThrow}  \PY{k+kt}{SomeException}
+  \PY{o}{|} \PY{k+kt}{ARetry}
+  \PY{o}{|} \PY{k+kt}{AStop}
+\end{Verbatim}
+  \caption{Primitive actions}
+  \label{fig:dejafu-impl-prims}
+\end{figure}
+
+There are also a few other primitives omitted here for brevity, which
+are introduced by evaluating other primitives (for example, resetting
+the masking state). Execution happens in the context of an underlying
 monad, which implements mutable variables. For \texttt{Conc t} this is
 \texttt{ST t}, hence the type parameter. For \texttt{ConcIO t} it is
 \texttt{IO}, the parameter is retained to keep types similar.
@@ -625,78 +1096,137 @@ monad, which implements mutable variables. For \texttt{Conc t} this is
 Threads are stored in a map, from thread IDs to a record of the
 current state:
 
-\begin{minted}{haskell}
-data Thread ... = Thread
-  { _continuation :: Action ...
-  , _blocking     :: Maybe BlockedOn
-  , _handlers     :: [Handler ...]
-  , _masking      :: MaskingState
-  }
-\end{minted}
+%\begin{minted}{haskell}
+%data Thread MonadConc m = Thread
+% { _continuation :: Action MonadConc m
+% , _blocking     :: Maybe BlockedOn
+% , _handlers     :: [Handler MonadConc m]
+% , _masking      :: MaskingState
+% }
+%end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{data} \PY{k+kt}{Thread} \PY{o}{MonadConc m} \PY{o+ow}{=} \PY{k+kt}{Thread}
+  \PY{p}{\PYZob{}} \PY{n}{\PYZus{}continuation} \PY{o+ow}{::} \PY{k+kt}{Action} \PY{o}{MonadConc m}
+  \PY{p}{,} \PY{n}{\PYZus{}blocking}     \PY{o+ow}{::} \PY{k+kt}{Maybe} \PY{k+kt}{BlockedOn}
+  \PY{p}{,} \PY{n}{\PYZus{}handlers}     \PY{o+ow}{::} \PY{p}{[}\PY{k+kt}{Handler} \PY{o}{MonadConc m}\PY{p}{]}
+  \PY{p}{,} \PY{n}{\PYZus{}masking}      \PY{o+ow}{::} \PY{k+kt}{MaskingState}
+  \PY{p}{\PYZcb{}}
+\end{Verbatim}
 
 Evaluation is defined as repeating a single-step function until the
 main thread terminates, or deadlock is detected.
 
-\subsubsection*{Shared State and Blocking}
-\label{sec:prelims-dejafu-impl-state}
+\subsection*{Shared State and Blocking}
+\label{sec:dejafu-impl-state}
 
 CRefs and CVars are both implemented in terms of the reference type of
-the underlying monad, as a pair (id, value), where CVars have a maybe
+the underlying monad, as a pair (id, value), where CVars have a Maybe
 value.
 
-\begin{minted}{haskell}
-data BlockedOn =
-    OnCVarFull CVarId
-  | OnCVarEmpty CVarId
-  | OnCTVar [CTVarId]
-  | OnMask ThreadId deriving Eq
-\end{minted}
+%\begin{minted}{haskell}
+%data BlockedOn =
+%    OnCVarFull CVarId
+%  | OnCVarEmpty CVarId
+%  | OnCTVar [CTVarId]
+%  | OnMask ThreadId deriving Eq
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{data} \PY{k+kt}{BlockedOn} \PY{o+ow}{=}
+    \PY{k+kt}{OnCVarFull} \PY{k+kt}{CVarId}
+  \PY{o}{|} \PY{k+kt}{OnCVarEmpty} \PY{k+kt}{CVarId}
+  \PY{o}{|} \PY{k+kt}{OnCTVar} \PY{p}{[}\PY{k+kt}{CTVarId}\PY{p}{]}
+  \PY{o}{|} \PY{k+kt}{OnMask} \PY{k+kt}{ThreadId} \PY{k+kr}{deriving} \PY{k+kt}{Eq}
+\end{Verbatim}
 
 When a CVar is accessed, the running thread is blocked if the CVar is
 in an inappropriate state. Otherwise the action of the thread is
 replaced with the relevant continuation. If the CVar has been mutated,
 then all threads blocked on reading that CVar (if it was put in to) or
 writing (if it was taken from) are unblocked. This unblocking
-behaviour is slightly different to MVars, where there the order of
-awakening is FIFO.
+behaviour is slightly different to MVars, where the order of awakening
+is FIFO.
 
-STM is implemented in terms of its own primitive actions. CTVars are
-implemented in the same way as CRefs. Executing an STM transaction
-returns a result (or indication of failure), a list of CTVars written
-to (if success) or read from (if failure), and an action in the
-underlying monad to undo the effects of the transaction:
+The implementation of manipulating thread block statuses is shown in
+Figure \ref{fig:dejafu-impl-blocks}. Note the special case in
+\texttt{wake} for being blocked on a collection of CTVars: if there is
+\textit{any} intersection between the lists of CTVars, the thread is
+woken.
 
-\begin{minted}{haskell}
-data STMAction ... =
-    ACatch  action handler (result -> action)
-  | ARead   ctvar (value -> action)
-  | AWrite  ctvar new_value action
-  | AOrElse action action (result -> action)
-  | ANew    action
-  | ALift   (underlying_monad action)
-  | AThrow  SomeException
-  | ARetry
-  | AStop
-\end{minted}
+\begin{figure}[t]
+  \centering
+% \begin{minted}{haskell}
+% block :: BlockedOn -> ThreadId -> Threads n r s
+%     -> Threads n r s
+% block blockedOn = M.alter doBlock
+%   where
+%   doBlock (Just thread) = Just $
+%     thread { _blocking = Just blockedOn }
 
-Blocking is implemented by checking if a transaction terminated due to
-an \texttt{ARetry} action, at which point the thread is blocked, and
-unblocked by a future \texttt{AAtom} action which modifies at least
-one of the CTVars referenced in the failing transaction.
+% wake :: BlockedOn -> Threads n r s
+%     -> (Threads n r s, [ThreadId])
+% wake blockedOn threads =
+%   ( M.map unblock threads
+%   , M.keys $ M.filter isBlocked threads )
 
-\subsubsection*{Exceptions}
-\label{sec:prelims-dejafu-impl-excs}
+%   where
+%   unblock t
+%     | isBlocked t = t { _blocking = Nothing }
+%     | otherwise   = t
+
+%   isBlocked t = case (_blocking t, blockedOn) of
+%     (Just (OnCTVar ctvids), OnCTVar blockedOn')
+%       -> ctvids `intersect` blockedOn' /= []
+%     (theblock, _) -> theblock == Just blockedOn
+% \end{minted}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{block} \PY{o+ow}{::} \PY{k+kt}{BlockedOn} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{ThreadId} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Threads} \PY{n}{n} \PY{n}{r} \PY{n}{s}
+    \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Threads} \PY{n}{n} \PY{n}{r} \PY{n}{s}
+\PY{n+nf}{block} \PY{n}{blockedOn} \PY{o+ow}{=} \PY{k+kt}{M}\PY{o}{.}\PY{n}{alter} \PY{n}{doBlock}
+  \PY{k+kr}{where}
+  \PY{n}{doBlock} \PY{p}{(}\PY{k+kt}{Just} \PY{n}{thread}\PY{p}{)} \PY{o+ow}{=} \PY{k+kt}{Just} \PY{o}{\PYZdl{}}
+    \PY{n}{thread} \PY{p}{\PYZob{}} \PY{n}{\PYZus{}blocking} \PY{o+ow}{=} \PY{k+kt}{Just} \PY{n}{blockedOn} \PY{p}{\PYZcb{}}
+
+\PY{n+nf}{wake} \PY{o+ow}{::} \PY{k+kt}{BlockedOn} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Threads} \PY{n}{n} \PY{n}{r} \PY{n}{s}
+    \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{k+kt}{Threads} \PY{n}{n} \PY{n}{r} \PY{n}{s}\PY{p}{,} \PY{p}{[}\PY{k+kt}{ThreadId}\PY{p}{]}\PY{p}{)}
+\PY{n+nf}{wake} \PY{n}{blockedOn} \PY{n}{threads} \PY{o+ow}{=}
+  \PY{p}{(} \PY{k+kt}{M}\PY{o}{.}\PY{n}{map} \PY{n}{unblock} \PY{n}{threads}
+  \PY{p}{,} \PY{k+kt}{M}\PY{o}{.}\PY{n}{keys} \PY{o}{\PYZdl{}} \PY{k+kt}{M}\PY{o}{.}\PY{n}{filter} \PY{n}{isBlocked} \PY{n}{threads} \PY{p}{)}
+
+  \PY{k+kr}{where}
+  \PY{n}{unblock} \PY{n}{t}
+    \PY{o}{|} \PY{n}{isBlocked} \PY{n}{t} \PY{o+ow}{=} \PY{n}{t} \PY{p}{\PYZob{}} \PY{n}{\PYZus{}blocking} \PY{o+ow}{=} \PY{k+kt}{Nothing} \PY{p}{\PYZcb{}}
+    \PY{o}{|} \PY{n}{otherwise}   \PY{o+ow}{=} \PY{n}{t}
+
+  \PY{n}{isBlocked} \PY{n}{t} \PY{o+ow}{=} \PY{k+kr}{case} \PY{p}{(}\PY{n}{\PYZus{}blocking} \PY{n}{t}\PY{p}{,} \PY{n}{blockedOn}\PY{p}{)} \PY{k+kr}{of}
+    \PY{p}{(}\PY{k+kt}{Just} \PY{p}{(}\PY{k+kt}{OnCTVar} \PY{n}{ctvids}\PY{p}{)}\PY{p}{,} \PY{k+kt}{OnCTVar} \PY{n}{blockedOn\PYZsq{}}\PY{p}{)}
+      \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{ctvids} \PY{p}{`}\PY{n}{intersect}\PY{p}{`} \PY{n}{blockedOn\PYZsq{}} \PY{o}{/=} \PY{k+kt}{[]}
+    \PY{p}{(}\PY{n}{theblock}\PY{p}{,} \PY{k+kr}{\PYZus{}}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{theblock} \PY{o}{==} \PY{k+kt}{Just} \PY{n}{blockedOn}
+\end{Verbatim}
+  \caption{Manipulating thread blocks}
+  \label{fig:dejafu-impl-blocks}
+\end{figure}
+
+\subsection*{Exceptions}
+\label{sec:dejafu-impl-excs}
 
 A thread has a stack of exception handlers. Upon entering a
 \texttt{catch}, the handler is pushed to the stack, and a primitive
 action to pop it is inserted at the end of the enclosed action. A
 handler, when invoked, replaces the action of the thread entirely,
-this works by jumping to the continuation of the \texttt{catch} after
-the programmer-supplied function terminates:
+jumping to the continuation of the \texttt{catch} after the
+programmer-supplied function terminates:
 
-\begin{minted}{haskell}
-data Handler ... = forall e. Exception e => Handler (e -> Action ...)
-\end{minted}
+%\begin{minted}{haskell}
+%data Handler MonadConc m = forall e. Exception e
+%    => Handler (e -> Action MonadConc m)
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{data} \PY{k+kt}{Handler} \PY{o}{MonadConc m} \PY{o+ow}{=} \PY{n}{forall} \PY{n}{e}\PY{o}{.} \PY{k+kt}{Exception} \PY{n}{e}
+    \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Handler} \PY{p}{(}\PY{n}{e} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{Action} \PY{o}{MonadConc m}\PY{p}{)}
+\end{Verbatim}
 
 Upon evaluating a \texttt{throw}, the exception handler stack is
 popped until a handler capable of handling the exception is
@@ -706,53 +1236,69 @@ killed. If this is the main thread, the entire computation terminates
 with an error.
 
 When a mask is entered, a primitive action to restore the masking
-state is added on to the end of the subcomputation, similarly to how
-the \texttt{catch} function works.
+state is added on to the end of the subcomputation.
 
-As an STM transaction is executed all in one go, this greatly
-simplifies the implementation of exceptions. An STM catch action is
-implemented by simply executing the entire subcomputation and pattern
-matching on the return value: if it is a success, the value is
-returned; if it is an exception of the appropriate type, it is passed
-to the handler; and if it is a different exception, it is propagated
-upwards.
+\subsection*{Software Transactional Memory}
+\label{sec:dejafu-impl-stm}
 
-\subsubsection*{Detecting Deadlock}
-\label{sec:prelims-dejafu-impl-tests}
+STM is implemented in terms of its own primitive actions, also shown
+in Figure \ref{fig:dejafu-impl-prims}. CTVars are implemented in terms
+of STRefs, if using Conc, or IORefs, if using ConcIO.
+
+As STM transactions are atomic, the implementation is quite simple. It
+repeats a single-step function until the transaction reaches a fixed
+point: an \texttt{ARetry}, \texttt{AThrow}, or \texttt{AStop}
+action. Only the \texttt{AStop} action indicates successful
+termination. If a transaction terminates due to an \texttt{ARetry}
+action, the thread is blocked.
+
+Executing an STM transaction returns a result (or indication of
+failure), a list of CTVars written to (if success) or read from (if
+failure), and an action in the underlying monad to undo the effects of
+the transaction.
+
+An \texttt{ACatch} action is implemented by simply executing the
+entire subcomputation and pattern matching on the return value: if it
+is a success, the value is returned; if it is an exception of the
+appropriate type, it is passed to the handler; and if it is a
+different exception, it is propagated upwards.
+
+\subsection*{Detecting Deadlock}
+\label{sec:dejafu-impl-tests}
 
 Deadlock detection is implemented in GHC as part of garbage
-collection: if a thread is blocked on a variable which no running
-thread has a reference to, that thread is deadlocked. Unfortunately,
-the garbage collector is out of the reach of \dejafu{} (and even if it
-wasn't, would require everything to be in IO), and so by default the
-only deadlock detection is global: where every thread is blocked
-simultaneously.
+collection: if a thread is blocked on a variable to which no running
+thread has a reference, that thread is deadlocked. Unfortunately, the
+garbage collector is beyond the reach of \dejafu{} (and even if it
+wasn't, would require everything to be in IO). So by default in
+\dejafu{} the only deadlock detection is global: where every thread is
+blocked simultaneously.
 
-Deadlock where the main thread is blocked on a shared variable no
-other thread has a reference to is optionally implemented with special
-\texttt{\_conc} functions, as seen in \sect{prelims-dejafu-testing}. These record for
-each thread which shared variables are known about, allowing largely
-the same approach as the GC one if the state of every thread is fully
-known. The only downside is that if these functions are incorrectly
-used, there may be false results of testing.
+Deadlock where the main thread is blocked on a shared variable for
+which no other thread has a reference is optionally implemented with
+special \texttt{\_conc} functions. See \sect{dejafu-testing}. These record
+for each thread which shared variables are known about, allowing
+largely the same approach as the GC one if the state of every thread
+is fully known. However if these functions are incorrectly used, there
+may be false results of testing.
 
-\subsubsection*{Schedule Bounding}
-\label{sec:prelims-dejafu-impl-bound}
+\subsection*{Schedule Bounding}
+\label{sec:dejafu-impl-bound}
 
 Testing in \dejafu{} is, by default, implemented using pre-emption
-bounding with a bound of two, which is itself a specialisation of the
-explicit support for schedule bounding. Enough of the internals are
-exposed such that other SCT runners could be implemented.
+bounding with a bound of two. Other bounds can be set. Also, enough of
+the internals are exposed such that other SCT runners could be
+implemented.
 
 An execution is parameterised with a deterministic scheduler which may
-have some state, and the execution returns the result, an execution
-trace, and the final scheduler state. Using the scheduler state, we
-can implement a very simple scheduler which takes some list of initial
+have some state. The execution returns the result, an execution trace,
+and the final scheduler state. Using the scheduler state, we can
+implement a very simple scheduler which takes some list of initial
 decisions to make (a schedule prefix), and which makes non-pre-emptive
-decisions after that point. Schedule bounding is implemented in terms
-of generating new schedules from a schedule prefix and suffix.
+decisions after that point.
 
-Specifically, given a schedule suffix, there are functions to generate
+Schedule bounding generates new schedules from a schedule prefix and
+suffix. Given a schedule suffix, there are functions to generate
 \textit{siblings} and \textit{offspring}. A sibling is a new partial
 prefix which, when appended to any prefix at all, does not result in a
 prefix in a different bounding level. An offspring is a new partial
@@ -765,61 +1311,74 @@ $n+1$ pre-emptions when appended to the original prefix.
 \begin{justspacing}
 \paragraph{Example}
 
-\begin{minted}{haskell}
-prefix = [Start 0]
-suffix = [(Continue, [], Fork 1)
-         ,(Continue, [SwitchTo 1], Stop)]
-\end{minted}
+%\begin{minted}{haskell}
+%prefix = [Start 0]
+%suffix = [(Continue, [], Fork 1)
+%         ,(Continue, [SwitchTo 1], Stop)]
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{prefix} \PY{o+ow}{=} \PY{p}{[}\PY{k+kt}{Start} \PY{l+m+mi}{0}\PY{p}{]}
+\PY{n+nf}{suffix} \PY{o+ow}{=} \PY{p}{[}\PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,} \PY{k+kt}{[]}\PY{p}{,} \PY{k+kt}{Fork} \PY{l+m+mi}{1}\PY{p}{)}
+         \PY{p}{,}\PY{p}{(}\PY{k+kt}{Continue}\PY{p}{,} \PY{p}{[}\PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{,} \PY{k+kt}{Stop}\PY{p}{)}\PY{p}{]}
+\end{Verbatim}
 
 Given this prefix and suffix, under pre-emption bounding there are no
 siblings, as the only available alternative choice would introduce a
 pre-emption. There is one offspring, by making the alternative
 decision at step 2 of the suffix:
 
-\begin{minted}{haskell}
-siblings suffix == []
-offspring suffix == [[Continue, SwitchTo 1]]
-\end{minted}
+%\begin{minted}{haskell}
+%siblings suffix == []
+%offspring suffix == [[Continue, SwitchTo 1]]
+%\end{minted}
 
-This offspring would not be generated, however, as pre-emptions are
-only introduced around actions where it may effect the final result,
-such as access to a CVar. \hfill $\qed$
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{siblings} \PY{n}{suffix} \PY{o}{==} \PY{k+kt}{[]}
+\PY{n+nf}{offspring} \PY{n}{suffix} \PY{o}{==} \PY{p}{[}\PY{p}{[}\PY{k+kt}{Continue}\PY{p}{,} \PY{k+kt}{SwitchTo} \PY{l+m+mi}{1}\PY{p}{]}\PY{p}{]}
+\end{Verbatim}
+
+This offspring would not actually be generated, however. Pre-emptions
+are only introduced around actions such as access to a CVar, where
+pre-emption may affect the final result. \hfill $\qed$
 \end{justspacing}
 
 This splitting into prefixes and suffixes makes it easy to prevent
 duplicate schedules. The schedule bounding runner stops generating
 offspring when the bound is reached, and explores schedules in a
-mostly breadth-first fashion. A negative bound can be passed in to
-explore all schedules, although this may take some time.
+mostly breadth-first fashion. Furthermore, there is an option to
+explore all schedules.
 
 Also implemented is a delay-bounding scheduler. A \textit{delay} is a
-deviation from an otherwise deterministic scheduler, and so
-delay-bounding has the advantage that the number of schedules grows
-more slowly than pre-emption bounding, as there is exactly one
-schedule with a delay count of 0, but potentially many with a
-pre-emption count of 0. The default testing mechanisms use pre-emption
-bounding because the guarantees that delay-bounding gives are
-influenced by the choice of scheduler, whereas pre-emption bounding
-gives a global property of all schedules, although both methods tend
-to perform about the same in terms of bug-finding
-ability\cite{empirical}.
+deviation from an otherwise deterministic scheduler. So delay-bounding
+has the advantage that the number of schedules grows more slowly than
+pre-emption bounding: there is exactly one schedule with a delay count
+of 0, but potentially many with a pre-emption count of 0. The default
+testing mechanisms use pre-emption bounding because the guarantees
+that delay-bounding gives are influenced by the choice of scheduler,
+whereas pre-emption bounding gives a global property of all
+schedules. The two methods tend to perform about the same in terms of
+bug-finding ability\cite{empirical}.
 
-\subsection{Examples}
-\label{sec:prelims-dejafu-example}
+\section{Examples}
+\label{sec:dejafu-example}
 
-Two very different examples are discussed. The first is a variation of
-an example in \textit{Parallel and Concurrent Programming in
-  Haskell}\cite{parconc} of a concurrent message logger, into which a
-bug has intentionally been introduced. The entire program is
-presented, as it is very small. The second is a bug that arose,
-unintentionally, in the implementation of a library for performing
-search problems in parallel, where an incorrect use of CTMVars allowed
-a user of the library to obtain an incomplete result.
+Four examples are discussed, two of which are external libraries. The
+first is a variation of an example in \textit{Parallel and Concurrent
+  Programming in Haskell}\cite{parconc} of a concurrent message
+logger, into which a bug has intentionally been introduced. The entire
+program is presented, as it is small. Then two known bugs in the
+\textit{auto-update} package are reproduced, and one of the schedulers
+in the \textit{monad-par} package is tested. The last is a bug that
+arose, unintentionally, in the implementation of a library for
+performing search problems in parallel, where an incorrect use of
+CTMVars allowed a user of the library to obtain an incomplete result.
 
-\subsubsection*{Message Logger}
-\label{example-logger}
+\subsection*{Message Logger}
+\label{sec:dejafu-example-logger}
 
-We want a concurrent message logger with the following properties:
+Suppose we want a concurrent message logger with the following
+properties:
 
 \begin{itemize}
   \item The logger can be sent a message, or it can be told to stop;
@@ -832,73 +1391,122 @@ We want a concurrent message logger with the following properties:
 
 Firstly, we shall define the types we're going to use:
 
-\begin{minted}{haskell}
-data Logger m   = Logger (CVar m LogCommand) (CVar m [String])
-data LogCommand = Message String | Stop
+%\begin{minted}{haskell}
+%data Logger m   = Logger (CVar m LogCommand)
+%                         (CVar m [String])
+%data LogCommand = Message String | Stop
+%\end{minted}
 
-initLogger :: MonadConc m => m (Logger m)
-initLogger = do
-  cmd <- newEmptyCVar
-  log <- newCVar []
-  let l = Logger cmd log
-  fork $ logger l
-  return l
-\end{minted}
-%$
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{data} \PY{k+kt}{Logger} \PY{n}{m}   \PY{o+ow}{=} \PY{k+kt}{Logger} \PY{p}{(}\PY{k+kt}{CVar} \PY{n}{m} \PY{k+kt}{LogCommand}\PY{p}{)}
+                         \PY{p}{(}\PY{k+kt}{CVar} \PY{n}{m} \PY{p}{[}\PY{k+kt}{String}\PY{p}{]}\PY{p}{)}
+\PY{k+kr}{data} \PY{k+kt}{LogCommand} \PY{o+ow}{=} \PY{k+kt}{Message} \PY{k+kt}{String} \PY{o}{|} \PY{k+kt}{Stop}
+\end{Verbatim}
+
+%\begin{minted}{haskell}
+%initLogger :: MonadConc m => m (Logger m)
+%initLogger = do
+%  cmd <- newEmptyCVar
+%  log <- newCVar []
+%  let l = Logger cmd log
+%  fork $ logger l
+%  return l
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{initLogger} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{p}{(}\PY{k+kt}{Logger} \PY{n}{m}\PY{p}{)}
+\PY{n+nf}{initLogger} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{cmd} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newEmptyCVar}
+  \PY{n}{log} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newCVar} \PY{k+kt}{[]}
+  \PY{k+kr}{let} \PY{n}{l} \PY{o+ow}{=} \PY{k+kt}{Logger} \PY{n}{cmd} \PY{n}{log}
+  \PY{n}{fork} \PY{o}{\PYZdl{}} \PY{n}{logger} \PY{n}{l}
+  \PY{n}{return} \PY{n}{l}
+\end{Verbatim}
 
 Now we need to be able to send a message to the logger. As CVars are
 being used, these functions will block if there is already a command
-there, we don't need to worry about thread overwriting each other's
+there. We need not worry about threads overwriting each other's
 commands.
 
-\begin{minted}{haskell}
-logMsg :: MonadConc m => Logger m -> String -> m ()
-logMsg (Logger cmd _) = putCVar cmd . Message
+%\begin{minted}{haskell}
+%logMsg :: MonadConc m => Logger m -> String -> m ()
+%logMsg (Logger cmd _) = putCVar cmd . Message
+%
+%logStop :: MonadConc m => Logger m -> m [String]
+%%logStop (Logger cmd log) = do
+%  putCVar cmd Stop
+%  readCVar log
+%\end{minted}
 
-logStop :: MonadConc m => Logger m -> m [String]
-logStop (Logger cmd log) = do
-  putCVar cmd Stop
-  readCVar log
-\end{minted}
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{logMsg} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Logger} \PY{n}{m} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{String} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}
+\PY{n+nf}{logMsg} \PY{p}{(}\PY{k+kt}{Logger} \PY{n}{cmd} \PY{k+kr}{\PYZus{}}\PY{p}{)} \PY{o+ow}{=} \PY{n}{putCVar} \PY{n}{cmd} \PY{o}{.} \PY{k+kt}{Message}
+
+\PY{n+nf}{logStop} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Logger} \PY{n}{m} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{[}\PY{k+kt}{String}\PY{p}{]}
+\PY{n+nf}{logStop} \PY{p}{(}\PY{k+kt}{Logger} \PY{n}{cmd} \PY{n}{log}\PY{p}{)} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{putCVar} \PY{n}{cmd} \PY{k+kt}{Stop}
+  \PY{n}{readCVar} \PY{n}{log}
+\end{Verbatim}
 
 Finally, we have the main loop of the logger. It blocks on taking a
-command and then, if it's a new message, appends the message to the
-list and loops, otherwise it terminates.
+command. If the communication is a new message, the logger appends the
+message to the list and loops, otherwise it terminates.
 
-\begin{minted}{haskell}
-logger :: MonadConc m => Logger m -> m ()
-logger (Logger cmd log) = loop where
-  loop = do
-    command <- takeCVar cmd
-    case command of
-      Message str -> do
-        strs <- takeCVar log
-        putCVar log $ strs ++ [str]
-        loop
-      Stop -> return ()
-\end{minted}
-%$
+%\begin{minted}{haskell}
+%logger :: MonadConc m => Logger m -> m ()
+%logger (Logger cmd log) = loop where
+%  loop = do
+%    command <- takeCVar cmd
+%    case command of
+%      Message str -> do
+%        strs <- takeCVar log
+%        putCVar log $ strs ++ [str]
+%        loop
+%      Stop -> return ()
+%\end{minted}
 
-One immediate thing to note is that if at least two threads attempt to
-communicate with the logger after it has been stopped, one will block
-indefinitely. If we assume one supervising process which orchestrates
-the concurrency (for example, a managing thread which starts a logger
-and a collection of worker threads, which report their status to the
-log), then this isn't a problem as the program can be structured to
-avoid this.
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{logger} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Logger} \PY{n}{m} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}
+\PY{n+nf}{logger} \PY{p}{(}\PY{k+kt}{Logger} \PY{n}{cmd} \PY{n}{log}\PY{p}{)} \PY{o+ow}{=} \PY{n}{loop} \PY{k+kr}{where}
+  \PY{n}{loop} \PY{o+ow}{=} \PY{k+kr}{do}
+    \PY{n}{command} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{takeCVar} \PY{n}{cmd}
+    \PY{k+kr}{case} \PY{n}{command} \PY{k+kr}{of}
+      \PY{k+kt}{Message} \PY{n}{str} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kr}{do}
+        \PY{n}{strs} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{takeCVar} \PY{n}{log}
+        \PY{n}{putCVar} \PY{n}{log} \PY{o}{\PYZdl{}} \PY{n}{strs} \PY{o}{++} \PY{p}{[}\PY{n}{str}\PY{p}{]}
+        \PY{n}{loop}
+      \PY{k+kt}{Stop} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{return} \PY{n+nb}{()}
+\end{Verbatim}
+
+If at least two threads attempt to communicate with the logger after
+it has been stopped, one will block indefinitely. We assume one
+supervising process which orchestrates the concurrency (for example, a
+managing thread which starts a logger and a collection of worker
+threads, which report their status to the log), so this isn't a
+problem.
 
 The actual bug is less obvious, so let's write a simple test case and
 see what \texttt{autocheck} does for us:
 
-\begin{minted}{haskell}
-test :: MonadConc m => m [(ThreadId m, String)]
-test = do
-  l <- initLogger
-  j1 <- spawn (logMsg l "a" >> logMsg l "b")
-  j2 <- spawn (logMsg l "c" >> logMsg l "d")
-  readCVar j1; readCVar j2
-  logStop l
-\end{minted}
+%\begin{minted}{haskell}
+%test :: MonadConc m => m[(ThreadId m, String)]
+%test = do
+%  l <- initLogger
+%  j1 <- spawn (logMsg l "a" >> logMsg l "b")
+%  j2 <- spawn (logMsg l "c" >> logMsg l "d")
+%  readCVar j1; readCVar j2
+%  logStop l
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{test} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m}\PY{p}{[}\PY{p}{(}\PY{k+kt}{ThreadId} \PY{n}{m}\PY{p}{,} \PY{k+kt}{String}\PY{p}{)}\PY{p}{]}
+\PY{n+nf}{test} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{l} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{initLogger}
+  \PY{n}{j1} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{spawn} \PY{p}{(}\PY{n}{logMsg} \PY{n}{l} \PY{l+s}{\PYZdq{}}\PY{l+s}{a}\PY{l+s}{\PYZdq{}} \PY{o}{\PYZgt{}\PYZgt{}} \PY{n}{logMsg} \PY{n}{l} \PY{l+s}{\PYZdq{}}\PY{l+s}{b}\PY{l+s}{\PYZdq{}}\PY{p}{)}
+  \PY{n}{j2} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{spawn} \PY{p}{(}\PY{n}{logMsg} \PY{n}{l} \PY{l+s}{\PYZdq{}}\PY{l+s}{c}\PY{l+s}{\PYZdq{}} \PY{o}{\PYZgt{}\PYZgt{}} \PY{n}{logMsg} \PY{n}{l} \PY{l+s}{\PYZdq{}}\PY{l+s}{d}\PY{l+s}{\PYZdq{}}\PY{p}{)}
+  \PY{n}{readCVar} \PY{n}{j1}\PY{p}{;} \PY{n}{readCVar} \PY{n}{j2}
+  \PY{n}{logStop} \PY{n}{l}
+\end{Verbatim}
 
 Here we start a logger, fork off two threads which each write two
 messages to the log, wait for them to terminate, and stop the
@@ -924,15 +1532,16 @@ Running with \texttt{autocheck}, we see\footnote{Traces have been
     S1----S2---S1----S3---S1-P0------
   ["a","c","b","d"] S0---------S2-----S1----S3---
     --S1----S2---S1----S3---S1----S0------
-  ...
+  MonadConc m
 False
 \end{verbatim}
 
 Well, we found a bug: sometimes the last message gets missed. Also,
 the cases where the last message is dropped all appear to end with a
-pre-emption of thread 1 (the logger thread) by thread 0 (the initial
-thread). We can restrict the results by checking a different
-condition:
+pre-emption of thread 1 by thread 0. As threads are numbered
+sequentially in order of creation, thread 0 is the initial thread and
+thread 1 is the logger thread. We can restrict the results by checking
+a different condition:
 
 \begin{verbatim}
 > dejafu test
@@ -949,73 +1558,306 @@ condition:
     ----S3---S2-S1----S2---S1-P0------
   ["a","c","b"] S0---------S2-----S1----S3-----S1
     ----S2---S1----S3---S0---S1-P0----
-  ...
+  MonadConc m
 False
 \end{verbatim}
 
-We see that the pattern continues. Upon a closer inspection of
-\texttt{logger}, we can see that if it is pre-empted between the
-\texttt{takeCVar cmd} and the \texttt{takeCVar log}, a stop command
-can be written without blocking, and an incomplete log returned. One
-solution to this would be to replace the first \texttt{takeCVar} with
-a \texttt{readCVar}, and only empty the CVar when the processing of
-the command is complete.
+The pattern continues. Upon a closer inspection of \texttt{logger}, we
+can see that if it is pre-empted between the \texttt{takeCVar cmd} and
+the \texttt{takeCVar log}, a stop command can be written without
+blocking, and an incomplete log returned. One solution would be to
+replace the first \texttt{takeCVar} with a \texttt{readCVar}, and only
+empty the CVar when the processing of the command is complete.
 
-\subsubsection*{Parallel Search}
-\label{sec:prelims-dejafu-example-searchparty}
+\subsection*{The auto-update Package}
+\label{sec:dejafu-example-autoupdate}
 
-A library called
-\textit{search-party}\footnote{\url{https://github.com/barrucadu/search-party}}
-has been developed, for speculative parallelism in generate-and-test
-search problems. It is motivated by the consideration that: if
-multiple acceptable solutions exist, it doesn't matter which one is
-returned, as long as one is guaranteed to be returned. Initially, only
-single results could be returned, but support for returning all
-results was later added, incorrectly, introducing a bug.
+The
+\textit{auto-update}\footnote{\url{https://hackage.haskell.org/package/auto-update}}
+library runs tasks periodically, but only if needed. For example, a
+single worker thread may get the time every second and store it to a
+shared \texttt{IORef}, rather than have many threads starting within a
+second of each other all get the time
+independently\cite{autoupdate}. Despite the core functionality being
+very simple, two race conditions were noticed by users inspecting the
+code in October 2014.
+
+\begin{figure}[t]
+  \centering
+% \begin{minted}{haskell}
+% data UpdateSettings a = UpdateSettings
+%     { updateFreq           :: Int
+%     , updateSpawnThreshold :: Int
+%     , updateAction         :: IO a
+%     }
+
+% defaultUpdateSettings :: UpdateSettings ()
+% defaultUpdateSettings = UpdateSettings
+%     { updateFreq           = 1000000
+%     , updateSpawnThreshold = 3
+%     , updateAction         = return ()
+%     }
+
+% mkAutoUpdate :: UpdateSettings a -> IO (IO a)
+% mkAutoUpdate us = do
+%     currRef      <- newIORef Nothing
+%     needsRunning <- newEmptyMVar
+%     lastValue    <- newEmptyMVar
+
+%     void $ forkIO $ forever $ do
+%         takeMVar needsRunning
+
+%         a <- catchSome $ updateAction us
+
+%         writeIORef currRef $ Just a
+%         void $ tryTakeMVar lastValue
+%         putMVar lastValue a
+
+%         threadDelay $ updateFreq us
+
+%         writeIORef currRef Nothing
+%         void $ takeMVar lastValue
+
+%     return $ do
+%         mval <- readIORef currRef
+%         case mval of
+%             Just val -> return val
+%             Nothing -> do
+%                 void $ tryPutMVar needsRunning ()
+%                 readMVar lastValue
+
+% catchSome :: IO a -> IO a
+% catchSome act = catch act $
+%   \e -> return $ throw (e :: SomeException)
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{data} \PY{k+kt}{UpdateSettings} \PY{n}{a} \PY{o+ow}{=} \PY{k+kt}{UpdateSettings}
+    \PY{p}{\PYZob{}} \PY{n}{updateFreq}           \PY{o+ow}{::} \PY{k+kt}{Int}
+    \PY{p}{,} \PY{n}{updateSpawnThreshold} \PY{o+ow}{::} \PY{k+kt}{Int}
+    \PY{p}{,} \PY{n}{updateAction}         \PY{o+ow}{::} \PY{k+kt}{IO} \PY{n}{a}
+    \PY{p}{\PYZcb{}}
+
+\PY{n+nf}{defaultUpdateSettings} \PY{o+ow}{::} \PY{k+kt}{UpdateSettings} \PY{n+nb}{()}
+\PY{n+nf}{defaultUpdateSettings} \PY{o+ow}{=} \PY{k+kt}{UpdateSettings}
+    \PY{p}{\PYZob{}} \PY{n}{updateFreq}           \PY{o+ow}{=} \PY{l+m+mi}{1000000}
+    \PY{p}{,} \PY{n}{updateSpawnThreshold} \PY{o+ow}{=} \PY{l+m+mi}{3}
+    \PY{p}{,} \PY{n}{updateAction}         \PY{o+ow}{=} \PY{n}{return} \PY{n+nb}{()}
+    \PY{p}{\PYZcb{}}
+
+\PY{n+nf}{mkAutoUpdate} \PY{o+ow}{::} \PY{k+kt}{UpdateSettings} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{IO} \PY{p}{(}\PY{k+kt}{IO} \PY{n}{a}\PY{p}{)}
+\PY{n+nf}{mkAutoUpdate} \PY{n}{us} \PY{o+ow}{=} \PY{k+kr}{do}
+    \PY{n}{currRef}      \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newIORef} \PY{k+kt}{Nothing}
+    \PY{n}{needsRunning} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newEmptyMVar}
+    \PY{n}{lastValue}    \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newEmptyMVar}
+
+    \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{forkIO} \PY{o}{\PYZdl{}} \PY{n}{forever} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+        \PY{n}{takeMVar} \PY{n}{needsRunning}
+
+        \PY{n}{a} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{catchSome} \PY{o}{\PYZdl{}} \PY{n}{updateAction} \PY{n}{us}
+
+        \PY{n}{writeIORef} \PY{n}{currRef} \PY{o}{\PYZdl{}} \PY{k+kt}{Just} \PY{n}{a}
+        \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{tryTakeMVar} \PY{n}{lastValue}
+        \PY{n}{putMVar} \PY{n}{lastValue} \PY{n}{a}
+
+        \PY{n}{threadDelay} \PY{o}{\PYZdl{}} \PY{n}{updateFreq} \PY{n}{us}
+
+        \PY{n}{writeIORef} \PY{n}{currRef} \PY{k+kt}{Nothing}
+        \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{takeMVar} \PY{n}{lastValue}
+
+    \PY{n}{return} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+        \PY{n}{mval} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{readIORef} \PY{n}{currRef}
+        \PY{k+kr}{case} \PY{n}{mval} \PY{k+kr}{of}
+            \PY{k+kt}{Just} \PY{n}{val} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{return} \PY{n}{val}
+            \PY{k+kt}{Nothing} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kr}{do}
+                \PY{n}{void} \PY{o}{\PYZdl{}} \PY{n}{tryPutMVar} \PY{n}{needsRunning} \PY{n+nb}{()}
+                \PY{n}{readMVar} \PY{n}{lastValue}
+
+\PY{n+nf}{catchSome} \PY{o+ow}{::} \PY{k+kt}{IO} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{IO} \PY{n}{a}
+\PY{n+nf}{catchSome} \PY{n}{act} \PY{o+ow}{=} \PY{n}{catch} \PY{n}{act} \PY{o}{\PYZdl{}}
+  \PY{n+nf}{\PYZbs{}}\PY{n}{e} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{return} \PY{o}{\PYZdl{}} \PY{n}{throw} \PY{p}{(}\PY{n}{e} \PY{o+ow}{::} \PY{k+kt}{SomeException}\PY{p}{)}
+\end{Verbatim}
+  \caption{\textit{auto-update} implementation}
+  \label{fig:dejafu-example-autoupdate}
+\end{figure}
+
+The entire implementation, excluding comments and imports, is
+reproduced in Figure \ref{fig:dejafu-example-autoupdate}. The
+\texttt{mkAutoUpdate} function spawns a worker thread, which performs
+the update action at the given frequency, only if the
+\texttt{needsRunning} flag has been set. It returns an action to
+attempt to read the current result, demanding one be computed and
+blocking until it has been done if there isn't one.
+
+The simpler race condition occurs if the reading thread is pre-empted
+by the worker thread after putting into \texttt{needsRunning}, and
+does not run again until after the delay has passed. In this case the
+worker thread can become blocked on taking for a second time from
+\texttt{needsRunning}. The reader thread will be unable to read from
+\texttt{lastValue} as the worker thread emptied it as the last action
+it performed. After the simple transformation to the MonadConc
+typeclass, this race condition can be exhibited with the following
+test:
+
+% \begin{minted}{haskell}
+% test :: MonadConc m => m ()
+% test = do
+%   auto <- mkAutoUpdate defaultUpdateSettings
+%   auto
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{test} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{n+nb}{()}
+\PY{n+nf}{test} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{auto} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{mkAutoUpdate} \PY{n}{defaultUpdateSettings}
+  \PY{n}{auto}
+\end{Verbatim}
+
+
+The output is as expected:
+
+\begin{verbatim}
+> autocheck test
+[fail] Never Deadlocks (checked: 1)
+        [deadlock] S0-------S1---------S0-
+[pass] No Exceptions (checked: 17)
+[fail] Consistent Result (checked: 4)
+        () S0-------S1------P0---
+        [deadlock] S0------P1---------S0-
+        () S0-------S1-------P0---
+False
+\end{verbatim}
+
+A deadlock may arise in any use of the library, as it depends only on
+the timing of the delay, and not on the computation performed.
+
+The more complex race condition arises if \texttt{readMVar} isn't
+atomic, as in GHC versions before 7.8. In this case an old value can
+be returned if the read of \texttt{lastValue} is pre-empted between
+the internal take and put operations, as shown in this test:
+
+% \begin{minted}{haskell}
+% test :: MonadConc m => m Int
+% test = do
+%   var  <- newCRef 0
+%   auto <- mkAutoUpdate $ defaultUpdateSettings
+%     { updateAction = modifyCRef var (\x -> (x+1, x)) }
+
+%   auto
+%   auto
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{test} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{n}{m} \PY{k+kt}{Int}
+\PY{n+nf}{test} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{var}  \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newCRef} \PY{l+m+mi}{0}
+  \PY{n}{auto} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{mkAutoUpdate} \PY{o}{\PYZdl{}} \PY{n}{defaultUpdateSettings}
+    \PY{p}{\PYZob{}} \PY{n}{updateAction} \PY{o+ow}{=} \PY{n}{modifyCRef} \PY{n}{var} \PY{p}{(}\PY{n+nf}{\PYZbs{}}\PY{n}{x} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{p}{(}\PY{n}{x}\PY{o}{+}\PY{l+m+mi}{1}\PY{p}{,} \PY{n}{x}\PY{p}{)}\PY{p}{)} \PY{p}{\PYZcb{}}
+
+  \PY{n}{auto}
+  \PY{n}{auto}
+\end{Verbatim}
+
+Here \texttt{auto} is called twice to update the counter variable
+twice. Exhibiting this bug requires three pre-emptions:
+
+\begin{verbatim}
+> dejafus' 3 test [("Consistent Result", alwaysSame)]
+[fail] Consistent Result (checked: 5)
+        0 S0--------S1-------P0-----
+        [deadlock] S0-------P1----------S0-
+        1 S0--------S1-------P0--P1---S0---S1----
+          ---P0----
+        1 S0--------S1-------P0--P1---S0---S1----
+          ----P0----
+        0 S0--------S1--------P0--------
+        MonadConc m
+False
+\end{verbatim}
+
+Despite the bugs being rather simple, one not requiring any
+pre-emptions at all to trigger, they both arose in practice. How easy
+it is to make mistakes when implementing concurrent programs!
+
+\subsection*{Parallel Search}
+\label{sec:dejafu-example-searchparty}
+
+The \textit{Search
+  Party}\footnote{\url{https://github.com/barrucadu/search-party}}
+library supports speculative parallelism in generate-and-test search
+problems. It is motivated by the consideration that: if multiple
+acceptable solutions exist, it may not matter which one is
+returned. Initially, only single results could be returned, but
+support for returning all results was later added, incorrectly,
+introducing a bug.
 
 The key piece of code causing the problem was this part of the worker
 loop:
 
-\begin{minted}{haskell}
-case maybea of
-  Just a -> do
-    atomically $ do
-      val <- tryTakeCTMVar res
-      case val of
-        Just (Just as) -> putCTMVar res $ Just (a:as)
-        _ -> putCTMVar res $ Just [a]
-    unless shortcircuit $
-      process remaining res
-  Nothing -> process remaining res
-\end{minted}
+%\begin{minted}{haskell}
+%case maybea of
+%  Just a -> do
+%    atomically $ do
+%      val <- tryTakeCTMVar res
+%      case val of
+%        Just (Just as) -> putCTMVar res $ Just (a:as)
+%        _ -> putCTMVar res $ Just [a]
+%    unless shortcircuit $
+%      process remaining res
+%  Nothing -> process remaining res
+%\end{minted}
 
-Here ``maybea'' is a value indicating whether the particular
-computation just evaluated was successful. The intended behaviour is
-that, when gathering all results, if a computation is successful it is
-added to the list in the ``res'' CTMVar, and then in any case
-processing continues. This CTMVar is exposed indirectly to the user of
-the library, it is blocked upon when the final result of the search is
-requested.
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{case} \PY{n}{maybea} \PY{k+kr}{of}
+  \PY{k+kt}{Just} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kr}{do}
+    \PY{n}{atomically} \PY{o}{\PYZdl{}} \PY{k+kr}{do}
+      \PY{n}{val} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{tryTakeCTMVar} \PY{n}{res}
+      \PY{k+kr}{case} \PY{n}{val} \PY{k+kr}{of}
+        \PY{k+kt}{Just} \PY{p}{(}\PY{k+kt}{Just} \PY{n}{as}\PY{p}{)} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{putCTMVar} \PY{n}{res} \PY{o}{\PYZdl{}} \PY{k+kt}{Just} \PY{p}{(}\PY{n}{a}\PY{k+kt}{:}\PY{n}{as}\PY{p}{)}
+        \PY{k+kr}{\PYZus{}} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{putCTMVar} \PY{n}{res} \PY{o}{\PYZdl{}} \PY{k+kt}{Just} \PY{p}{[}\PY{n}{a}\PY{p}{]}
+    \PY{n}{unless} \PY{n}{shortcircuit} \PY{o}{\PYZdl{}}
+      \PY{n}{process} \PY{n}{remaining} \PY{n}{res}
+  \PY{k+kt}{Nothing} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{process} \PY{n}{remaining} \PY{n}{res}
+\end{Verbatim}
 
-There are some small tests in search-party, verifying that deadlocks
-and exceptions don't arise, and that results are as expected. Upon
-introducing this new functionality, tests began to fail with differing
-result lists returned for different schedules:
+Here \texttt{maybea} is a value indicating whether the computation
+just evaluated was successful. The intended behaviour is that, if a
+computation is successful its result is added to the list in the
+\texttt{res} CTMVar. This CTMVar is exposed indirectly to the user of
+the library, as it is blocked upon when the final result of the search
+is requested.
 
-\begin{minted}{haskell}
-checkResultLists :: Eq a => Predicate [a]
-checkResultLists = alwaysTrue2 check
-  where
-  check (Right as) (Right bs) =
-    as `elem` permutations bs
-  check a b = a == b
-\end{minted}
+There are some small tests in \textit{Search Party}, verifying that
+deadlocks and exceptions don't arise, and that results are as
+expected. Upon introducing this new functionality, tests began to fail
+with differing result lists returned for different schedules,
+prompting the test:
+
+%\begin{minted}{haskell}
+%checkResultLists :: Eq a => Predicate [a]
+%checkResultLists = alwaysTrue2 check
+%  where
+%  check (Right as) (Right bs) =
+%    as `elem` permutations bs
+%  check a b = a == b
+%\end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{checkResultLists} \PY{o+ow}{::} \PY{k+kt}{Eq} \PY{n}{a} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Predicate} \PY{p}{[}\PY{n}{a}\PY{p}{]}
+\PY{n+nf}{checkResultLists} \PY{o+ow}{=} \PY{n}{alwaysTrue2} \PY{n}{check}
+  \PY{k+kr}{where}
+  \PY{n}{check} \PY{p}{(}\PY{k+kt}{Right} \PY{n}{as}\PY{p}{)} \PY{p}{(}\PY{k+kt}{Right} \PY{n}{bs}\PY{p}{)} \PY{o+ow}{=}
+    \PY{n}{as} \PY{p}{`}\PY{n}{elem}\PY{p}{`} \PY{n}{permutations} \PY{n}{bs}
+  \PY{n}{check} \PY{n}{a} \PY{n}{b} \PY{o+ow}{=} \PY{n}{a} \PY{o}{==} \PY{n}{b}
+\end{Verbatim}
 
 Given this predicate, we can very clearly see the problem:
 
 \begin{verbatim}
 > dejafu (runFind $ [0..2] @! const True)
          ("Result Lists", checkResultLists)
+\end{verbatim}
+\begin{verbatim}
 [fail] Result Lists (checked: 46)
   Just [2,1] S0----S1-----S2-P3-----------S0----
   Just [0,2,1] S0----S1-----S2-P3-----------S2---
@@ -1024,25 +1866,240 @@ Given this predicate, we can very clearly see the problem:
   Just [0,2,1] S0----S1-----S2--P3-----------S2--
     ---S0----
   Just [2,1] S0----S1-----S2---P3-----------S0----
-  ...
+  MonadConc m
 False
 \end{verbatim}
 
-In this case, fixing the failure did not require any interactive
-debugging, as only one place had been modified in introducing the new
-functionality, and re-reading the code with the possibility of error
-in mind led immediately to noticing the bug. However, the ability to
-produce a test case which reliably reproduces the problem allows
-confidence that it will be caught if it is reintroduced in a future
-version of the library.
-
-Specifically, there was no indication that a list-producing
+The problem was a lack of any indication that a list-producing
 computation had finished. As results were written directly to the
 CTMVar, partial result lists could be read depending on how the worker
 threads and the main thread were interleaved.
 
-\subsection{Related Work}
-\label{sec:prelims-dejafu-related}
+In this case, fixing the failure did not require any interactive
+debugging. Only one place had been modified in introducing the new
+functionality, and the bug was found by re-reading the code with the
+possibility of error in mind.. However, the ability to produce a test
+case which reliably reproduces the problem gives confidence that it
+will not be accidentally reintroduced.
+
+\subsection*{The Par Monad}
+\label{sec:dejafu-example-parmonad}
+
+As mentioned in Section \sect{dejafu-par-par}, the Par monad allows for
+deterministic data-flow parallelism in Haskell. The library provides a
+number of different schedulers, the default being the ``trace''
+scheduler. Due to reports of potential deadlocks with the ``direct''
+scheduler from a year ago\cite{parreddit}, it was tested with
+\dejafu{}.
+
+To reduce the effort in modifying the code, only the direct
+dependencies of the ``direct'' scheduler were modified, the rest of
+the library being left unchanged. This resulted in four files needing
+change: two from the
+\textit{abstract-deque}\footnote{\url{https://hackage.haskell.org/package/abstract-deque}}
+package and two from the
+\textit{monad-par}\footnote{\url{https://hackage.haskell.org/package/monad-par}}
+package.
+
+Converting \textit{monad-par} to use \dejafu{} was quite simple. All
+relevant types were parametrised by the underlying monad, all
+functions had a MonadConc context added, functions were swapped for
+their \dejafu{} alternatives, and a \texttt{runPar'} function was
+added:
+
+% \begin{minted}{haskell}
+% runPar' :: MonadConc m => Par m a -> m a
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{runPar\PYZsq{}} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Par} \PY{n}{m} \PY{n}{a} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{n}{a}
+\end{Verbatim}
+
+Some simplifications were made in the conversion process:
+
+\begin{itemize}
+  \item Par normally uses the
+    \textit{mwc-random}\footnote{\url{https://hackage.haskell.org/package/mwc-random}}
+    package when performing its internal scheduling. This was
+    initially replaced with a constant function, and then a
+    \texttt{StdGen}.
+
+  \item Behaviour of the Par scheduler is configured by cpp, but only
+    the default configuration was tested.
+\end{itemize}
+
+Figure \ref{fig:dejafu-example-parmonad-sched} shows the original and
+converted scheduler initialisation code. As can be seen, they are very
+similar, even though this is a core component of a rather
+sophisticated library, where the types have been changed.
+
+Converting the \textit{abstract-deque} package proved a little more
+challenging, as the typeclass interface requires knowledge of both the
+queue type and the monad results are produced in. This issue was
+solved by use of type families:
+
+% \begin{minted}{haskell}
+% class MonadConc (MConc d) => DequeClass d where
+%   type MConc d :: * -> *
+
+%   newQ :: MConc d (d elt)
+%   ...
+% \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{k+kr}{class} \PY{k+kt}{MonadConc} \PY{p}{(}\PY{k+kt}{MConc} \PY{n}{d}\PY{p}{)} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{DequeClass} \PY{n}{d} \PY{k+kr}{where}
+  \PY{k+kr}{type} \PY{k+kt}{MConc} \PY{n}{d} \PY{o+ow}{::} \PY{o}{*} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{o}{*}
+
+  \PY{n}{newQ} \PY{o+ow}{::} \PY{k+kt}{MConc} \PY{n}{d} \PY{p}{(}\PY{n}{d} \PY{n}{elt}\PY{p}{)}
+  \PY{n}{\ldots}
+\end{Verbatim}
+
+This solution is not ideal as it adds explicit knowledge of MonadConc
+to the DequeClass typeclass, but it suffices for testing purposes.
+
+With the constant value `PRNG', a deadlock was discovered. It only
+arises after 200 queries. Given that the range of values is from 0 to
+the number of capabilities, and the probability is uniformly
+distributed, the probability of an actual deadlock is about $4 \times
+10^{-121}$ on a quad-core computer. No deadlocks were discovered when
+using the \texttt{StdGen} generator, with a variety of initial seeds
+tried. If there is still a deadlock, it may require more than 2
+capabilities to manifest.
+
+\captionsetup[figure]{format=normal}
+\begin{figure*}[t]
+  \centering
+  \begin{minipage}[t]{0.49\textwidth}
+%     \begin{minted}{haskell}
+% makeScheds :: Int -> IO [Sched]
+% makeScheds main = do
+%   workpools <- replicateM numCapabilities R.newQ
+%   rngs <- replicateM numCapabilities
+%             (Random.create >>= newHotVar)
+%   idle <- newHotVar []
+
+%   sessionFinished <- newHotVar False
+%   let sess = [Session baseSessionID sessionFinished]
+%   sessionStacks <- mapM newHotVar
+%                      (replicate numCapabilities sess)
+%   activeSessions <- newHotVar S.empty
+%   sessionCounter <- newHotVar (baseSessionID + 1)
+%   let allscheds =
+%        [ Sched { no=x, idle, isMain=(x==main),
+%                  workpool=wp, scheds=allscheds,
+%                  rng=rng, sessions=stck,
+%                  activeSessions=activeSessions,
+%                  sessionCounter=sessionCounter
+%                }
+%          | x    <- [0 .. numCapabilities-1]
+%          | wp   <- workpools
+%          | rng  <- rngs
+%          | stck <- sessionStacks
+%        ]
+
+%   return allscheds
+%     \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{makeScheds} \PY{o+ow}{::} \PY{k+kt}{Int} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{k+kt}{IO} \PY{p}{[}\PY{k+kt}{Sched}\PY{p}{]}
+\PY{n+nf}{makeScheds} \PY{n}{main} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{workpools} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{replicateM} \PY{n}{numCapabilities} \PY{k+kt}{R}\PY{o}{.}\PY{n}{newQ}
+  \PY{n}{rngs} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{replicateM} \PY{n}{numCapabilities}
+            \PY{p}{(}\PY{k+kt}{Random}\PY{o}{.}\PY{n}{create} \PY{o}{\PYZgt{}\PYZgt{}=} \PY{n}{newHotVar}\PY{p}{)}
+  \PY{n}{idle} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{k+kt}{[]}
+
+  \PY{n}{sessionFinished} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{k+kt}{False}
+  \PY{k+kr}{let} \PY{n}{sess} \PY{o+ow}{=} \PY{p}{[}\PY{k+kt}{Session} \PY{n}{baseSessionID} \PY{n}{sessionFinished}\PY{p}{]}
+  \PY{n}{sessionStacks} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{mapM} \PY{n}{newHotVar}
+                     \PY{p}{(}\PY{n}{replicate} \PY{n}{numCapabilities} \PY{n}{sess}\PY{p}{)}
+  \PY{n}{activeSessions} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{k+kt}{S}\PY{o}{.}\PY{n}{empty}
+  \PY{n}{sessionCounter} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{p}{(}\PY{n}{baseSessionID} \PY{o}{+} \PY{l+m+mi}{1}\PY{p}{)}
+  \PY{k+kr}{let} \PY{n}{allscheds} \PY{o+ow}{=}
+       \PY{p}{[} \PY{k+kt}{Sched} \PY{p}{\PYZob{}} \PY{n}{no}\PY{o+ow}{=}\PY{n}{x}\PY{p}{,} \PY{n}{idle}\PY{p}{,} \PY{n}{isMain}\PY{o+ow}{=}\PY{p}{(}\PY{n}{x}\PY{o}{==}\PY{n}{main}\PY{p}{)}\PY{p}{,}
+                 \PY{n}{workpool}\PY{o+ow}{=}\PY{n}{wp}\PY{p}{,} \PY{n}{scheds}\PY{o+ow}{=}\PY{n}{allscheds}\PY{p}{,}
+                 \PY{n}{rng}\PY{o+ow}{=}\PY{n}{rng}\PY{p}{,} \PY{n}{sessions}\PY{o+ow}{=}\PY{n}{stck}\PY{p}{,}
+                 \PY{n}{activeSessions}\PY{o+ow}{=}\PY{n}{activeSessions}\PY{p}{,}
+                 \PY{n}{sessionCounter}\PY{o+ow}{=}\PY{n}{sessionCounter}
+               \PY{p}{\PYZcb{}}
+         \PY{o}{|} \PY{n}{x}    \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{p}{[}\PY{l+m+mi}{0} \PY{o}{..} \PY{n}{numCapabilities}\PY{o}{\PYZhy{}}\PY{l+m+mi}{1}\PY{p}{]}
+         \PY{o}{|} \PY{n}{wp}   \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{workpools}
+         \PY{o}{|} \PY{n}{rng}  \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{rngs}
+         \PY{o}{|} \PY{n}{stck} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{sessionStacks}
+       \PY{p}{]}
+
+  \PY{n}{return} \PY{n}{allscheds}
+\end{Verbatim}
+    \caption*{Original}
+  \end{minipage}
+  \begin{minipage}[t]{0.49\textwidth}
+%     \begin{minted}{haskell}
+% makeScheds :: MonadConc m => Int -> m [Sched m]
+% makeScheds main = do
+%   numCapabilities <- getNumCapabilities
+%   workpools <- replicateM numCapabilities R.newQ
+%   rngs <- replicateM numCapabilities (newHotVar (mkStdGen 0))
+%   idle <- newHotVar []
+
+%   sessionFinished <- newHotVar False
+%   let sess = [Session baseSessionID sessionFinished]
+%   sessionStacks <- mapM newHotVar
+%                      (replicate numCapabilities sess)
+%   activeSessions <- newHotVar S.empty
+%   sessionCounter <- newHotVar (baseSessionID + 1)
+%   let allscheds =
+%        [ Sched { no=x, idle, isMain=(x==main),
+%                  workpool=wp, scheds=allscheds,
+%                  rng=rng, sessions=stck,
+%                  activeSessions=activeSessions,
+%                  sessionCounter=sessionCounter
+%                }
+%          | x    <- [0 .. numCapabilities-1]
+%          | wp   <- workpools
+%          | rng  <- rngs
+%          | stck <- sessionStacks
+%        ]
+
+%   return allscheds
+%     \end{minted}
+
+\begin{Verbatim}[commandchars=\\\{\}]
+\PY{n+nf}{makeScheds} \PY{o+ow}{::} \PY{k+kt}{MonadConc} \PY{n}{m} \PY{o+ow}{=\PYZgt{}} \PY{k+kt}{Int} \PY{o+ow}{\PYZhy{}\PYZgt{}} \PY{n}{m} \PY{p}{[}\PY{k+kt}{Sched} \PY{n}{m}\PY{p}{]}
+\PY{n+nf}{makeScheds} \PY{n}{main} \PY{o+ow}{=} \PY{k+kr}{do}
+  \PY{n}{numCapabilities} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{getNumCapabilities}
+  \PY{n}{workpools} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{replicateM} \PY{n}{numCapabilities} \PY{k+kt}{R}\PY{o}{.}\PY{n}{newQ}
+  \PY{n}{rngs} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{replicateM} \PY{n}{numCapabilities} \PY{p}{(}\PY{n}{newHotVar} \PY{p}{(}\PY{n}{mkStdGen} \PY{l+m+mi}{0}\PY{p}{)}\PY{p}{)}
+  \PY{n}{idle} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{k+kt}{[]}
+
+  \PY{n}{sessionFinished} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{k+kt}{False}
+  \PY{k+kr}{let} \PY{n}{sess} \PY{o+ow}{=} \PY{p}{[}\PY{k+kt}{Session} \PY{n}{baseSessionID} \PY{n}{sessionFinished}\PY{p}{]}
+  \PY{n}{sessionStacks} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{mapM} \PY{n}{newHotVar}
+                     \PY{p}{(}\PY{n}{replicate} \PY{n}{numCapabilities} \PY{n}{sess}\PY{p}{)}
+  \PY{n}{activeSessions} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{k+kt}{S}\PY{o}{.}\PY{n}{empty}
+  \PY{n}{sessionCounter} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{newHotVar} \PY{p}{(}\PY{n}{baseSessionID} \PY{o}{+} \PY{l+m+mi}{1}\PY{p}{)}
+  \PY{k+kr}{let} \PY{n}{allscheds} \PY{o+ow}{=}
+       \PY{p}{[} \PY{k+kt}{Sched} \PY{p}{\PYZob{}} \PY{n}{no}\PY{o+ow}{=}\PY{n}{x}\PY{p}{,} \PY{n}{idle}\PY{p}{,} \PY{n}{isMain}\PY{o+ow}{=}\PY{p}{(}\PY{n}{x}\PY{o}{==}\PY{n}{main}\PY{p}{)}\PY{p}{,}
+                 \PY{n}{workpool}\PY{o+ow}{=}\PY{n}{wp}\PY{p}{,} \PY{n}{scheds}\PY{o+ow}{=}\PY{n}{allscheds}\PY{p}{,}
+                 \PY{n}{rng}\PY{o+ow}{=}\PY{n}{rng}\PY{p}{,} \PY{n}{sessions}\PY{o+ow}{=}\PY{n}{stck}\PY{p}{,}
+                 \PY{n}{activeSessions}\PY{o+ow}{=}\PY{n}{activeSessions}\PY{p}{,}
+                 \PY{n}{sessionCounter}\PY{o+ow}{=}\PY{n}{sessionCounter}
+               \PY{p}{\PYZcb{}}
+         \PY{o}{|} \PY{n}{x}    \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{p}{[}\PY{l+m+mi}{0} \PY{o}{..} \PY{n}{numCapabilities}\PY{o}{\PYZhy{}}\PY{l+m+mi}{1}\PY{p}{]}
+         \PY{o}{|} \PY{n}{wp}   \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{workpools}
+         \PY{o}{|} \PY{n}{rng}  \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{rngs}
+         \PY{o}{|} \PY{n}{stck} \PY{o+ow}{\PYZlt{}\PYZhy{}} \PY{n}{sessionStacks}
+       \PY{p}{]}
+
+  \PY{n}{return} \PY{n}{allscheds}
+\end{Verbatim}
+    \caption*{\dejafu{}}
+  \end{minipage}
+  \caption{Par ``direct'' scheduler initialisation\\\hrulefill}
+  \label{fig:dejafu-example-parmonad-sched}
+\end{figure*}
+\captionsetup[figure]{format=underlined}
+
+\section{Related Work}
+\label{sec:dejafu-related}
 
 Pre-emption bounding testing tools exist for both C\cite{maple} and
 Java\footnote{LazyLocks (Paul Thomson), to appear.} at least. SCT in
@@ -1058,9 +2115,9 @@ and QuickCheck is used for schedule generation.  PULSE supports
 automatic code instrumented to support this style of testing. As
 Erlang processes may be distributed, pre-emption bounding may not be
 suitable, as it assumes everything is executing on a single
-processor. Whilst there has been work on Erlang-style concurrency for
-Haskell\cite{cloudhaskell}, it is still relatively unpopular; in this
-case a PULSE-style approach may be better there.
+processor. There has been work on Erlang-style concurrency for
+Haskell\cite{cloudhaskell}. It seems to be little used, but in this
+case a PULSE-style approach may be better.
 
 Whilst the MonadConc typeclass was structured to be similar to the
 standard concurrency primitives, the inspiration for this approach,
@@ -1068,68 +2125,69 @@ and the basic idea behind how to do SCT in Haskell, was provided by a
 blog post\cite{typeclass}. However, both the family of primitives and
 the approach to testing have been significantly advanced.
 
-\subsection{Conclusions \& Further Work}
-\label{sec:prelims-dejafu-conclusion}
+\section{Conclusions \& Further Work}
+\label{sec:dejafu-conclusion}
 
-Although a common joke amongst Haskell programmers is that ``if it
-compiles, it works'', this is demonstrably not the case. A number of
-profiling and debugging tools exist, typically requiring special
-runtime support. Concurrency is a particularly difficult area to get
-right, as everyone who has had to move outside the realm of guaranteed
-determinism will know. Yet there are no debugging tools for concurrent
-Haskell programs (ThreadScope\cite{threadscope} is a profiling tool,
-and merely gathers information on sample executions). This paper
-contributes such a tool, at the cost of a programmer having to use a
-generalisation of the familiar concurrency abstraction.
+Although a commonly reported experience amongst Haskell programmers is
+that ``if it compiles, it works'', there are times where it does
+\textit{not} work. A number of profiling and debugging tools exist,
+typically requiring special runtime support. Concurrency is a
+particularly difficult area to get right, as everyone who has had to
+move outside the realm of guaranteed determinism will know. Yet there
+are no debugging tools for concurrent Haskell programs
+(ThreadScope\cite{threadscope} is a profiling tool, and merely gathers
+information on sample executions). This paper contributes such a tool,
+at the cost of a programmer having to use a generalisation of the
+familiar concurrency abstraction.
 
 Is this cost too high? Programmers are notoriously unwilling to
 restructure their code to allow for easier analysis or testing, unless
 the current situation is truly unbearable. It is generally regarded in
 the Haskell community as good practice to write IO-using functions as
-thin wrappers around calls to pure code, which hopefully will reduce
+thin wrappers around calls to pure code. This practice should limit
 the amount of change needed. The MonadConc and MonadSTM interfaces
 have been kept intentionally very similar to the IO and STM
-interfaces, typically all that a programmer needs to do will be to
-change some imports, some names, and a few type signatures.
+interfaces. Typically all that a programmer needs to do is to change
+some imports, some names, and a few type signatures.
+
+It is impossible in the current implementation to include functions
+like \texttt{threadDelay}, as testing assumes that any nondeterminism
+is due to the scheduler. Causing a thread to sleep is a notoriously
+nondeterministic operation, as the actual amount of time slept depends
+partly on the operating system's scheduler, which remains out of
+reach.
+
+If a thread enters an infinite loop in a primitive action call, the
+entire test runner will lock up, even if that would not happen when
+executing normally. This is because the test runner cannot do things
+on a granularity smaller than one primitive action.
+
+Despite these limitations, our tool solves a problem, and makes
+writing reliable Haskell programs a little easier.
 
 We implemented a library for fast parallel search on top of this
 abstraction, and some shortcomings were identified and rectified. In
 particular, there was originally no CRef type, as IORefs operations
 can potentially be re-ordered\cite{ioref}. However, IORefs with
 non-reorderable updates turned out to be exactly the abstraction
-needed for search-party's work stealing scheduler, and so it was
-added.
+needed for \textit{Search Party}'s work stealing scheduler, and so
+they were added.
 
-Naturally, there is still work to be done:
+More could be done. For example:
 
 \begin{itemize}
   \item Swapping out the regular concurrency primitives for the
-    MonadConc primitives could be done at compile- or link-time, rather
-    than at the level of code. This would allow testing of legacy code,
-    and also free the programmer from needing to modify their code,
-    however it would require recompiling all dependencies with this
-    functionality enabled (as is currently the case when building
-    something with profiling enabled).
+    MonadConc primitives could be done at compile- or link-time, as a
+    GHC plugin, rather than at the level of code. This would allow
+    testing of legacy code, and also free the programmer from needing
+    to modify their code. However, it would require recompiling all
+    dependencies with this functionality enabled.
 
-  \item It is impossible in the current implementation to include
-    functions like \texttt{threadDelay}, as testing assumes that any
-    nondeterminism is due to the scheduler, but causing a thread to
-    sleep is a notoriously nondeterministic operation, with the actual
-    amount of time slept depending partly on the operating system's
-    scheduler, which remains out of reach.
-
-  \item If a thread enters an infinite loop, or something similar, in
-    one primitive action call, the entire test runner will lock up,
-    even if that would not happen when executing normally. This is
-    because the test runner cannot do things on a granularity smaller
-    than one primitive action.
-
-  \item Whilst some work is done to not explore uninteresting
-    schedules, it is very naive. Dynamic partial-order reduction
-    (DPOR)\cite{dpor} is a technique for dynamically deciding which
-    traces will not be interesting based on thread interactions, and
-    so greatly reducing the search space. This would increase testing
-    performance, and make feasible the testing of large programs.
+  \item Dynamic partial-order reduction (DPOR)\cite{dpor} is a
+    technique for dynamically deciding which traces will not be
+    interesting based on thread interactions, and so greatly reducing
+    the search space. This would increase testing performance, and
+    make feasible the testing of large programs.
 
   \item In practice, schedulers are biased towards a particular subset
     of the possible schedules. They may try to guarantee fairness, for
@@ -1137,14 +2195,16 @@ Naturally, there is still work to be done:
     not sufficiently fair could be ignored, reducing the search space.
 \end{itemize}
 
-Despite these limitations, our tool solves a problem, and makes
-writing reliable Haskell programs a little easier.
 
-\section{Search Party}
-\label{sec:prelims-searchparty}
+\chapter{Search Party: a Haskell library for speculative parallelism in
+  generate-and-test searches}
+\label{chp:searchparty}
 
-\subsection{Introduction}
-\label{sec:prelims-searchparty-intro}
+\textit{This chapter contains a paper submitted to the 2015 Haskell
+  Symposium workshop}\cite{searchparty}.
+
+\section{Introduction}
+\label{sec:searchparty-intro}
 
 Generate-and-test computations are very common in functional programs,
 whether these be in the form of generating and testing statements in
@@ -1195,28 +2255,28 @@ We make the following contributions:
 
 \subsection*{Roadmap}
 
-The rest of the section is organised as follows:
+The rest of the paper is organised as follows:
 
 \begin{itemize}
-  \item \sect{prelims-searchparty-api} presents the API of the library developed, explaining
+  \item \sect{searchparty-api} presents the API of the library developed, explaining
     the semantics of the operations.
 
-  \item \sect{prelims-searchparty-impl} discusses the implementation, including the
+  \item \sect{searchparty-impl} discusses the implementation, including the
     complete implementation of a parallel worker.
 
-  \item \sect{prelims-searchparty-examples} shows how Search Party has been applied to a
+  \item \sect{searchparty-examples} shows how Search Party has been applied to a
     small number of existing programs. Benchmark results for both time and space
     under varying degrees of parallelism are also displayed, compared
     with the original programs.
 
-  \item \sect{prelims-searchparty-related} discusses related work, such as the Par
+  \item \sect{searchparty-related} discusses related work, such as the Par
     monad\cite{par} and how this work differs.
 
-  \item \sect{prelims-searchparty-concs} summarises the work done and draws conclusions.
+  \item \sect{searchparty-concs} summarises the work done and draws conclusions.
 \end{itemize}
 
-\subsection{The \texttt{Find} Monad}
-\label{sec:prelims-searchparty-api}
+\section{The \texttt{Find} Monad}
+\label{sec:searchparty-api}
 
 The goal of this work is to provide a parallel abstraction over
 generate-and-test powerful enough to handle many instances of this
@@ -1240,10 +2300,10 @@ runFind :: Find a -> IO (Maybe a)
 
 As can be seen from the type, a \verb|Find a|\footnote{\texttt{Find}
   is actually also parametrised by the underlying concurrency monad,
-  using the \texttt{MonadConc} typeclass from \dejafu{}, which allows
-  testing. IO and the standard concurrency primitives are used here
-  for simplicity of presentation.} value represents a computation
-that, when executed, might \textit{fail}.
+  using the \texttt{MonadConc} typeclass from \dejafu{}\cite{dejafu},
+  which allows testing. IO and the standard concurrency primitives are
+  used here for simplicity of presentation.} value represents a
+computation that, when executed, might \textit{fail}.
 
 The intuition behind the \verb|Find| monad is:
 
@@ -1322,7 +2382,6 @@ From these, many combinators can be derived, such as \verb|!| (so
 called because it is a kind of indexing operation), and \verb|?|
 (because it's a kind of indexing operation using \verb|Maybe|):
 
-\vfill
 \begin{minted}{haskell}
 (!) :: Foldable t  => t a -> (a -> Bool) -> Find a
 as ! p = oneOf . map p' $ toList as where
@@ -1333,8 +2392,8 @@ as ? f = oneOf . map f'  $ toList as where
   f' = maybe failure success . f
 \end{minted}
 
-\subsubsection{Generalising to \texttt{Stream}s}
-\label{sec:prelims-searchparty-api-stream}
+\subsection{Generalising to \texttt{Stream}s}
+\label{sec:searchparty-api-stream}
 
 A natural progression from finding a single successful result is to
 find \textit{all} such results:
@@ -1394,8 +2453,8 @@ currently is cannot have a Monad instance. This does not seem to be a
 hindrance in practice, as the main use of \verb|Stream| has been in
 parallelising list comprehensions.
 
-\subsubsection{Regaining Determinism}
-\label{sec:prelims-searchparty-api-det}
+\subsection{Regaining Determinism}
+\label{sec:searchparty-api-det}
 
 Both \verb|Find| and \verb|Stream| have functions to extract results
 which are only pure when the result is deterministic. So far the
@@ -1421,8 +2480,8 @@ parallel workers, and so introduces additional blocking. This is why
 the nondeterministic functions are still provided, as they may be
 faster.
 
-\subsection{Implementation}
-\label{sec:prelims-searchparty-impl}
+\section{Implementation}
+\label{sec:searchparty-impl}
 
 A \verb|Find| computation is defined in terms of work items, where a
 work item contains a \textit{future} result, along with a monadic
@@ -1473,22 +2532,22 @@ how the program is invoked. The number of capabilities used is a
 parameter of the run-time system, and defaults to 1.
 
 The worker threads are implemented with the \verb|explorer| function,
-shown in Figures \ref{fig:impl-explorer1} and
-\ref{fig:impl-explorern}, which step through the list of work items,
-writing results found to an output \verb|TMVar|.
+shown in Figures \ref{fig:searchparty-impl-explorer1} and
+\ref{fig:searchparty-impl-explorern}, which step through the list of
+work items, writing results found to an output \verb|TMVar|.
 
-\subsubsection{One capability}
-\label{sec:prelims-searchparty-impl-one}
+\subsection{One capability}
+\label{sec:searchparty-impl-one}
 
 If there is only one capability, there is only one worker, so most
 synchronisation can be avoided. This reduces the cost of using Search
-Party, but as seen in Figure \ref{fig:examples-time}, it is not
-eliminated entirely. The remaining overhead is due to how results are
-communicated to the consumer. In a sequential list-using computation,
-once a result has been computed it is available to the consumer very
-cheaply. Search Party sends all results through \verb|TMVar|s, which
-involves STM, an additional cost which is not involved at all in the
-sequential case.
+Party, but as seen in Figure \ref{fig:searchparty-examples-time}, it
+is not eliminated entirely. The remaining overhead is due to how
+results are communicated to the consumer. In a sequential list-using
+computation, once a result has been computed it is available to the
+consumer very cheaply. Search Party sends all results through
+\verb|TMVar|s, which involves STM, an additional cost which is not
+involved at all in the sequential case.
 
 \begin{figure}[t]
   \centering
@@ -1507,12 +2566,12 @@ explorer looping _ 1 items wf _ liveworkers var = do
   loop [] = return ()
   \end{minted}
   \caption{\texttt{explorer} function for one capability}
-  \label{fig:impl-explorer1}
+  \label{fig:searchparty-impl-explorer1}
 \end{figure}
 
-In Figure \ref{fig:impl-explorer1}, two arguments of \verb|explorer|
-are ignored, as they are not necessary when there is a single
-worker. The remaining arguments are as follows:
+In Figure \ref{fig:searchparty-impl-explorer1}, two arguments of
+\verb|explorer| are ignored, as they are not necessary when there is a
+single worker. The remaining arguments are as follows:
 
 \begin{itemize}
   \item \verb|looping| determines whether to keep going after finding
@@ -1539,8 +2598,8 @@ list. It then walks down that list processing work items until it
 finds a successful one, which is written to the output variable. In
 this case, the result will always be in-order.
 
-\subsubsection{Multiple capabilities}
-\label{sec:prelims-searchparty-impl-multi}
+\subsection{Multiple capabilities}
+\label{sec:searchparty-impl-multi}
 
 With multiple capabilities, additional synchronisation work must be
 done when producing an in-order result. If a worker finds a successful
@@ -1562,7 +2621,7 @@ Every argument is used here. The additional ones are:
 \end{itemize}
 
 \subsubsection*{Reducing contention}
-\label{sec:prelims-searchparty-impl-multi-contention}
+\label{sec:searchparty-impl-multi-contention}
 
 The obvious approach is to have each worker thread claim a single work
 item, process it, and then loop. We can provide for in-order results
@@ -1596,7 +2655,7 @@ explorer ... = loop ([1..caps] ++ repeat caps) []
 \end{minted}
 
 \subsubsection*{The main loop}
-\label{sec:prelims-searchparty-impl-multi-loop}
+\label{sec:searchparty-impl-multi-loop}
 
 \begin{figure}[t]
   \centering
@@ -1643,11 +2702,11 @@ loop n ((item, idx):rest) = do
   retire = modifyTVar' liveworkers $ subtract 1
   \end{minted}
   \caption{\texttt{explorer} loop for multiple capabilities}
-  \label{fig:impl-explorern}
+  \label{fig:searchparty-impl-explorern}
 \end{figure}
 
-The main loop is displayed in Figure \ref{fig:impl-explorern}. There
-are two cases to consider.
+The main loop is displayed in Figure
+\ref{fig:searchparty-impl-explorern}. There are two cases to consider.
 
 If the worker runs out of work, more must be claimed. If no work items
 can be claimed, the worker decrements \verb|liveworkers| variable, and
@@ -1668,8 +2727,8 @@ result, waiting for this variable to be read. The effect is to build
 up a small buffer of results which can be read in quick succession
 without needing to wait.
 
-\subsection{Examples and Performance}
-\label{sec:prelims-searchparty-examples}
+\section{Examples and Performance}
+\label{sec:searchparty-examples}
 
 % This is here to make it appear at the top of the examples page.
 \begin{figure*}[ht]
@@ -1733,7 +2792,7 @@ without needing to wait.
   \end{tabularx}  
   \caption{Benchmark timing results, with the Search Party version
     executed with differing numbers of threads.}
-  \label{fig:examples-time}
+  \label{fig:searchparty-examples-time}
 \end{figure*}
 
 We now present some applications of Search Party to existing programs,
@@ -1746,12 +2805,13 @@ at 2.3GHz, for a total of 32 cores. The OS was Ubuntu 14.04, using GHC
 over 10 runs.
 
 Timing results and speed-up under differing degrees of parallelism are
-displayed in Figure \ref{fig:examples-time}. For some benchmarks,
-memory use of original and modified programs (with -N4) are displayed
-in Figure \ref{fig:examples-space}. As can be seen, the Search Party
-versions of the benchmarks consume more memory, but the usage is not
-as consistent. This is because of the induced producer-consumer
-pattern, as seen in the blocking behaviour of workers in \sect{prelims-searchparty-impl}.
+displayed in Figure \ref{fig:searchparty-examples-time}. For some
+benchmarks, memory use of original and modified programs (with -N4)
+are displayed in Figure \ref{fig:searchparty-examples-space}. As can
+be seen, the Search Party versions of the benchmarks consume more
+memory, but the usage is not as consistent. This is because of the
+induced producer-consumer pattern, as seen in the blocking behaviour
+of workers in \sect{searchparty-impl}.
 
 Of particular interest are the benchmark results for the most
 optimised variant of Hutton's Countdown solver. This is a hand-tuned,
@@ -1766,76 +2826,76 @@ parallelism.
   \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{space/amis-orig.eps}
     \caption{Amicable Pairs}
-    \label{fig:examples-space:amis-orig}
+    \label{fig:searchparty-examples-space:amis-orig}
   \end{subfigure}
   \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{space/amis-sp}
     \caption{Amicable Pairs (Search Party)}
-    \label{fig:examples-space:amis-sp}
+    \label{fig:searchparty-examples-space:amis-sp}
   \end{subfigure}
 
   % \begin{subfigure}{0.4\textwidth}
   %   \includegraphics[width=\textwidth]{space/mate-orig}
   %   \caption{Mate-in-N}
-  %   \label{fig:examples-space:mate-orig}
+  %   \label{fig:searchparty-examples-space:mate-orig}
   % \end{subfigure}
   % \begin{subfigure}{0.4\textwidth}
   %   \includegraphics[width=\textwidth]{space/mate-sp}
   %   \caption{Mate-in-N (Search Party)}
-  %   \label{fig:examples-space:mate-sp}
+  %   \label{fig:searchparty-examples-space:mate-sp}
   % \end{subfigure}
 
   \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{space/sols-orig}
     \caption{sols}
-    \label{fig:examples-space:sols-orig}
+    \label{fig:searchparty-examples-space:sols-orig}
   \end{subfigure}
   \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{space/sols-sp}
     \caption{sols (Search Party)}
-    \label{fig:examples-space:sols-sp}
+    \label{fig:searchparty-examples-space:sols-sp}
   \end{subfigure}
 
   \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{space/sols2-orig}
     \caption{sols'}
-    \label{fig:examples-space:sols2-orig}
+    \label{fig:searchparty-examples-space:sols2-orig}
   \end{subfigure}
   \begin{subfigure}{0.4\textwidth}
     \includegraphics[width=\textwidth]{space/sols2-sp}
     \caption{sols' (Search Party)}
-    \label{fig:examples-space:sols2-sp}
+    \label{fig:searchparty-examples-space:sols2-sp}
   \end{subfigure}
 
   % \begin{subfigure}{0.4\textwidth}
   %   \includegraphics[width=\textwidth]{space/sols3-orig}
   %   \caption{sols''}
-  %   \label{fig:examples-space:sols3-orig}
+  %   \label{fig:searchparty-examples-space:sols3-orig}
   % \end{subfigure}
   % \begin{subfigure}{0.4\textwidth}
   %   \includegraphics[width=\textwidth]{space/sols3-sp}
   %   \caption{sols'' (Search Party)}
-  %   \label{fig:examples-space:sols3-sp}
+  %   \label{fig:searchparty-examples-space:sols3-sp}
   % \end{subfigure}
 
   % \begin{subfigure}{0.4\textwidth}
   %   \includegraphics[width=\textwidth]{space/iso-orig}
   %   \caption{Iso. Checker}
-  %   \label{fig:examples-space:iso-orig}
+  %   \label{fig:searchparty-examples-space:iso-orig}
   % \end{subfigure}
   % \begin{subfigure}{0.4\textwidth}
   %   \includegraphics[width=\textwidth]{space/iso-sp}
   %   \caption{Iso. Checker (Search Party)}
-  %   \label{fig:examples-space:iso-sp}
+  %   \label{fig:searchparty-examples-space:iso-sp}
   % \end{subfigure}
 
   \caption{Benchmark memory results, with the Search Party version
     executed with 4 threads.}
-  \label{fig:examples-space}
+  \label{fig:searchparty-examples-space}
 \end{figure*}
 
 \subsection*{Amicable Pairs}
-\label{sec:prelims-searchparty-examples-amis}
+\label{sec:searchparty-examples-amis}
 
 An \textit{amicable pair} is a pair of numbers such that the sum of
 the proper divisors of each equals the other. For example, $(220,
@@ -1934,19 +2994,19 @@ parallelism is quite simple.
     \hline
   \end{tabularx}
   \caption{Optimal speed-ups for Amicable Pairs}
-  \label{fig:examples-amis-amdahl}
+  \label{fig:searchparty-examples-amis-amdahl}
 \end{figure}
 
-Figure \ref{fig:examples-amis-amdahl} shows optimal speed-ups for this
-benchmark, calculated using Amdahl's law after profiling revealed a
-negligible proportion of overall execution time sequentially consuming
-the list. The entire \verb|amicablePairs| comprehension, rather than
-just the explicit tests, was profiled. Due to lazy evaluation,
-parallelisation of the test also parallelises the generation to some
-extent.
+Figure \ref{fig:searchparty-examples-amis-amdahl} shows optimal
+speed-ups for this benchmark, calculated using Amdahl's law after
+profiling revealed a negligible proportion of overall execution time
+sequentially consuming the list. The entire \verb|amicablePairs|
+comprehension, rather than just the explicit tests, was profiled. Due
+to lazy evaluation, parallelisation of the test also parallelises the
+generation to some extent.
 
 \subsection*{Mate-in-N}
-\label{sec:prelims-searchparty-examples-mate}
+\label{sec:searchparty-examples-mate}
 
 The applicability of Search Party depends on the overall structure of
 a computation including a generate-and-test search. There is some
@@ -1988,7 +3048,6 @@ Amicable Pairs, using an additional function parameter to prevent
 nested parallelism, which Search Party currently does not cope well
 with.
 
-\vspace{1cm}
 The original definition
 
 \begin{minted}{haskell}
@@ -2029,20 +3088,20 @@ to the possible initial moves.
     \hline
   \end{tabularx}
   \caption{Optimal speed-ups for Mate-in-N}
-  \label{fig:examples-mate-amdahl}
+  \label{fig:searchparty-examples-mate-amdahl}
 \end{figure}
 
-Figure \ref{fig:examples-mate-amdahl} shows optimal speed-ups for this
-benchmark, assuming that 89.4\% of the work could be
-parallelised. This is optimistic, as it assumes every (recursive) call
-to \verb|solution| could be executed in parallel. Search Party is not
-suitable for expressing this sort of recursive generation of new work,
-as it does not currently share worker threads. As the result of the
-computation is finite and used in full, the Par monad may be a more
-viable approach here.
+Figure \ref{fig:searchparty-examples-mate-amdahl} shows optimal
+speed-ups for this benchmark, assuming that 89.4\% of the work could
+be parallelised. This is optimistic, as it assumes every (recursive)
+call to \verb|solution| could be executed in parallel. Search Party is
+not suitable for expressing this sort of recursive generation of new
+work, as it does not currently share worker threads. As the result of
+the computation is finite and used in full, the Par monad may be a
+more viable approach here.
 
 \subsection*{Hutton's Countdown Solver}
-\label{sec:prelims-searchparty-examples-hutton}
+\label{sec:searchparty-examples-hutton}
 
 \textit{Countdown} is a gameshow where one of the components is a
 number game. Contestants choose a collection of 6 number cards, and
@@ -2171,17 +3230,18 @@ sols'' ns n = parConcatMap
     \hline
   \end{tabularx}
   \caption{Optimal speed-ups for Hutton's Countdown solver}
-  \label{fig:examples-hutton-amdahl}
+  \label{fig:searchparty-examples-hutton-amdahl}
 \end{figure}
 
-Figure \ref{fig:examples-hutton-amdahl} shows optimal speed-ups for
-this benchmark, assuming all of the work done in the \verb|exprs|,
-\verb|eval|, \verb|results| and \verb|results'| functions can be
-parallelised. As with the Mate-in-N problem, this is optimistic, due
-to the lazy evaluation of the rest of the comprehension.
+Figure \ref{fig:searchparty-examples-hutton-amdahl} shows optimal
+speed-ups for this benchmark, assuming all of the work done in the
+\verb|exprs|, \verb|eval|, \verb|results| and \verb|results'|
+functions can be parallelised. As with the Mate-in-N problem, this is
+optimistic, due to the lazy evaluation of the rest of the
+comprehension.
 
 \subsection*{Isomorphism Checker}
-\label{sec:prelims-searchparty-examples-isos}
+\label{sec:searchparty-examples-isos}
 
 GP2\cite{gp2} is a nondeterministic programming language based on
 graph transformation, and an important component of the reference
@@ -2215,8 +3275,8 @@ isomorphic g1 g2 =
 
 The introduction of a \verb|parAny| (in place of a regular \verb|any|)
 is the only change made. As can be seen in Figure
-\ref{fig:examples-time} performance begins to fall with more than 4
-parallel workers. It is possible that a more sophisticated
+\ref{fig:searchparty-examples-time} performance begins to fall with
+more than 4 parallel workers. It is possible that a more sophisticated
 introduction of parallelism could have yielded better results, but
 this was not pursued.
 
@@ -2233,18 +3293,18 @@ this was not pursued.
     \hline
   \end{tabularx}
   \caption{Optimal speed-ups for the Isomorphism Checker}
-  \label{fig:examples-isos-amdahl}
+  \label{fig:searchparty-examples-isos-amdahl}
 \end{figure}
 
-Figure \ref{fig:examples-isos-amdahl} shows optimal speed-ups for this
-benchmark. The results for $n \geq 8$ are poor. Looking at the source
-of \verb|bijectionsWith|, it appears to be very sequentially in its
-current incarnation. This imposes unnecessary sequentiality and
-blocking when claiming work items, and so much of the benefit of
-parallelism is lost.
+Figure \ref{fig:searchparty-examples-isos-amdahl} shows optimal
+speed-ups for this benchmark. The results for $n \geq 8$ are
+poor. Looking at the source of \verb|bijectionsWith|, it appears to be
+very sequentially in its current incarnation. This imposes unnecessary
+sequentiality and blocking when claiming work items, and so much of
+the benefit of parallelism is lost.
 
-\subsection{Related Work}
-\label{sec:prelims-searchparty-related}
+\section{Related Work}
+\label{sec:searchparty-related}
 
 Speculative computation\cite{spec} is, in some sense, the exact
 opposite of lazy evaluation. Whereas in most cases, we wish to delay a
@@ -2362,8 +3422,8 @@ until they are needed. The problem is that no such function will
 terminate until the \textit{entire} list has been processed. In the
 case of an infinite list, then, the result is $\bot$.
 
-\subsection{Conclusions}
-\label{sec:prelims-searchparty-concs}
+\section{Conclusions}
+\label{sec:searchparty-concs}
 
 We have presented a new library for parallel generate-and-test style
 computations, and demonstrated that it can give a significant speed-up

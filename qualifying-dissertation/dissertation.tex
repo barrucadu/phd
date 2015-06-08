@@ -1,4 +1,10 @@
-\documentclass[10pt,a4paper,twoside,openany]{report}
+\documentclass[9pt,a4paper,twoside,openany]{extreport}
+\usepackage{extsizes}
+
+% Smaller chapter headings
+\usepackage{titlesec}
+\titleformat{\chapter}[block]{\normalfont\Huge\bfseries}{\thechapter. }{0cm}{}[]
+\titlespacing{\chapter}{0cm}{0cm}{0.5cm}
 
 % Nicer fonts
 \usepackage[T1]{fontenc}
