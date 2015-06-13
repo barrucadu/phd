@@ -1,5 +1,4 @@
 \part{Literature Review}
-\label{sec:litrev}
 
 % "give a thorough account of previous and current work in the field,
 % with ample citations of relevant literature; assess the current
@@ -9,83 +8,211 @@
 % the relative strengths and weaknesses of the major lines of work
 % pursued to date."
 
-\todo{Overview of chapter. Explanation of concurrency in
-  Haskell (monadic concurrency, io). Why nondeterministic concurrency
-  is tricky.}
+\chapter{Nondeterministic Concurrency in Lazy Functional Languages}
+\label{chp:litrev}
+
+This chapter surveys some of the literature in the fields of
+concurrent functional programming languages, and the testing of
+concurrency more generally. The scope is programming technology for
+nondeterministic concurrency in polymorphically-typed lazy functional
+languages, of which Haskell is an example:
+
+\begin{description}
+  \item[Programming technology] covers both the testing of concurrent
+    code, and the production of libraries which are ``safe'' in a
+    concurrent system, in terms of determinism and error conditions.
+
+  \item[Polymorphically-typed] means that functions cannot inspect the
+    concrete types of their arguments and behave differently depending
+    on what they are: the type of a function gives all of the
+    information about what sorts of operations it can do.
+
+  \item[Lazy] means that the evaluation order of expressions is
+    undefined, and so a correct program cannot assume anything about
+    that.
+\end{description}
+
+\section{Avoiding Concurrency}
+\label{sec:litrev-strategies}
+
+As unrestricted concurrency leads to nondeterminism, there has been
+much work on \textit{avoiding} it whilst still reaping the benefits of
+parallel execution of code. Some of this work is in the guise of a
+concurrency abstraction with guaranteed determinism, but others have
+avoided concurrency entirely.
+
+Perhaps the earliest such approach, \textit{evaluation strategies},
+introduced by Trinder et al. (1993)\nocite{trinder}, make use of the
+basic primitives for controlling evaluation order in Haskell,
+\verb|par| and \verb|seq|. The semantics of \verb|seq| are to evaluate
+its first argument and then to return its second, whereas \verb|par|
+starts evaluating its first argument in parallel and immediately
+returns its second. In both cases, evaluation is to weak-head normal
+form (WHNF).
+
+Strategies were intended to be powerful and extensible methods for
+controlling how data structures are evaluated. A value of type
+\verb|Strategy a| defines how to evaluate a value of type
+\verb|a|. Strategies are composable, allowing constructs like so to be
+easily defined:
+
+\begin{minted}{haskell}
+parList :: Strategy a -> Strategy [a]
+parList _ [] = ()
+parList strat (x:xs) = strat x `par` parList strat xs
+\end{minted}
+
+Hence, \verb|parList| takes a strategy to evaluate a value, and
+produces a strategy to evaluate a list of such values in
+parallel.
+
+Strategies have evolved since their inception, with Marlow et
+al. (2010)\nocite{strategies} redefining strategies to operate in
+terms of an \textit{evaluation order monad}, called \verb|Eval|. The
+monadic bind of \verb|Eval| is defined to be strict, giving a flexible
+notation for expressing evaluation order without the need to pepper
+code with additional applications of \verb|rseq| (the \verb|Eval|
+analogue of \verb|seq|). Despite more powerful tools being available,
+strategies are still used today, provided by the
+\textit{parallel}\footnote{\url{https://hackage.haskell.org/package/parallel}}
+library.
+
+\section{Deterministic Parallel Concurrency}
+\label{sec:litrev-det}
+
+Strategies do not provide anything looking like typical concurrency,
+however. They are only used to express evaluation order, and have no
+explicit notion of threads. The \verb|Par| monad, by Marlow et
+al. (2011)\nocite{parmonad}, is used for expressing \textit{dataflow
+  parallelism}.
+
+The \verb|Par| monad provides threads and mutable
+variables. Determinism is enforced by having these mutable variables
+only allow a single write, and reads block until a value has been
+written. This prevents race conditions and, as no locks are provided,
+deadlock is impossible.
+
+Single-write shared variables are rather limiting, however, and
+Lindsey et al (2014)\nocite{lvish}, noted that all that is required
+for determinism is that the value a read returns must be
+constant. This lead to their \textit{LVish}
+library\footnote{\url{https://hackage.haskell.org/package/lvish}}
+which uses lattice-based shared variables. A read corresponds to
+glimpsing some part of the shared mutable structure. Writes cannot
+destructively update a shared structure.
+
+LVish would allow structures such as a shared mutable list. Writes
+could append to the list, and reads could return the first, second,
+and $n$th items (blocking until such a value has been written), but
+not to read the length, or the last item added.
+
+A rather different approach to that of \verb|Par| and LVish is taken
+by Leijen et al. (2011)\nocite{revisions} in their \textit{concurrent
+  revisions} library. This is strictly speaking not an example of
+deterministic parallelism as it allows arbitrary I/O to occur in a
+concurrent environment, but it does deterministically deal with shared
+state.
+
+Here, shared variables have a copy-on-write semantics. This makes the
+\verb|fork| of concurrent revisions much more like the \verb|fork| of
+the C standard library, than the \verb|fork| of the \verb|Par|
+monad. When a thread is \textit{joined}, it terminates and any
+modification made to shared state is integrated with the shared state
+of the joining thread, by applying functions supplied when the state
+was created. For example,
+
+\begin{minted}{haskell}
+counter = revisioned $ do
+  c <- vcreateM merge 0
+
+  x <- fork $ do
+    vmodify c (+1)
+    y <- fork (vmodify c (+3))
+    vmodify c (+2)
+    return y
+
+  vmodify c (+4)
+  y <- join x
+  join y
+  vread c
+
+  where
+  merge main joinee original = main + joinee - original
+\end{minted}
+
+The final result here is 10, the sum of all the modification
+operations. This is because the merge behaviour for \verb|c| is to add
+any difference to its own value. Any merge behaviour at all is
+possible, however as merge functions may not perform any I/O, and
+threads cannot communicate other than joining each other (and a thread
+cannot be joined multiple times), the whole process is deterministic.
+
+These approaches to deterministic parallelism aim to approximate a
+typical concurrency abstraction to some extent. This clearly indicates
+that concurrency is a powerful and useful software structuring
+technique, and mere parallel evaluation isn't enough. Sadly, any such
+approximations must remain approximations, as unbridled concurrency
+\textit{is} nondeterministic.
+
+\section{(Nondeterministic) Concurrency}
+\label{sec:litrev-conc}
+
+\textit{Concurrent Haskell}, by Peyton Jones at
+al. (1996)\nocite{concurrent}, embellishes Haskell with a means to
+start new threads, and for threads to communicate. As noted in the
+introduction, the aim of the work is to do with structuring programs,
+not with performance,
+
+\begin{quote}
+  This paper is not at all about concurrency as a means of increasing
+  performance by exploiting multiprocessors. Our approach to that goal
+  uses \textit{implicit}, semantically transparent, parallelism; but
+  that is another story. Rather, this paper concerns the use of
+  \textit{explicit}, semantically visible, concurrent I/O-performing
+  processes. Our goal is to extend Haskell's usefulness into a new
+  class of applications.\cite{concurrent}
+\end{quote}
+
+A new thread is started with the \verb|forkIO| function, which takes
+an I/O action and begins executing it concurrently with the forking
+action. Execution may not be parallel, in fact the original
+implementation of Concurrent Haskell performed all execution in a
+single operating system thread, scheduling internally.
+
+The second new concept was the \verb|MVar|. An \verb|MVar| is a
+mutable variable, which can either be \textit{full} or
+\textit{empty}. Attempting to write to a full \verb|MVar| blocks until
+it is empty, and attempting to read from an empty \verb|MVar| blocks
+until it is full (and then empties it). More recent versions of the
+standard library have introduced functionality to attempt
+(non-blockingly) to read from or write to an \verb|MVar|, to read
+without emptying, and so on.
+
+Threading and \verb|MVar|s are sufficient for nondeterminism, as
+\verb|MVar|s can be written to multiple times and can give rise to
+deadlock.
+
+\todo{Talk about parallel + concurrent haskell.}
+
+Despite Haskell being a purely functional language, the introduction
+of multiple distinct threads of control immediately introduces the
+need for inter-thread synchronisation whilst evaluating
+expressions\cite{concurrent}! This is because of laziness, two threads
+may try to evaluate the same thunk at the ``same time'', and
+evaluating a thunk mutates the heap. Thus, if one thread starts to
+evaluate a thunk which is already being evaluated by another, the
+former needs to be paused until the latter finishes.
+
+\section{Software Transactional Memory}
+\label{sec:litrev-stm}
 
 \section{Systematic Concurrency Testing}
 \label{sec:litrev-sct}
 
-\todo{Why we can't just unit test concurrent
-  programs. Heisenbugs. What is SCT. How it solves the problem.}
+\todo{History of SCT, emphasise the few functional examples (PULSE,
+  any more?)  and point to overall lack of use.}
 
-\subsection{Implementation of SCT}
-\label{sec:litrev-sct-impl}
+\section{Review}
+\label{sec:litrev-review}
 
-\todo{How it's implemented in terms of primitive operations. The
-  problem of computing schedules, and the systematic/random
-  approaches. PULSE as an example.}
-
-\subsection{Schedule Bounding}
-\label{sec:litrev-sct-sched}
-
-\todo{Discuss the various types of schedule bounding, with a focus on
-  pre-emption and delay bounding. Enumerate pros/cons of each and
-  suggest where each may do better than the other.}
-
-\subsection{Tools}
-\label{sec:litrev-sct-tools}
-
-\todo{Major tools for SCT, and what languages they support.}
-
-\subsection{Open Problems}
-\label{sec:litrev-sct-probs}
-
-\todo{``major open problems and prospects for their solution and the
-  relative strengths and weaknesses of the major lines of work pursued
-  to date.''}
-
-\section{Deterministic Concurrency}
-\label{sec:litrev-det}
-
-\todo{Communication is the source of all concurrency
-  nondeterminism. Shared state is an example of communication, as is
-  message passing. Communication must be limited. This makes
-  deterministic concurrency more limited than nondeterministic
-  concurrency.}
-
-\subsection{Evaluation Strategies}
-\label{sec:litrev-det-strats}
-
-\todo{Overview of Strategies. Limitations, use-cases.}
-
-\subsection{The Par Monad}
-\label{sec:litrev-det-par}
-
-\todo{Overview of Par. Strengths wrt Strategies. Limitations,
-  use-cases.}
-
-\subsection{LVish}
-\label{sec:litrev-det-lvish}
-
-\todo{Overview of LVish. Strengths wrt Par. Limitations, use-cases.}
-
-\subsection{State Revisions}
-\label{sec:litref-det-revs}
-
-\todo{Overview of state revisions. Strengths wrt
-  Strategies. Comparison with par/lvish. Limitations, use-cases.}
-
-\subsection{Open Problems}
-\label{sec:litrev-det-probs}
-
-\todo{``major open problems and prospects for their solution and the
-  relative strengths and weaknesses of the major lines of work pursued
-  to date.''}
-
-\section{Summary}
-\label{sec:litrev-sum}
-
-\todo{Summarise prior sections. Why can't always use deterministic
-  concurrency. Using SCT to test deterministic impls. What must be
-  kept in mind when reading the following chapters.}
+\todo{Summarise chapter and highlight open problems.}
