@@ -46,37 +46,41 @@ It is worth clarifying at this early stage some terminology which will
 be frequently used throughout this report:
 
 \begin{description}
-  \item[Concurrency] is a programming methodology using concepts such
+  \item[Concurrency] is a programming methodology, using concepts such
     as threads, locks, and mutable variables to structure
     programs.
 
-  \item[Parallelism] is an implementation detail which does not change
-    the semantics of the program.
+  \item[Parallelism] is an implementation detail, where a multiplicity
+    of hardware components are used to execute distinct pieces of code
+    simultaneously.
 \end{description}
 
-Given these definitions, we might well ask: whence the nondeterminism?
-Furthermore, it seems quite an audacious claim that parallelism does
-not alter the semantics of the program, but this comes down to how
-pure functional languages work. In such a language, evaluation and
-execution are separate concerns, we can imagine the overall execution
-of a program as evaluating some IO-performing subcomputation, which is
-then executed, which may in turn require other things to be
-evaluated. Evaluation itself has no side-effects, only execution does,
-and so parallel evaluation cannot give a different result than
-sequential evaluation. Concurrency, on the other hand, has
-nondeterministic scheduling during execution as a part of its
-semantics\cite{parconc}, which is where the problem comes from.
+Concurrency does not require parallelism, as demonstrated by the
+single-core, single-processor computers of yore. Similarly,
+parallelism does not require concurrency, as demonstrated by the
+\verb|par| combinator in Haskell, which evaluates its arguments in
+parallel.
 
-Naturally, concurrency often makes use of parallelism, however
-concurrency could just as easily be implemented with time-slicing,
-across one or possibly many processors. When multiple processors are
-introduced, issues such as out-of-order memory behaviour with
-IORefs\cite{ioref} becomes possible, but this still does not require
-parallelism over concurrency, as the problem could be replicated by
-performing some computation on one processor, stopping, and resuming
-on another without flushing memory.
+Unrestricted concurrency is explicit and semantically
+visible\cite{concurrent}. The interleaved execution of threads, when
+combined with mutable state, gives rise to nondeterminism. Semaphores
+and locks give rise to nontermination in the form of deadlock and
+livelock. Parallelism, in particular the parallel evaluation of
+expressions, is semantically invisible, and there is the possibility
+for implicit parallelism, ``at present these combinators [\verb|par|
+and \verb|seq|] are added by the programmer, though we would of course
+like this task to be automated.''\cite{gum}
 
-\section{Systematic Concurrency Testing}
+Concurrency is often implemented using parallelism, and indeed a
+concurrency abstraction can be used to guarantee parallelism (given
+suitable hardware), for example by having the ability to restrict the
+execution of individual threads to given processors.
+
+This report is largely concerned with concurrency, although
+parallelism is also discussed as it is often the motivation to use
+concurrency.
+
+\section{Testing Concurrency}
 \label{sec:intro-sct}
 
 The problem of testing concurrent programs is that the scheduler is a
@@ -88,7 +92,7 @@ primitives of the language (as in LazyLocks\footnote{(Paul Thompson) to
   appear}), or by modifying the program under test to call out to this
 new scheduler (as in PULSE\cite{pulse}).
 
-Once the scheduler is under control schedules can be recorded and
+Once the scheduler is under control, schedules can be recorded and
 replayed, giving reproducibility. Furthermore, by observing which
 scheduling decisions are available at each decision point, possible
 schedules can be systematically explored, making different decisions
@@ -120,30 +124,27 @@ ability\cite{empirical}, and the number of schedules explored by delay
 bounding grows more slowly than with pre-emption
 bounding\cite{dbound}, perhaps making it a more attractive choice for
 during development, with pre-emption bounding reserved for producing
-more concrete guarantees ahead of software releases.
+more concrete guarantees ahead of software releases. Random
+scheduling, surprisingly, performs about as well as schedule bounding
+approaches on a standard collection of SCT benchmarks\cite{empirical}.
 
-Random scheduling, surprisingly, performs about as well as schedule
-bounding approaches on a standard collection of SCT
-benchmarks\cite{empirical}.
-
-One concern with SCT is that as concurrent programs grow, the number
-of possible interleavings of operations grows much faster, resulting
-in an explosion of possible schedules. There is evidence that many
-concurrency bugs can be found with small test cases with few threads
-and context switches\cite{pbound, dbound, empirical}, providing hope
-that unit-test-like test cases can be produced and known-good
-components composed efficiently.
-
-Another is that test cases suitable for SCT must be deterministic when
-the schedule is fixed, which often isn't easy to achieve if external
-processes or network communication is involved. Producing small
-suitable tests may be difficult.
+SCT is a powerful testing technique for concurrent programs, however
+it seems to have received little attention in the world of functional
+programming. This is possibly because of the large emphasis on
+deterministic parallelism, however as concurrency is still used in
+Haskell (often in the implementation of these deterministic
+abstractions!), I believe that there is a place for it in the Haskell
+world.
 
 \section{Structure of this Report}
 \label{sec:intro-outline}
 
 \begin{itemize}
-  \item \todo{lit review}
+  \item Chapter \ref{chp:litrev} surveys programming technologies for
+    nondeterministic concurrency in lazy pure functional programming
+    languages. It focuses on libraries for deterministic parallelism
+    built atop concurrency, and on testing tools.
+
   \item Chapter \ref{chp:dejafu} contains a paper submitted to the
     2015 Haskell Symposium\cite{dejafu} on implementing and using
     systematic concurrency testing in Haskell. It presents a
@@ -157,6 +158,7 @@ suitable tests may be difficult.
     concurrency. The chapter uses the standard concurrency API for
     ease of presentation, but the real implementation uses \dejafu{}
     for testing purposes.
+
   \item Chapter \ref{chp:proposal} outlines a proposal for a research
     programme. Both short- and long-term goals are identified and a
     strategy for reaching them is discussed.
