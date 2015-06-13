@@ -8,4 +8,192 @@
 \chapter{Research Proposal}
 \label{chp:proposal}
 
-\todo{Research proposal}
+\todo{Chapter intro}
+
+\section{Overall Goals}
+\label{sec:proposal-goals}
+
+The goal of my research is to implement libraries and tools to enable
+programmers to make use of potentially nondeterministic concurrency
+whilst being confident of the correctness of their programs.
+
+As many concurrent programs are deterministic, but impossible or
+awkward to express with current libraries, common patterns should be
+identified and generalised into guaranteed-deterministic
+libraries. For the remaining programs which are nondeterministic,
+powerful testing and verification tools should be developed.
+
+Within the next six months I aim to have a powerful testing framework
+for concurrent Haskell programs, based on systematic concurrency
+testing.
+
+\section{Specific Aims}
+\label{sec:proposal-aims}
+
+\begin{description}
+  \item[Aim 1] Produce an SCT tool that:
+    \begin{enumerate}
+      \item Is capable of handling a majority of existing programs with
+        only minor modification
+      \item Reports to the programmer simple execution traces
+        exhibiting bugs
+    \end{enumerate}
+
+  \item[Aim 2] A concurrency verification tool for a core concurrent
+    lazy functional language.
+\end{description}
+
+\section{Strategy}
+\label{sec:proposal-strategy}
+
+\subsection{Phase A --- A New Concurrency Abstraction}
+\label{sec:proposal-strategy-abstraction}
+
+\phase{\textit{None}}{1}{\textit{None}}{? months}{? months}
+
+The standard Haskell concurrency abstraction makes use of the
+\verb|IO| monad, which is a part of the implementation. To enable
+testing, a new abstraction is necessary with a flexible concrete
+implementation. This suggests either a typeclass or a free
+monad/interpreter approach.
+
+The abstraction would need to include, at a minimum: forking, MVars,
+and STM. A more complete abstraction must also include exceptions,
+capabilities, and IORefs. This should be enough to cover most uses of
+concurrency in Haskell.
+
+By the end of \phas{A}, I should have an abstraction over the existing
+concurrency primitives, with one concrete implementation using
+\verb|IO|, and another parameterised by a fixed scheduler.
+
+\subsection{Phase B --- A Library for Systematic Concurrency Testing}
+\label{sec:proposal-strategy-sct}
+
+\phase{A}{1}{1}{? months}{? months}
+
+Once it is possible to run concurrent programs with a fixed scheduler,
+a systematic testing framework can be implemented. Pre-emption and
+delay bounding are both instances of schedule bounding, and so much
+common implementation effort can be shared.
+
+However, without a reduction of schedules to try, even simple programs
+will experience a combinatorial explosion of possible schedules as
+they grow. A na\"{\i}ve approach is simply to eliminate scheduling
+decisions which could not possibly change the result, such as context
+switches around reading the thread's own ID.
+
+Dynamic partial-order reduction\todo{mention in lit rev} is a much
+more robust set of techniques to eliminate redundant work by
+determining during the testing process, from the program under test,
+whether alternative decisions could affect the result. Schedules can
+be grouped into equivalence classes, and only one schedule from each
+class must be tested. The testing library, then, should implement some
+known DPOR techniques to reduce work.
+
+\phas{B} will result in a library for the testing of concurrent
+Haskell programs expressed using the abstraction developed in
+\phas{A}, using systematic techniques to produce confident results,
+and to reduce the number of schedules needed.
+
+\subsection{Phase C --- Verification Tools}
+\label{sec:proposal-strategy-tools}
+
+\phase{\textit{None}}{2}{\textit{None}}{? months}{? months}
+
+A number of logics, theorem provers, and proof assistants are
+available. Some are already used for the automated verification of
+concurrent algorithms\todo{examples, cite}. I feel I need to explore
+the options available as this will inform the core language developed
+in \phas{D}.
+
+By the end of \phas{C}, I should have selected an environment for
+verifying concurrent programs, and have some proofs of simple
+programs.
+
+\subsection{Phase D --- A Core Language for Concurrency}
+\label{sec:proposal-strategy-core}
+
+\phase{C}{2}{\textit{None}}{? months}{? months}
+
+Haskell is a big language, and so for research and tooling purposes a
+core language is usually chosen or created, into which the rest of
+Haskell can be transformed mechanically. However, these core languages
+often neglect parallelism and concurrency, so I must develop a new
+one.
+
+The primitives available in such a language must be suitable for
+transforming more complex programs to, but must also admit a simple
+translation into the logic selected in \phas{C}. It is possible that
+something based upon GHC Core might work, as that necessarily covers
+everything allows by GHC Haskell. Further investigation is required.
+
+By the end of \phas{D}, I should have developed a core language and
+have a simple translator into the logic selected previously. This
+necessitates also developing a formal semantics of the core language.
+
+\subsection{Phase E --- A Verifier for Core Concurrent Programs}
+\label{sec:proposal-strategy-verifier}
+
+\phase{C,D}{2}{2}{? months}{? months}
+
+Bugs found by a static analysis must be understood in terms of the
+original program, not the logic of the tool. Hence, results relating
+to programs written in the core language developed in \phas{D} in the
+logic chosen in \phas{C} will be related back to the original
+programs. This may require the core--logic translation process to
+decompose the original program into smaller pieces with unique names,
+or by being whitespace-aware (if the tool reports line numbers with
+errors).
+
+Furthermore, a core language isn't very useful in itself. At least the
+common concurrency functions must be available to programs written in
+this language, even if they are not themselves primitive.
+
+\phas{E} will result in a tool capable of taking programs written in
+the concurrent core language, applying automated verification
+techniques, and reporting any errors found in terms of the original
+program. Furthermore, a library of standard concurrency functions
+taken from the Haskell standard library will be reimplemented using
+the core language to ease program transformation.
+
+\section{Current Progress}
+\label{sec:proposal-progress}
+
+\begin{description}
+  \item[A New Concurrency Abstraction] Such an abstraction has been
+    developed, incorporating most of the standard Haskell concurrency
+    primitives, other than things which cannot be used for testing,
+    such as \verb|threadDelay|, and primitives which remain out of
+    reach, such as \verb|threadWaitRead|
+
+    The \verb|threadDelay| function is omitted, as its behaviour is
+    notoriously nondeterministic, depending in part on the operating
+    system scheduler. The \verb|threadWaitRead| (and similar)
+    functions are omitted as the readability of a file descriptor
+    cannot be checked without blocking.
+
+  \item[A Library for Systematic Concurrency Testing] A library has
+    been implemented, although only using na\"{\i}ve elimination of
+    duplicate schedules. DPOR techniques need to be investigated and
+    integrated into the schedule generation process.
+\end{description}
+
+\section{Immediate Plan}
+\label{sec:proposal-plan}
+
+Over the next 6 months, I intend to:
+
+\begin{itemize}
+  \item Complete \phas{B}, A Library for Systematic Concurrency
+    Testing, by investigating current results in dynamic partial-order
+    reduction and implementing some in the library. The current
+    progress is discussed more fully in Chapter \ref{chp:dejafu}.
+
+  \item Begin \phas{C}, Verification Tools, by evaluating and
+    comparing current automated tools for concurrent logics and
+    determining which are more suitable to modelling nonstrict
+    functional programs in. The modelling of the language evaluation
+    model must not be so complex as to make use of the tool unwieldy,
+    so this test may eliminate a lot of candidates.
+\end{itemize}
+

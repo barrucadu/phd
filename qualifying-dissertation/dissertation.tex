@@ -154,6 +154,19 @@
 \savesymbol{listof}
 \usepackage{bussproofs}
 
+% Plan
+\newcommand{\phase}[5]{%
+\begin{tabularx}{\linewidth}{|XXX|}%
+  \hline%
+  \textbf{Dependencies:}   #1 &%
+  \textbf{Related Aims:}   #2 &%
+  \textbf{Aims Completed:} #3 \\%
+  \textbf{Total Estimate:} #4 &%
+  \textbf{Progress:}       #5 &\\%
+  \hline%
+\end{tabularx}}
+\newcommand{\phas}[1]{\textbf{Phase #1}}
+
 % Misc
 \newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
 \newcommand{\sect}[1]{\S\ref{sec:#1}}
