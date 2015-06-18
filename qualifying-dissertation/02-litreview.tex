@@ -192,8 +192,6 @@ Threading and \verb|MVar|s are sufficient for nondeterminism, as
 \verb|MVar|s can be written to multiple times and can give rise to
 deadlock.
 
-\todo{Talk about parallel + concurrent haskell.}
-
 Despite Haskell being a purely functional language, the introduction
 of multiple distinct threads of control immediately introduces the
 need for inter-thread synchronisation whilst evaluating
@@ -209,8 +207,53 @@ former needs to be paused until the latter finishes.
 \section{Systematic Concurrency Testing}
 \label{sec:litrev-sct}
 
-\todo{History of SCT, emphasise the few functional examples (PULSE,
-  any more?)  and point to overall lack of use.}
+Systematic concurrency testing grew from efforts in
+verification\cite{pbound}, where traditional model-checking techniques
+are unsuitable for concurrent programs. Older techniques like
+execution depth bounding are less suitable for concurrent programs, as
+the depth is less predictable.
+
+Musuvathi and Qadeer (2007) were the first to propose a heuristic
+specifically for \textit{concurrent} programs: \textit{context-switch
+  bounding}. Furthermore, they identified that merely bounding
+\textit{pre-emptive} context switches is very powerful, as any state
+(in a terminating program) can be driven to termination (or deadlock)
+without incurring any pre-emptions, allowing the model checker to
+explore interesting behaviours with only low bounds. Furthermore, for
+a fixed number of pre-emptions, the number of possible schedules (in a
+terminating program) is polynomial in the number of threads and the
+execution length of the program.
+
+The work on iterative pre-emption bounding was first implemented for
+run-time testing purposes in the \textsc{Chess}\cite{heisenbugs} tool,
+also by Musuvathi et al (2008).
+
+Qadeer et al (2011) furthered this work with \textit{delay bounding},
+where the number of deviations from an otherwise deterministic
+scheduler (such as round-robin in order of thread creation) is
+bounded. This has the advantage that the number of schedules grows
+much more slowly than with pre-emption bounding as, for example, there
+is only one schedule with zero delays, but potentially many with zero
+pre-emptions, allowing for more rapid testing.
+
+One concern with SCT is that as concurrent programs grow, the number
+of possible interleavings of operations grows much faster, resulting
+in an explosion of possible schedules. There is evidence that many
+concurrency bugs can be found with small test cases with few threads
+and context switches\cite{pbound, dbound, empirical}, providing hope
+that unit-test-like test cases can be produced and known-good
+components composed efficiently.
+
+Another is that test cases suitable for SCT must be deterministic when
+the schedule is fixed, which often isn't easy to achieve if external
+processes or network communication is involved. Producing small
+suitable tests may be difficult.
+
+\section{Testing Concurrent Haskell}
+\label{sec:litrev-scthask}
+
+\todo{Relate SCT section to Haskell stuff, show functional examples
+  (PULSE, Ankuzik) and point to overall lack of use.}
 
 \section{Review}
 \label{sec:litrev-review}
