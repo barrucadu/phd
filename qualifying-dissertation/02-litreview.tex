@@ -11,26 +11,9 @@
 \chapter{Nondeterministic Concurrency in Lazy Functional Languages}
 \label{chp:litrev}
 
-This chapter surveys some of the literature in the fields of
-concurrent functional programming languages, and the testing of
-concurrency more generally. The scope is programming technology for
-nondeterministic concurrency in polymorphically-typed lazy functional
-languages, of which Haskell is an example:
-
-\begin{description}
-  \item[Programming technology] covers both the testing of concurrent
-    code, and the production of libraries which are ``safe'' in a
-    concurrent system, in terms of determinism and error conditions.
-
-  \item[Polymorphically-typed] means that functions cannot inspect the
-    concrete types of their arguments and behave differently depending
-    on what they are: the type of a function gives all of the
-    information about what sorts of operations it can do.
-
-  \item[Lazy] means that the evaluation order of expressions is
-    undefined, and so a correct program cannot assume anything about
-    that.
-\end{description}
+\textit{This chapter surveys some of the literature on
+  nondeterministic concurrency in lazy functional languages, of which
+  Haskell is an example.}
 
 \section{Avoiding Concurrency}
 \label{sec:litrev-strategies}
@@ -53,8 +36,14 @@ form (WHNF).
 Strategies were intended to be powerful and extensible methods for
 controlling how data structures are evaluated. A value of type
 \verb|Strategy a| defines how to evaluate a value of type
-\verb|a|. Strategies are composable, allowing constructs like so to be
-easily defined:
+\verb|a|.
+
+\begin{minted}{haskell}
+type Strategy a = a -> ()
+\end{minted}
+
+Strategies are composable, allowing constructs like so to be easily
+defined:
 
 \begin{minted}{haskell}
 parList :: Strategy a -> Strategy [a]
@@ -68,14 +57,29 @@ parallel.
 
 Strategies have evolved since their inception, with Marlow et
 al. (2010)\nocite{strategies} redefining strategies to operate in
-terms of an \textit{evaluation order monad}, called \verb|Eval|. The
-monadic bind of \verb|Eval| is defined to be strict, giving a flexible
-notation for expressing evaluation order without the need to pepper
-code with additional applications of \verb|rseq| (the \verb|Eval|
-analogue of \verb|seq|). Despite more powerful tools being available,
-strategies are still used today, provided by the
+terms of an \textit{evaluation order monad}, called \verb|Eval|.
+
+\begin{minted}{haskell}
+type Strategy a = a -> Eval a
+runEval :: Eval a -> a
+\end{minted}
+
+The monadic bind of \verb|Eval| is defined to be strict, giving a
+flexible notation for expressing evaluation order without the need to
+pepper code with additional applications of \verb|rseq| (the
+\verb|Eval| analogue of \verb|seq|).
+
+The existence of strategies is made possible by features of Haskell
+not commonly found in other languages: without laziness, the
+abstraction would have to be built around evaluating
+\textit{functions} rather then \textit{data}; and without purity,
+parallel side-effectful evaluation can alter the result of a
+program. Despite more powerful tools being available, strategies are
+still used today, provided by the
 \textit{parallel}\footnote{\url{https://hackage.haskell.org/package/parallel}}
-library.
+library, suggesting that the conflation of parallel evaluation and
+concurrent execution found in many languages is a hindrance imposed by
+the semantics of the language.
 
 \section{Deterministic Parallel Concurrency}
 \label{sec:litrev-det}
@@ -91,6 +95,14 @@ variables. Determinism is enforced by having these mutable variables
 only allow a single write, and reads block until a value has been
 written. This prevents race conditions and, as no locks are provided,
 deadlock is impossible.
+
+Parallelism is implemented by running one worker thread on each
+physical processor or core available. These worker threads are unable
+to move between processors, and so can execute truly in parallel. This
+does not mean that the \textit{entire} \verb|Par| computation will run
+in parallel (if there are more \verb|Par| threads created than there
+are processors, for example) but as much will execute in parallel as
+possible.
 
 Single-write shared variables are rather limiting, however, and
 Lindsey et al (2014)\nocite{lvish}, noted that all that is required
@@ -185,12 +197,8 @@ mutable variable, which can either be \textit{full} or
 it is empty, and attempting to read from an empty \verb|MVar| blocks
 until it is full (and then empties it). More recent versions of the
 standard library have introduced functionality to attempt
-(non-blockingly) to read from or write to an \verb|MVar|, to read
-without emptying, and so on.
-
-Threading and \verb|MVar|s are sufficient for nondeterminism, as
-\verb|MVar|s can be written to multiple times and can give rise to
-deadlock.
+(non-blockingly) to read from or write to an \verb|MVar|, and to read
+without emptying.
 
 Despite Haskell being a purely functional language, the introduction
 of multiple distinct threads of control immediately introduces the
@@ -201,8 +209,50 @@ evaluating a thunk mutates the heap. Thus, if one thread starts to
 evaluate a thunk which is already being evaluated by another, the
 former needs to be paused until the latter finishes.
 
+Threading and \verb|MVar|s are sufficient for nondeterminism, as
+\verb|MVar|s can be written to multiple times and can give rise to
+deadlock. Nondeterministic I/O greatly damages the ability to test
+code, in Haskell as in any other language, however here it cannot be
+avoided. The order of interleaving of threads is not specified as a
+part of the language, it is an implementation detail, and out of reach
+of the programmer.
+
 \section{Software Transactional Memory}
 \label{sec:litrev-stm}
+
+Concurrent algorithms based on locks and mutual exclusion do not
+compose. Two individually correct fragments of code may become
+incorrect when composed, without knowledge of their
+implementations. Consider a data structure with thread-safe insert and
+remove operations. Suppose we want to move an item from one structure
+to another, but without the intervening state of it not being present
+in either visible. This cannot be done without additional
+functionality to lock the structures preventing access by another
+thread! This breaks abstraction, and also opens the door to potential
+deadlock.
+
+Transactional memory, well known in databases, was originally proposed
+by Herlihey and Moss (1993)\nocite{hardwaretm} as an architectural
+technique supporting lock-free data structures. A \textit{transaction}
+consists of a sequence of \textit{tentative} modifications to global
+state, which can be applied atomically, or aborted. Transactions are
+therefore linearisable: they appear to take effect in a sequential
+ordering as if one thread were orchestrating the process.
+
+Despite the age of transactional memory (STM), implementing it for
+programming languages has proved challenging, with Herlihey et al
+(2003)\nocite{dstm} providing the first implementation of STM where
+all of the transactions do not have to be known statically, making it
+suitable for dynamically-sized data structures.
+
+A thorn in the side of many STM implementations is the question of
+safety: an STM transaction must be able to be aborted or executed
+multiple times with no observable side-effects until it is committed,
+but most programming languages cannot guarantee this statically. The
+Haskell STM implementation, by Harris et al (2006)\nocite{haskellstm}
+achieves this by defining an STM monad, and so the type system
+prevents IO actions from being performed in the same transaction as
+STM actions.
 
 \section{Systematic Concurrency Testing}
 \label{sec:litrev-sct}
@@ -249,11 +299,42 @@ the schedule is fixed, which often isn't easy to achieve if external
 processes or network communication is involved. Producing small
 suitable tests may be difficult.
 
-\section{Testing Concurrent Haskell}
-\label{sec:litrev-scthask}
+\section{SCT in Functional Languages}
+\label{sec:litrev-sctfunc}
 
-\todo{Relate SCT section to Haskell stuff, show functional examples
-  (PULSE, Ankuzik) and point to overall lack of use.}
+Unsurprisingly, much of the work regarding concurrency testing in a
+functional setting has happened in the context of Erlang. Erlang is
+somewhat different to most languages, as it doesn't have shared-memory
+concurrency (beyond an atomic key/value store provided by the virtual
+machine) and so all communication is in the form of
+message-passing. Claessen et al (2009)\nocite{pulse} developed PULSE,
+a user-level scheduler for Erlang, and an automatic instrumentation
+tool to convert existing programs to use PULSE. Random scheduling was
+then implemented using QuickCheck, a tool for randomised testing.
+
+Random scheduling proved to be effective in the industrial case study
+used in the paper, however it still leaves much to be desired. PULSE
+was augmented with \textit{procrastination} by Arts et al (2011). The
+procrastination technique looks for two possibly racey actions in a
+schedule, for example two threads sending a message to a third, and
+swapping the order of the actions. This proved to be even more
+effective than random scheduling, and also led to easier production of
+minimal failing examples.
+
+The only Haskell application of SCT I am aware of is a blog
+post\cite{typeclass} showing how some of the concurrency primitives
+can be abstracted using a typeclass, and then a testing implementation
+use QuickCheck in order to try to find bugs. However Stolz and Huch
+(2005)\nocite{rvhaskell} do show an implementation of runtime
+verification of temporal logic specifications of Haskell
+programs. This, combined with an SCT scheduling technique, could
+possibly be used to produce very expressive tests.
+
+\section{Verified Concurrency}
+\label{sec:litref-verify}
+
+\todo{Logics and tools for automated verification or analysis of
+  concurrency, highlight lack of work on lazy languages.}
 
 \section{Review}
 \label{sec:litrev-review}
