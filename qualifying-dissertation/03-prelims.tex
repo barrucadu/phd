@@ -1096,19 +1096,19 @@ Threads are stored in a map, from thread IDs to a record of the
 current state:
 
 %\begin{minted}{haskell}
-%data Thread MonadConc m = Thread
-% { _continuation :: Action MonadConc m
+%data Thread ... = Thread
+% { _continuation :: Action ...
 % , _blocking     :: Maybe BlockedOn
-% , _handlers     :: [Handler MonadConc m]
+% , _handlers     :: [Handler ...]
 % , _masking      :: MaskingState
 % }
 %end{minted}
 
 \begin{Verbatim}[commandchars=\\\{\}]
-\PY{k+kr}{data} \PY{k+kt}{Thread} \PY{o}{MonadConc m} \PY{o+ow}{=} \PY{k+kt}{Thread}
-  \PY{p}{\PYZob{}} \PY{n}{\PYZus{}continuation} \PY{o+ow}{::} \PY{k+kt}{Action} \PY{o}{MonadConc m}
+\PY{k+kr}{data} \PY{k+kt}{Thread} \PY{o}{\ldots} \PY{o+ow}{=} \PY{k+kt}{Thread}
+  \PY{p}{\PYZob{}} \PY{n}{\PYZus{}continuation} \PY{o+ow}{::} \PY{k+kt}{Action} \PY{o}{\ldots}
   \PY{p}{,} \PY{n}{\PYZus{}blocking}     \PY{o+ow}{::} \PY{k+kt}{Maybe} \PY{k+kt}{BlockedOn}
-  \PY{p}{,} \PY{n}{\PYZus{}handlers}     \PY{o+ow}{::} \PY{p}{[}\PY{k+kt}{Handler} \PY{o}{MonadConc m}\PY{p}{]}
+  \PY{p}{,} \PY{n}{\PYZus{}handlers}     \PY{o+ow}{::} \PY{p}{[}\PY{k+kt}{Handler} \PY{o}{\ldots}\PY{p}{]}
   \PY{p}{,} \PY{n}{\PYZus{}masking}      \PY{o+ow}{::} \PY{k+kt}{MaskingState}
   \PY{p}{\PYZcb{}}
 \end{Verbatim}
