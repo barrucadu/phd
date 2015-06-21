@@ -8,7 +8,10 @@
 \chapter{Research Proposal}
 \label{chp:proposal}
 
-\todo{Chapter intro}
+\textit{This chapter lays out immediate and long-term goals. The
+  overall aims of the work are detailed, and a strategy for achieving
+  them is formulated To finish, in reference to this strategy, a plan
+  for the next six months is presented.}
 
 \section{Overall Goals}
 \label{sec:proposal-goals}
@@ -49,7 +52,7 @@ testing.
 \subsection{Phase A --- A New Concurrency Abstraction}
 \label{sec:proposal-strategy-abstraction}
 
-\phase{\textit{None}}{1}{\textit{None}}{? months}{? months}
+\phase{\textit{None}}{1}{\textit{None}}{1 month}{1 month}
 
 The standard Haskell concurrency abstraction makes use of the
 \verb|IO| monad, which is a part of the implementation. To enable
@@ -69,7 +72,7 @@ concurrency primitives, with one concrete implementation using
 \subsection{Phase B --- A Library for Systematic Concurrency Testing}
 \label{sec:proposal-strategy-sct}
 
-\phase{A}{1}{1}{? months}{? months}
+\phase{A}{1}{1}{6 months}{3 months}
 
 Once it is possible to run concurrent programs with a fixed scheduler,
 a systematic testing framework can be implemented. Pre-emption and
@@ -98,7 +101,7 @@ and to reduce the number of schedules needed.
 \subsection{Phase C --- Verification Tools}
 \label{sec:proposal-strategy-tools}
 
-\phase{\textit{None}}{2}{\textit{None}}{? months}{? months}
+\phase{\textit{None}}{2}{\textit{None}}{3 months}{0 months}
 
 A number of logics, theorem provers, and proof assistants are
 available. Some are already used for the automated verification of
@@ -112,7 +115,7 @@ programs.
 \subsection{Phase D --- A Core Language for Concurrency}
 \label{sec:proposal-strategy-core}
 
-\phase{C}{2}{\textit{None}}{? months}{? months}
+\phase{C}{2}{\textit{None}}{1 month}{0 months}
 
 Haskell is a big language, and so for research and tooling purposes a
 core language is usually chosen or created, into which the rest of
@@ -133,7 +136,7 @@ necessitates also developing a formal semantics of the core language.
 \subsection{Phase E --- A Verifier for Core Concurrent Programs}
 \label{sec:proposal-strategy-verifier}
 
-\phase{C,D}{2}{2}{? months}{? months}
+\phase{C,D}{2}{2}{6 months}{0 months}
 
 Bugs found by a static analysis must be understood in terms of the
 original program, not the logic of the tool. Hence, results relating
