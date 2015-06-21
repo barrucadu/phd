@@ -82,13 +82,13 @@ they grow. A na\"{\i}ve approach is simply to eliminate scheduling
 decisions which could not possibly change the result, such as context
 switches around reading the thread's own ID.
 
-Dynamic partial-order reduction\todo{mention in lit rev} is a much
-more robust set of techniques to eliminate redundant work by
-determining during the testing process, from the program under test,
-whether alternative decisions could affect the result. Schedules can
-be grouped into equivalence classes, and only one schedule from each
-class must be tested. The testing library, then, should implement some
-known DPOR techniques to reduce work.
+Dynamic partial-order reduction is a much more robust set of
+techniques to eliminate redundant work by determining during the
+testing process, from the program under test, whether alternative
+decisions could affect the result. Schedules can be grouped into
+equivalence classes, and only one schedule from each class must be
+tested. The testing library, then, should implement some known DPOR
+techniques to reduce work.
 
 \phas{B} will result in a library for the testing of concurrent
 Haskell programs expressed using the abstraction developed in
@@ -102,9 +102,8 @@ and to reduce the number of schedules needed.
 
 A number of logics, theorem provers, and proof assistants are
 available. Some are already used for the automated verification of
-concurrent algorithms\todo{examples, cite}. I feel I need to explore
-the options available as this will inform the core language developed
-in \phas{D}.
+concurrent algorithms. I feel I need to explore the options available
+as this will inform the core language developed in \phas{D}.
 
 By the end of \phas{C}, I should have selected an environment for
 verifying concurrent programs, and have some proofs of simple

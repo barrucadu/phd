@@ -292,7 +292,10 @@ in an explosion of possible schedules. There is evidence that many
 concurrency bugs can be found with small test cases with few threads
 and context switches\cite{pbound, dbound, empirical}, providing hope
 that unit-test-like test cases can be produced and known-good
-components composed efficiently.
+components composed efficiently. Furthermore, there has been work on
+integrating results from dynamic partial-order reduction (DPOR), a
+technique for determining at runtime whether a new schedule is worth
+exploring, with schedule bounding\cite{bpor}.
 
 Another is that test cases suitable for SCT must be deterministic when
 the schedule is fixed, which often isn't easy to achieve if external
@@ -333,10 +336,63 @@ possibly be used to produce very expressive tests.
 \section{Verified Concurrency}
 \label{sec:litref-verify}
 
-\todo{Logics and tools for automated verification or analysis of
-  concurrency, highlight lack of work on lazy languages.}
+\begin{quote}
+  Program testing can be used to show the presence of bugs, but never
+  to show their absence!\cite{ewd249}
+\end{quote}
+
+Concurrency testing can only tell us that a bug has not been found in
+any of the schedules considered, but the stronger guarantee of no bug
+in \textit{any possible} schedule would be much more preferable.
+
+\textsc{Zing}, by Andrews et al (2004)\nocite{zing} is a tool and
+language for verifying object-oriented concurrent programs, supporting
+dynamic creation of both objects and threads for shared-memory and
+message passing concurrency models. A focus of \textsc{Zing} was to
+make it feasible to translate source code from real programming
+languages into the \textsc{Zing} language automatically, allowing
+confidence that models accurately reflect the original program.
+
+A more comprehensive approach is taken in VCC, by Cohen et al
+(2009)\nocite{vcc}, which is a verifier for complete C programs,
+supporting concurrency. Verification is not automatic, but driven by
+annotations such as pre- and post-conditions and invariants attached
+to program points.
+
+Neither \textsc{Zing} nor VCC support higher-order functions, a
+cornerstone of functional programming languages. D'Osualdo et al
+(2013)\nocite{erlang} discuss the automated verification of
+Erlang-style concurrency, by defining a core subset of Erlang with a
+formal semantics. This subset includes functional constructs like
+higher-order functions and recursive let bindings. Due to being based
+on Erlang, it only has message passing rather than shared memory. A
+tool called Soter is produced, which is capable of taking normal
+Erlang programs, converting to the core language, producing a model,
+and feeding into a backend verifier. Despite this impressive feat,
+Soter cannot handle cases such as programs whose correctness depends
+on the order of message delivery.
 
 \section{Review}
 \label{sec:litrev-review}
 
-\todo{Summarise chapter and highlight open problems.}
+Since Trinder's strategies there have been a number of more
+sophisticated models for deterministic parallel programming in the
+lazy functional setting. Despite this, potentially nondeterministic
+concurrency is still in use. The properties of Haskell make it an
+ideal setting for software transactional memory facilitating
+composable atomic actions, making it easier to avoid certain classes
+of bug, but this does not entirely solve the problem.
+
+Systematic concurrency testing, and concurrency verification, are
+gaining traction in the imperative and object-oriented worlds, but
+application to functional languages has largely been restricted to
+Erlang so far. This is unsurprising, as Erlang's major focus is
+reliable concurrent programming, but given the preference of Haskell
+programmers for correct software, it is perhaps odd that there has
+been so little work in this setting.
+
+Whilst some small initial efforts have been made towards
+\textit{testing} in concurrent Haskell, it remains to be seen if
+automated \textit{verification} of a lazy concurrent functional
+language is feasible, and what challenges would be thrown up by this
+application area.
