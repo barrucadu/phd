@@ -7,7 +7,7 @@
 \label{chp:dejafu}
 
 \textit{This chapter contains a paper submitted to the 2015 Haskell
-  Symposium workshop}\cite{dejafu}.
+  Symposium}\cite{dejafu}.
 
 \section{Introduction}
 \label{sec:dejafu-intro}
@@ -1826,6 +1826,8 @@ computation is successful its result is added to the list in the
 the library, as it is blocked upon when the final result of the search
 is requested.
 
+\FloatBarrier
+
 There are some small tests in \textit{Search Party}, verifying that
 deadlocks and exceptions don't arise, and that results are as
 expected. Upon introducing this new functionality, tests began to fail
@@ -1968,7 +1970,7 @@ capabilities to manifest.
 \captionsetup[figure]{format=normal}
 \begin{figure*}[t]
   \centering
-  \begin{minipage}[t]{0.49\textwidth}
+%   \begin{minipage}[t]{0.49\textwidth}
 %     \begin{minted}{haskell}
 % makeScheds :: Int -> IO [Sched]
 % makeScheds main = do
@@ -2029,8 +2031,8 @@ capabilities to manifest.
   \PY{n}{return} \PY{n}{allscheds}
 \end{Verbatim}
     \caption*{Original}
-  \end{minipage}
-  \begin{minipage}[t]{0.49\textwidth}
+%   \end{minipage}
+%   \begin{minipage}[t]{0.49\textwidth}
 %     \begin{minted}{haskell}
 % makeScheds :: MonadConc m => Int -> m [Sched m]
 % makeScheds main = do
@@ -2091,7 +2093,7 @@ capabilities to manifest.
   \PY{n}{return} \PY{n}{allscheds}
 \end{Verbatim}
     \caption*{\dejafu{}}
-  \end{minipage}
+%   \end{minipage}
   \caption{Par ``direct'' scheduler initialisation\\\hrulefill}
   \label{fig:dejafu-example-parmonad-sched}
 \end{figure*}
@@ -2200,7 +2202,7 @@ More could be done. For example:
 \label{chp:searchparty}
 
 \textit{This chapter contains a paper submitted to the 2015 Haskell
-  Symposium workshop}\cite{searchparty}.
+  Symposium}\cite{searchparty}.
 
 \section{Introduction}
 \label{sec:searchparty-intro}
@@ -2726,6 +2728,7 @@ result, waiting for this variable to be read. The effect is to build
 up a small buffer of results which can be read in quick succession
 without needing to wait.
 
+\FloatBarrier
 \section{Examples and Performance}
 \label{sec:searchparty-examples}
 

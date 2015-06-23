@@ -8,12 +8,15 @@
 % the relative strengths and weaknesses of the major lines of work
 % pursued to date."
 
-\chapter{Nondeterministic Concurrency in Lazy Functional Languages}
+\chapter{Nondeterministic Concurrency in Pure Functional Languages}
 \label{chp:litrev}
 
 \textit{This chapter surveys some of the literature on
-  nondeterministic concurrency in lazy functional languages, of which
-  Haskell is an example.}
+  nondeterministic concurrency in pure functional languages, of which
+  Haskell is an example. Pure functional languages are typically regarded
+  as a good choice for reliable programs, but the support for correct
+  concurrency is often no better, or worse, than more mainstream
+  languages such as C or Java.}
 
 \section{Avoiding Concurrency}
 \label{sec:litrev-strategies}
@@ -25,13 +28,13 @@ concurrency abstraction with guaranteed determinism, but others have
 avoided concurrency entirely.
 
 Perhaps the earliest such approach, \textit{evaluation strategies},
-introduced by Trinder et al. (1993)\nocite{trinder}, make use of the
-basic primitives for controlling evaluation order in Haskell,
-\verb|par| and \verb|seq|. The semantics of \verb|seq| are to evaluate
-its first argument and then to return its second, whereas \verb|par|
-starts evaluating its first argument in parallel and immediately
-returns its second. In both cases, evaluation is to weak-head normal
-form (WHNF).
+introduced by Trinder et al. (1993)\nocite{trinder}, makes use of the
+basic primitives, \verb|par| and \verb|seq|, for controlling
+evaluation order in Haskell. The semantics of \verb|seq| are to
+evaluate its first argument and then to return its second, whereas
+\verb|par| starts evaluating its first argument in parallel and
+immediately returns its second. In both cases, evaluation is to
+weak-head normal form (WHNF).
 
 Strategies were intended to be powerful and extensible methods for
 controlling how data structures are evaluated. A value of type
@@ -107,16 +110,29 @@ possible.
 Single-write shared variables are rather limiting, however, and
 Lindsey et al (2014)\nocite{lvish}, noted that all that is required
 for determinism is that the value a read returns must be
-constant. This lead to their \textit{LVish}
+constant. This led to their \textit{LVish}
 library\footnote{\url{https://hackage.haskell.org/package/lvish}}
 which uses lattice-based shared variables. A read corresponds to
 glimpsing some part of the shared mutable structure. Writes cannot
 destructively update a shared structure.
 
-LVish would allow structures such as a shared mutable list. Writes
-could append to the list, and reads could return the first, second,
-and $n$th items (blocking until such a value has been written), but
-not to read the length, or the last item added.
+LVish allows structures such as a shared mutable map. Writes may
+insert values, and reads return look up a value by key (blocking until
+such a key has been inserted). But one may not read the size, or the
+last item added.
+
+\begin{minted}{haskell}
+helloWorld :: String
+helloWorld = runPar $ do
+  map <- newEmptyMap
+
+  fork $ insert 0 "hello" map
+  fork $ insert 1 "world" map
+
+  a <- getKey 0 map
+  b <- getKey 1 map
+  return $ a ++ " " ++ b
+\end{minted}
 
 A rather different approach to that of \verb|Par| and LVish is taken
 by Leijen et al. (2011)\nocite{revisions} in their \textit{concurrent
@@ -134,6 +150,7 @@ of the joining thread, by applying functions supplied when the state
 was created. For example,
 
 \begin{minted}{haskell}
+counter :: Int
 counter = revisioned $ do
   c <- vcreateM merge 0
 
@@ -159,21 +176,23 @@ possible, however as merge functions may not perform any I/O, and
 threads cannot communicate other than joining each other (and a thread
 cannot be joined multiple times), the whole process is deterministic.
 
+The strength of concurrent revisions is its downside. Shared state is
+deterministically updated \textit{when threads are joined}. This is
+the only communication that is possible, unless other I/O is involved.
+
 These approaches to deterministic parallelism aim to approximate a
-typical concurrency abstraction to some extent. This clearly indicates
-that concurrency is a powerful and useful software structuring
-technique, and mere parallel evaluation isn't enough. Sadly, any such
-approximations must remain approximations, as unbridled concurrency
-\textit{is} nondeterministic.
+typical concurrency abstraction. Concurrency is a powerful and useful
+software structuring technique, and mere parallel evaluation isn't
+enough. Sadly, any such approximations must remain approximations, as
+unbridled concurrency \textit{is} nondeterministic.
 
 \section{(Nondeterministic) Concurrency}
 \label{sec:litrev-conc}
 
 \textit{Concurrent Haskell}, by Peyton Jones at
 al. (1996)\nocite{concurrent}, embellishes Haskell with a means to
-start new threads, and for threads to communicate. As noted in the
-introduction, the aim of the work is to do with structuring programs,
-not with performance,
+start new threads, and for threads to communicate. The aim of the work
+is to do with structuring programs, not with performance,
 
 \begin{quote}
   This paper is not at all about concurrency as a means of increasing
@@ -187,7 +206,7 @@ not with performance,
 
 A new thread is started with the \verb|forkIO| function, which takes
 an I/O action and begins executing it concurrently with the forking
-action. Execution may not be parallel, in fact the original
+action. Execution may not be parallel. In fact the original
 implementation of Concurrent Haskell performed all execution in a
 single operating system thread, scheduling internally.
 
@@ -200,12 +219,12 @@ standard library have introduced functionality to attempt
 (non-blockingly) to read from or write to an \verb|MVar|, and to read
 without emptying.
 
-Despite Haskell being a purely functional language, the introduction
-of multiple distinct threads of control immediately introduces the
-need for inter-thread synchronisation whilst evaluating
-expressions\cite{concurrent}! This is because of laziness, two threads
+Despite Haskell being a pure functional language, the introduction of
+multiple distinct threads of control immediately introduces the need
+for inter-thread synchronisation whilst evaluating
+expressions\cite{concurrent}! This is because of laziness: two threads
 may try to evaluate the same thunk at the ``same time'', and
-evaluating a thunk mutates the heap. Thus, if one thread starts to
+evaluating a thunk mutates the heap. So, if one thread starts to
 evaluate a thunk which is already being evaluated by another, the
 former needs to be paused until the latter finishes.
 
@@ -214,7 +233,7 @@ Threading and \verb|MVar|s are sufficient for nondeterminism, as
 deadlock. Nondeterministic I/O greatly damages the ability to test
 code, in Haskell as in any other language, however here it cannot be
 avoided. The order of interleaving of threads is not specified as a
-part of the language, it is an implementation detail, and out of reach
+part of the language. It is an implementation detail, and out of reach
 of the programmer.
 
 \section{Software Transactional Memory}
@@ -222,14 +241,26 @@ of the programmer.
 
 Concurrent algorithms based on locks and mutual exclusion do not
 compose. Two individually correct fragments of code may become
-incorrect when composed, without knowledge of their
-implementations. Consider a data structure with thread-safe insert and
-remove operations. Suppose we want to move an item from one structure
-to another, but without the intervening state of it not being present
-in either visible. This cannot be done without additional
-functionality to lock the structures preventing access by another
-thread! This breaks abstraction, and also opens the door to potential
-deadlock.
+incorrect when composed. Consider a hash table with thread-safe insert
+and remove operations. Suppose we want to move an item from one
+structure to another, but without the intervening state of it not
+being present in either visible. This cannot be done without
+additional functionality to lock the structures preventing access by
+another thread! Locking breaks abstraction, and also opens the door to
+potential deadlock.
+
+\begin{minted}{haskell}
+insert :: k -> v -> Hashtable k v -> IO ()
+find   :: k -> HashTable k v -> IO (Maybe v)
+remove :: k -> HashTable k v -> IO ()
+
+swap :: k -> HashTable k v -> HashTable k v -> IO ()
+swap k a b = do
+  val <- find k a
+  remove k a
+  maybe (return ()) $ flip (insert k) b
+\end{minted}
+%$
 
 Transactional memory, well known in databases, was originally proposed
 by Herlihey and Moss (1993)\nocite{hardwaretm} as an architectural
@@ -239,20 +270,43 @@ state, which can be applied atomically, or aborted. Transactions are
 therefore linearisable: they appear to take effect in a sequential
 ordering as if one thread were orchestrating the process.
 
-Despite the age of transactional memory (STM), implementing it for
-programming languages has proved challenging, with Herlihey et al
-(2003)\nocite{dstm} providing the first implementation of STM where
-all of the transactions do not have to be known statically, making it
+Despite the age of software transactional memory (STM), implementing
+it for programming languages has proved challenging. Herlihey et al
+(2003)\nocite{dstm} provided the first implementation of STM where all
+of the transactions do not have to be known statically, making it
 suitable for dynamically-sized data structures.
 
 A thorn in the side of many STM implementations is the question of
-safety: an STM transaction must be able to be aborted or executed
+safety. An STM transaction must be able to be aborted or executed
 multiple times with no observable side-effects until it is committed,
 but most programming languages cannot guarantee this statically. The
-Haskell STM implementation, by Harris et al (2006)\nocite{haskellstm}
-achieves this by defining an STM monad, and so the type system
-prevents IO actions from being performed in the same transaction as
-STM actions.
+Haskell STM implementation, by Harris et al (2006)\nocite{haskellstm},
+achieves this by defining an STM monad; the type system prevents IO
+actions from being performed in the same transaction as STM actions.
+
+To return to the hash table example, this is what it would look like
+with STM in Haskell:
+
+\begin{minted}{haskell}
+insert :: k -> v -> Hashtable k v -> STM ()
+find   :: k -> HashTable k v -> STM (Maybe v)
+remove :: k -> HashTable k v -> STM ()
+
+swap :: k -> HashTable k v -> HashTable k v -> STM ()
+swap k a b = do
+  val <- find k a
+  remove k a
+  maybe (return ()) $ flip (insert k) b
+\end{minted}
+%$
+
+The downside of STM is that, whilst it gains safety and
+linearisability, it does so at the cost of a lot of
+bookkeeping. Before a transaction is committed, every variable it
+reads must be checked, and the computation possibly repeated. This
+means that large transactions accessing many variables can be
+inefficient, but very small transactions suffer from the same
+state-inconsistency problems that locks aim to solve!
 
 \section{Systematic Concurrency Testing}
 \label{sec:litrev-sct}
@@ -282,8 +336,8 @@ Qadeer et al (2011) furthered this work with \textit{delay bounding},
 where the number of deviations from an otherwise deterministic
 scheduler (such as round-robin in order of thread creation) is
 bounded. This has the advantage that the number of schedules grows
-much more slowly than with pre-emption bounding as, for example, there
-is only one schedule with zero delays, but potentially many with zero
+much more slowly than with pre-emption bounding. For example, there is
+only one schedule with zero delays, but potentially many with zero
 pre-emptions, allowing for more rapid testing.
 
 One concern with SCT is that as concurrent programs grow, the number
@@ -297,23 +351,23 @@ integrating results from dynamic partial-order reduction (DPOR), a
 technique for determining at runtime whether a new schedule is worth
 exploring, with schedule bounding\cite{bpor}.
 
-Another is that test cases suitable for SCT must be deterministic when
-the schedule is fixed, which often isn't easy to achieve if external
-processes or network communication is involved. Producing small
-suitable tests may be difficult.
+Another concern is that test cases suitable for SCT must be
+deterministic when the schedule is fixed, which often isn't easy to
+achieve if external processes or network communication is
+involved. Producing small suitable tests may be difficult.
 
 \section{SCT in Functional Languages}
 \label{sec:litrev-sctfunc}
 
 Unsurprisingly, much of the work regarding concurrency testing in a
-functional setting has happened in the context of Erlang. Erlang is
-somewhat different to most languages, as it doesn't have shared-memory
-concurrency (beyond an atomic key/value store provided by the virtual
-machine) and so all communication is in the form of
-message-passing. Claessen et al (2009)\nocite{pulse} developed PULSE,
-a user-level scheduler for Erlang, and an automatic instrumentation
-tool to convert existing programs to use PULSE. Random scheduling was
-then implemented using QuickCheck, a tool for randomised testing.
+functional setting has happened in the context of Erlang. Erlang does
+not have shared-memory concurrency (beyond an atomic key/value store
+provided by the virtual machine) and so all communication is in the
+form of message-passing. Claessen et al (2009)\nocite{pulse} developed
+PULSE, a user-level scheduler for Erlang, and an automatic
+instrumentation tool to convert existing programs to use PULSE. Random
+scheduling was then implemented using QuickCheck, a tool for
+randomised testing.
 
 Random scheduling proved to be effective in the industrial case study
 used in the paper, however it still leaves much to be desired. PULSE
@@ -338,7 +392,9 @@ possibly be used to produce very expressive tests.
 
 \begin{quote}
   Program testing can be used to show the presence of bugs, but never
-  to show their absence!\cite{ewd249}
+  to show their absence!
+
+  \attrib{Edsger Dijkstra (EWD249)\nocite{ewd249}}
 \end{quote}
 
 Concurrency testing can only tell us that a bug has not been found in
@@ -355,9 +411,9 @@ confidence that models accurately reflect the original program.
 
 A more comprehensive approach is taken in VCC, by Cohen et al
 (2009)\nocite{vcc}, which is a verifier for complete C programs,
-supporting concurrency. Verification is not automatic, but driven by
-annotations such as pre- and post-conditions and invariants attached
-to program points.
+supporting concurrency. However, verification is not automatic, but
+driven by annotations such as pre- and post-conditions and invariants
+attached to program points.
 
 Neither \textsc{Zing} nor VCC support higher-order functions, a
 cornerstone of functional programming languages. D'Osualdo et al
@@ -372,12 +428,12 @@ and feeding into a backend verifier. Despite this impressive feat,
 Soter cannot handle cases such as programs whose correctness depends
 on the order of message delivery.
 
-\section{Review}
-\label{sec:litrev-review}
+\section{Summary}
+\label{sec:litrev-summary}
 
 Since Trinder's strategies there have been a number of more
 sophisticated models for deterministic parallel programming in the
-lazy functional setting. Despite this, potentially nondeterministic
+pure functional setting. Despite this, potentially nondeterministic
 concurrency is still in use. The properties of Haskell make it an
 ideal setting for software transactional memory facilitating
 composable atomic actions, making it easier to avoid certain classes
@@ -393,6 +449,13 @@ been so little work in this setting.
 
 Whilst some small initial efforts have been made towards
 \textit{testing} in concurrent Haskell, it remains to be seen if
-automated \textit{verification} of a lazy concurrent functional
-language is feasible, and what challenges would be thrown up by this
+automated \textit{verification} of a pure concurrent functional
+language is feasible, and what challenges would arise in this
 application area.
+
+One potential challenge is ``higher-order'' concurrency, where MVars
+can be passed between threads through other MVars. In other settings,
+one could imagine forbidding this from the language subset amenable to
+auomated reasoning, as a needless complication. In a pure language,
+such constructs are unavoidable in the implementation of higher-level
+structures, and so much be reasoned about explicitly.

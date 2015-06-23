@@ -7,13 +7,27 @@
 \label{chp:intro}
 
 My research is concerned with the problems of nondeterministic
-concurrency in lazy pure functional programming languages, and how to
-wield this powerful tool whilst avoiding possibly subtle programming
-errors.
+concurrency in pure functional programming languages, and how to wield
+this powerful tool whilst avoiding possibly subtle programming
+errors. My goal is to implement libraries and tools to enable
+programmers to make use of concurrency whilst being confident of the
+correctness of their programs. The questions I want to answer are:
+
+\begin{itemize}
+  \item Can existing results from concurrency testing in other
+    languages be reapplied to the pure functional setting?
+
+  \item Are pure functional languages a good candidate for the static,
+    automated, analysis or verification of concurrency correctness
+    properties?
+
+  \item \textbf{Can it be made much easier to write correct concurrent
+      code?}
+\end{itemize}
 
 Concurrency is notoriously difficult to get right\cite{overrated},
 sometimes even leading to death\cite{therac25}. The problem largely
-stems from the nondeterminism of scheduling, the same program with the
+stems from the nondeterminism of scheduling: the same program with the
 same inputs may produce different results depending on the schedules
 chosen at runtime. This makes it difficult to use traditional testing
 techniques with concurrent programs, and to spot potentially flawed
@@ -30,14 +44,6 @@ Problem\cite{santaclaus} allow programmers to explore these topics in
 small well-understood settings. However, as systems grow, it becomes
 difficult to think about how different components interact, and it is
 easy to slip up and introduce a bug.
-
-\textit{Systematic concurrency testing} (SCT)\cite{pbound, dbound,
-  empirical, heisenbugs} is a technique for avoiding the problem of
-nondeterminism when writing tests. It aims to test a large number of
-schedules, whilst typically also making use of local knowledge of the
-program to reduce the number of schedules needed to be confident of an
-accurate result. By testing many schedules, we can be confident that
-any bugs which have not been found are unlikely to be exhibited.
 
 \section{Parallelism vs. Concurrency}
 \label{sec:intro-parconc}
@@ -64,10 +70,10 @@ parallel.
 Unrestricted concurrency is explicit and semantically
 visible\cite{concurrent}. The interleaved execution of threads, when
 combined with mutable state, gives rise to nondeterminism. Semaphores
-and locks give rise to nontermination in the form of deadlock and
+and locks give rise to termination errors in the form of deadlock and
 livelock. Parallelism, in particular the parallel evaluation of
 expressions, is semantically invisible, and there is the possibility
-for implicit parallelism, ``at present these combinators [\verb|par|
+for implicit parallelism: ``at present these combinators [\verb|par|
 and \verb|seq|] are added by the programmer, though we would of course
 like this task to be automated.''\cite{gum}
 
@@ -83,33 +89,46 @@ concurrency.
 \section{Testing Concurrency}
 \label{sec:intro-sct}
 
-The problem of testing concurrent programs is that the scheduler is a
-part of the language runtime (or the operating system), and so out of
-the reach of the programmer and tester. SCT overcomes this problem by
-forcing a concurrent program to instead use a scheduler implemented as
-part of the testing framework: either by overriding the concurrency
-primitives of the language (as in LazyLocks\footnote{(Paul Thompson) to
-  appear}), or by modifying the program under test to call out to this
-new scheduler (as in PULSE\cite{pulse}).
+The problem of testing concurrent programs is twofold: the scheduler
+is a part of the language runtime (or the operating system), and so
+out of the reach of the programmer and tester; and also that
+scheduling decisions are nondeterministic. Given these, how can we
+write reproducible tests?
+
+\textit{Systematic concurrency testing} (SCT)\cite{pbound, dbound,
+  empirical, heisenbugs} is a technique for avoiding the problem of
+nondeterminism when writing tests. It aims to test a large number of
+schedules, whilst typically also making use of local knowledge of the
+program to reduce the number of schedules needed to be confident of an
+accurate result. By testing many schedules, we can be confident that
+any bugs which have not been found are unlikely to be exhibited.
+
+SCT overcomes the scheduling problem by forcing a concurrent program
+to use instead a scheduler implemented as part of the testing
+framework: either by overriding the concurrency primitives of the
+language (as in LazyLocks\footnote{(Paul Thompson) to appear}), or by
+modifying the program under test to call out to this new scheduler (as
+in PULSE\cite{pulse}).
 
 Once the scheduler is under control, schedules can be recorded and
 replayed, giving reproducibility. Furthermore, by observing which
 scheduling decisions are available at each decision point, possible
 schedules can be systematically explored, making different decisions
 on subsequent executions. Common methods of choosing schedules to take
-are random, pre-emption bounding\cite{pbound}, and delay
-bounding\cite{dbound}.
+are random\cite{empirical}, pre-emption bounding\cite{pbound}, and
+delay bounding\cite{dbound}.
 
 \begin{description}
   \item[Random] scheduling is just that, at each decision point a
-    random decision is made. No guarantees about completeness of lack
+    random decision is made. No guarantees about completeness or lack
     of wasted work are made.
 
   \item[Pre-emption bounding] explores all schedules with $n$
     pre-emptions, where a pre-emption is a context switch (a change
     from one thread to another) where the original thread was not
-    blocked. Typically this is iterated with increasing values of $n$,
-    to explore all schedules with up to some number of pre-emptions.
+    blocked. Typically testing is repeated with increasing values of
+    $n$, to explore all schedules with up to some number of
+    pre-emptions.
 
   \item[Delay bounding] explores all schedules with $n$ or fewer
     deviations from an otherwise deterministic scheduler.
@@ -120,7 +139,7 @@ that there are no errors that can be exhibited with $n$ or fewer
 pre-emptions, whereas delay bounding gives a result conditional on the
 initial choice of deterministic scheduler. Despite this, they both
 perform about as well as each other in terms of bug finding
-ability\cite{empirical}, and the number of schedules explored by delay
+ability\cite{empirical}. The number of schedules explored by delay
 bounding grows more slowly than with pre-emption
 bounding\cite{dbound}, perhaps making it a more attractive choice for
 during development, with pre-emption bounding reserved for producing
@@ -131,9 +150,9 @@ approaches on a standard collection of SCT benchmarks\cite{empirical}.
 SCT is a powerful testing technique for concurrent programs, however
 it seems to have received little attention in the world of functional
 programming. This is possibly because of the large emphasis on
-deterministic parallelism, however as concurrency is still used in
-Haskell (often in the implementation of these deterministic
-abstractions!), I believe that there is a place for it in the Haskell
+deterministic parallelism. However, as non-deterministic concurrency
+is still used in Haskell (often in the implementation of deterministic
+abstractions!), I believe that there is a place for SCT in the Haskell
 world.
 
 \section{Structure of this Report}
@@ -141,7 +160,7 @@ world.
 
 \begin{itemize}
   \item Chapter \ref{chp:litrev} surveys programming technologies for
-    nondeterministic concurrency in lazy pure functional programming
+    nondeterministic concurrency in pure functional programming
     languages. It focuses on libraries for deterministic parallelism
     built atop concurrency, and on testing tools.
 

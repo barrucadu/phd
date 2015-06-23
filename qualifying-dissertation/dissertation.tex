@@ -29,6 +29,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{caption}
+\usepackage{placeins}
 
 \DeclareCaptionFormat{underlined}{#1#2#3\hrulefill}
 \captionsetup[figure]{format=underlined}
@@ -155,22 +156,10 @@
 \savesymbol{listof}
 \usepackage{bussproofs}
 
-% Plan
-\newcommand{\phase}[5]{%
-\begin{tabularx}{\linewidth}{|XXX|}%
-  \hline%
-  \textbf{Dependencies:}   #1 &%
-  \textbf{Related Aims:}   #2 &%
-  \textbf{Aims Completed:} #3 \\%
-  \textbf{Total Estimate:} #4 &%
-  \textbf{Progress:}       #5 &\\%
-  \hline%
-\end{tabularx}}
-\newcommand{\phas}[1]{\textbf{Phase #1}}
-
 % Misc
 \newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
 \newcommand{\sect}[1]{\S\ref{sec:#1}}
+\newcommand{\chap}[1]{Chapter \ref{chp:#1}}
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
 \newcommand{\dejafu}{D\'{e}j\`{a} Fu}
 
@@ -179,13 +168,13 @@
 \vspace{2em}
 \hrule
 \vspace{1em}
-{\huge\bfseries Nondeterministic Concurrency in Haskell}\\
+{\huge\bfseries Nondeterministic Concurrency in Pure Functional Languages}\\
 \vspace{1em}
 \hrule
 \vspace{1em}
 {\small Qualifying Dissertation for Ph.D Computer Science}
 \vfill%
-{\normalsize Number of words: 18,768 as counted by ``texcount -inc'',\\
+{\normalsize Number of words: 19,043 as counted by ``texcount -inc'',\\
 excluding code listings.}
 }
 
