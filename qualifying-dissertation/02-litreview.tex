@@ -415,18 +415,34 @@ supporting concurrency. However, verification is not automatic, but
 driven by annotations such as pre- and post-conditions and invariants
 attached to program points.
 
-Neither \textsc{Zing} nor VCC support higher-order functions, a
+\textsc{Spin}, by Holzmann (1997)\nocite{spin} is a model checker for
+concurrency similar to the $\pi$-calculus, using channels for
+communication between processes. It allows the names of channels to be
+communicated through channels themselves, enabling it to model
+concurrent systems whose configuration is not statically
+known. However, it does not have functions. Many functions can be
+modelled as a process which communicates a result to its caller
+through a channel, but as processes cannot be dynamically defined,
+this does not allow for higher-order functions.
+
+Higher-order functions, not supported by any of the above tools, are a
 cornerstone of functional programming languages. D'Osualdo et al
 (2013)\nocite{erlang} discuss the automated verification of
-Erlang-style concurrency, by defining a core subset of Erlang with a
-formal semantics. This subset includes functional constructs like
-higher-order functions and recursive let bindings. Due to being based
-on Erlang, it only has message passing rather than shared memory. A
-tool called Soter is produced, which is capable of taking normal
-Erlang programs, converting to the core language, producing a model,
-and feeding into a backend verifier. Despite this impressive feat,
-Soter cannot handle cases such as programs whose correctness depends
-on the order of message delivery.
+Erlang-style concurrency, by defining a core subset of Erlang
+(including higher-order functions) with a formal semantics. This
+subset includes functional constructs like higher-order functions and
+recursive let bindings. Due to being based on Erlang, it only has
+message passing rather than shared memory. A tool called Soter is
+produced, which is capable of taking normal Erlang programs,
+converting to the core language, producing a model, and feeding into a
+backend verifier. Despite this impressive feat, Soter cannot handle
+cases such as programs whose correctness depends on the order of
+message delivery.
+
+It is noteworthy that there has been recent work in the area of
+verifying functional languages with higher-order
+functions\cite{travmc2}, but it is not clear whether these results yet
+generalise to concurrent settings.
 
 \section{Summary}
 \label{sec:litrev-summary}

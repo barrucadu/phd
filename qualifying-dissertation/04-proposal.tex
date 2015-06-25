@@ -26,16 +26,18 @@ identified and generalised into guaranteed-deterministic
 libraries. For the remaining programs which are nondeterministic,
 powerful testing and verification tools should be developed.
 
+
+
 \section{Tasks}
 \label{sec:proposal-tasks}
 
-The planned work can be broken down into a number of sequential
-tasks. To summarise: firstly, the work on concurrency testing will be
-completed by implementing DPOR techniques in \dejafu{}, and then the
+The planned work can be broken down into a number of tasks. To
+summarise: firstly, the work on concurrency testing will be completed
+by implementing DPOR techniques in \dejafu{}, and then the
 verification of concurrency will be approached gradually, by first
 selecting an appropriate tool, and then developing a core language.
 
-\subsection*{Dynamic Partial-Order Reduction in \dejafu{}}
+\subsection*{Task A --- Dynamic Partial-Order Reduction in \dejafu{}}
 \label{sec:proposal-tasks-dpor}
 
 \dejafu{} is a library implementing SCT for Haskell. However, without
@@ -55,15 +57,19 @@ techniques to reduce work.
 
 By the end of this task, I should have implemented existing DPOR
 techniques (such as ignoring commuting operations) in \dejafu{},
-making the search for errors more time- and space-efficient.
+making the search for errors more time- and space-efficient. Unless
+some unique problems are brought up by the application area, this will
+merely strengthen the \dejafu{} result, rather than result in a new
+paper.
 
-\subsection*{Review \& Choice of Verification Tools}
+\subsection*{Task B --- Review \& Choice of Verification Tools}
 \label{sec:proposal-tasks-tools}
 
 A number of logics, theorem provers, and proof assistants are
 available. Some are already used for the automated verification of
-concurrent algorithms. I feel I need to explore the options available
-as this will inform the core language developed later.
+concurrent algorithms, such as \textsc{Spin}. I feel I need to explore
+the options available as this will inform the core language developed
+later.
 
 A significant consideration will be support of first-class and
 higher-order functions and ``higher-order'' concurrency operations
@@ -76,9 +82,10 @@ variables.
 
 By the end of this task, I should have selected an environment for
 verifying concurrent programs, and have some proofs of simple
-programs.
+programs. This could possibly lead to a review paper with a topic of
+logics for concurrency in a functional setting.
 
-\subsection*{A Core Language for Concurrency}
+\subsection*{Task C --- A Core Language for Concurrency}
 \label{sec:proposal-tasks-core}
 
 Haskell is a big language, and so for research and tooling purposes a
@@ -94,9 +101,11 @@ everything allows by GHC Haskell. Further investigation is required.
 
 By the end of this task, I should have developed a core language and
 have a simple translator into the logic selected previously. This
-necessitates also developing a formal semantics of the core language.
+necessitates also developing a formal semantics of the core
+language. There are many core languages, however as a formal semantics
+will be developed (and justified) here, this should produce a paper.
 
-\subsection*{A Verifier for Core Concurrent Programs}
+\subsection*{Task D --- A Verifier for Core Concurrent Programs}
 \label{sec:proposal-tasks-verifier}
 
 Bugs found by a static analysis must be understood in terms of the
@@ -116,7 +125,10 @@ taking programs written in the concurrent core language, applying
 automated verification techniques, and reporting any errors found in
 terms of the original program. Furthermore, a library of standard
 concurrency functions taken from the Haskell standard library will be
-reimplemented using the core language to ease program transformation.
+reimplemented using the core language to ease program
+transformation. If all is implemented according to plan, then this
+tool will be the first of its kind for this setting, and will be
+documented in a paper.
 
 \section{Current Progress}
 \label{sec:proposal-progress}
@@ -137,13 +149,13 @@ without blocking.
 schedules. DPOR techniques need to be investigated and integrated into
 the schedule generation process.
 
-\section{Immediate Plan}
+\section{Plan for July 2015 to July 2016}
 \label{sec:proposal-plan}
 
 Over the next year, I intend to:
 
-\begin{itemize}
-  \item Implement DPOR in \dejafu{}, by investigating current
+\begin{description}
+  \item[Task A] Implement DPOR in \dejafu{}, by investigating current
     approaches and implementing suitable methods in the tool. There
     has been recent work in integrating DPOR with schedule
     bounding\cite{bpor} which is a natural starting point for this
@@ -151,23 +163,23 @@ Over the next year, I intend to:
     setting gives rise to methods not so suitable to the imperative
     setting.
 
-    I anticipate this to take no more than 3 months.
+    I expect this to take no more than 3 months.
 
-  \item Develop (or find) a core concurrent pure functional language
-    and a compiler into the logic of some existing verification
-    tool. The main considerations are, as mentioned, first-class and
-    higher-order functions and ``higher-order''
+  \item[Tasks B and C] Develop (or find) a core concurrent pure
+    functional language and a compiler into the logic of some existing
+    verification tool. The main considerations are, as mentioned,
+    first-class and higher-order functions and ``higher-order''
     concurrency. Non-strictness can of course be modelled in a strict
     language with such functions by wrapping all values in a function
     of type \verb|() -> a|.
 
-    I anticipate the investigation and selection of a logic and tool
+    I expect the investigation and selection of a logic and tool
     to take 2 months, and the development of a core language and
     compiler 1 month. The latter will hopefully not take a long time,
     as the core language will be strongly informed by the chosen
     logic.
 
-  \item Develop a more functional verifier for concurrent
+  \item[Task D] Develop a more functional verifier for concurrent
     programs. This consists of a number of subtasks:
 
     \begin{enumerate}
@@ -179,6 +191,30 @@ Over the next year, I intend to:
         language.
     \end{enumerate}
 
-    I anticipate the whole to take 6 months.
-\end{itemize}
+    I expect the whole to take 6 months.
+\end{description}
 
+Figure \ref{fig:proposal-plan-chart} displays this graphically.
+
+\begin{figure}[t]
+  \centering
+  \begin{ganttchart}[hgrid, vgrid, x unit=1cm,
+    bar/.append style={fill=lightgray!50},
+    group/.append style={draw=black, fill=gray!50}]{1}{12}
+    \gantttitle{2015}{6} \gantttitle{2016}{6} \\
+    \gantttitlelist[title list options={var=\y, evaluate=\y as \x
+      using "\pgfcalendarmonthshortname{\y}"}]{7,...,12}{1}
+    \gantttitlelist[title list options={var=\y, evaluate=\y as \x
+      using "\pgfcalendarmonthshortname{\y}"}]{1,...,6}{1} \\
+
+    \ganttgroup{Testing}{1}{3} \\
+    \ganttbar{Task A}{1}{3} \ganttnewline
+
+    \ganttgroup{Verification}{3}{12} \\
+    \ganttbar{Task B}{3}{5} \ganttnewline
+    \ganttlinkedbar{Task C}{5}{6} \ganttnewline
+    \ganttlinkedbar{Task D}{6}{12}
+  \end{ganttchart}
+  \caption{Gantt chart for year plan}
+  \label{fig:proposal-plan-chart}
+\end{figure}
