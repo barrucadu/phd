@@ -194,11 +194,15 @@ Over the next year, I intend to:
     I expect the whole to take 6 months.
 \end{description}
 
-Figure \ref{fig:proposal-plan-chart} displays this graphically.
+Figure \ref{fig:proposal-plan-chart} breaks this down into more
+detail, showing how much time is expected to be spent on individual
+subtasks, and also shows the next two required submissions.
 
 \begin{figure}[t]
   \centering
-  \begin{ganttchart}[hgrid, vgrid, x unit=1cm,
+  \begin{ganttchart}[hgrid, vgrid, x unit=0.8cm,
+    bar label font=\footnotesize,
+    milestone label font=\footnotesize\bfseries,
     bar/.append style={fill=lightgray!50},
     group/.append style={draw=black, fill=gray!50}]{1}{12}
     \gantttitle{2015}{6} \gantttitle{2016}{6} \\
@@ -207,13 +211,33 @@ Figure \ref{fig:proposal-plan-chart} displays this graphically.
     \gantttitlelist[title list options={var=\y, evaluate=\y as \x
       using "\pgfcalendarmonthshortname{\y}"}]{1,...,6}{1} \\
 
-    \ganttgroup{Testing}{1}{3} \\
-    \ganttbar{Task A}{1}{3} \ganttnewline
+    \setganttlinklabel{f-s}{}
+    \setganttlinklabel{s-s}{}
 
-    \ganttgroup{Verification}{3}{12} \\
-    \ganttbar{Task B}{3}{5} \ganttnewline
-    \ganttlinkedbar{Task C}{5}{6} \ganttnewline
-    \ganttlinkedbar{Task D}{6}{12}
+    \ganttbar[name=dpor]{Implement DPOR}{1}{3} \ganttnewline
+
+    \ganttbar[name=eval]{Evaluate tools/logics}{4}{5} \ganttnewline
+    \ganttbar[name=core]{Define Core language}{6}{6} \ganttnewline
+    \ganttbar[name=corelogic]{Implement Core--logic translator}{7}{7} \ganttnewline
+    \ganttbar[name=logiccore]{Implement logic--Core reporting}{8}{8} \ganttnewline
+    \ganttbar[name=tactics]{Implement static analyses}{9}{11} \ganttnewline
+    \ganttbar[name=library]{Write concurrency library}{12}{12} \ganttnewline
+
+    \ganttlink[link type=f-s]{eval}{core}
+    \ganttlink[link type=f-s]{core}{corelogic}
+    \ganttlink[link type=f-s]{corelogic}{logiccore}
+    \ganttlink[link type=f-s]{logiccore}{tactics}
+    \ganttlink[link type=f-s]{tactics}{library}
+
+    \ganttbar[name=progrep]{Write progress report}{7}{7} \ganttnewline
+    \ganttmilestone[name=progrepm]{Progress Report}{7}{7} \ganttnewline
+    \ganttbar[name=thesisout]{Write thesis outline}{12}{12} \ganttnewline
+    \ganttmilestone[name=thesisoutm]{Thesis Outline}{12}{12}
+
+    \ganttlink[link type=s-s]{corelogic}{progrep}
+    \ganttlink{progrep}{progrepm}
+    \ganttlink[link type=s-s]{library}{thesisout}
+    \ganttlink{thesisout}{thesisoutm}
   \end{ganttchart}
   \caption{Gantt chart for year plan}
   \label{fig:proposal-plan-chart}
