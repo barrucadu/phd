@@ -30,11 +30,20 @@ sometimes even leading to death\cite{therac25}. The problem largely
 stems from the nondeterminism of scheduling: the same program with the
 same inputs may produce different results depending on the schedules
 chosen at runtime. This makes it difficult to use traditional testing
-techniques with concurrent programs, and to spot potentially flawed
-code when reading it. These ``Heisenbugs'' make it difficult to be
-confident of the correctness of concurrent programs: no bug has been
-observed during the testing process, but how do we \textit{know} that
-there aren't any?
+techniques with concurrent programs, which rely on the result of
+executing a test to be deterministic. So-called ``Heisenbugs'' make it
+difficult to be confident of the correctness of concurrent programs:
+no bug has been observed during the testing process, but how do we
+\textit{know} that there aren't any?
+
+Despite the difficulty, concurrency is important for producing many
+real-world applications. Frameworks for graphical user interfaces
+typically work by executing the code which governs the GUI in a
+separate thread to the application logic, with communication between
+the two. Applications with a lot of input and output can be more
+responsive to local actions by executing I/O asynchronously, in
+separate threads. Concurrency is a useful program structuring
+technique, and it is here to stay.
 
 There are now a few well-known techniques to avoid concurrency bugs,
 such as protecting mutable state with locks, and acquiring locks in a
@@ -64,18 +73,20 @@ be frequently used throughout this report:
 Concurrency does not require parallelism, as demonstrated by the
 single-core, single-processor computers of yore. Similarly,
 parallelism does not require concurrency, as demonstrated by the
-\verb|par| combinator in Haskell, which evaluates its arguments in
-parallel.
+data-parallel x86 assembly instructions such as \verb|PMULHUW|, which
+computes an element-wise multiplication of two vectors, each
+multiplication in parallel.
 
 Unrestricted concurrency is explicit and semantically
 visible\cite{concurrent}. The interleaved execution of threads, when
 combined with mutable state, gives rise to nondeterminism. Semaphores
 and locks give rise to termination errors in the form of deadlock and
 livelock. Parallelism, in particular the parallel evaluation of
-expressions, is semantically invisible, and there is the possibility
-for implicit parallelism: ``at present these combinators [\verb|par|
-and \verb|seq|] are added by the programmer, though we would of course
-like this task to be automated.''\cite{gum}
+expressions, is semantically invisible in a language without
+side-effects, and there is the possibility for implicit parallelism:
+``at present these combinators [\verb|par| and \verb|seq|] are added
+by the programmer, though we would of course like this task to be
+automated.''\cite{gum}
 
 Concurrency is often implemented using parallelism, and indeed a
 concurrency abstraction can be used to guarantee parallelism (given
@@ -86,12 +97,12 @@ This report is largely concerned with concurrency, although
 parallelism is also discussed as it is often the motivation to use
 concurrency.
 
-\section{Testing Concurrency}
+\section{Testing Concurrent Programs}
 \label{sec:intro-sct}
 
 The problem of testing concurrent programs is twofold: the scheduler
-is a part of the language runtime (or the operating system), and so
-out of the reach of the programmer and tester; and also that
+is a part of the language runtime system (or the operating system),
+and so out of the reach of the programmer and tester; and also
 scheduling decisions are nondeterministic. Given these, how can we
 write reproducible tests?
 
@@ -141,7 +152,7 @@ initial choice of deterministic scheduler. Despite this, they both
 perform about as well as each other in terms of bug finding
 ability\cite{empirical}. The number of schedules explored by delay
 bounding grows more slowly than with pre-emption
-bounding\cite{dbound}, perhaps making it a more attractive choice for
+bounding\cite{dbound}, perhaps making it a more attractive choice
 during development, with pre-emption bounding reserved for producing
 more concrete guarantees ahead of software releases. Random
 scheduling, surprisingly, performs about as well as schedule bounding
@@ -150,10 +161,10 @@ approaches on a standard collection of SCT benchmarks\cite{empirical}.
 SCT is a powerful testing technique for concurrent programs, however
 it seems to have received little attention in the world of functional
 programming. This is possibly because of the large emphasis on
-deterministic parallelism. However, as non-deterministic concurrency
-is still used in Haskell (often in the implementation of deterministic
-abstractions!), I believe that there is a place for SCT in the Haskell
-world.
+deterministic parallelism. However, non-deterministic concurrency is
+still used by functional programmers (often in the implementation of
+deterministic abstractions!), and so there is possibly a place for SCT
+in this world.
 
 \section{Structure of this Report}
 \label{sec:intro-outline}
@@ -173,7 +184,7 @@ world.
 
   \item Chapter \ref{chp:searchparty} contains a paper submitted to
     the 2015 Haskell Symposium\cite{searchparty} on parallelising
-    generate-and-test computations by making use of deterministic
+    generate-and-test computations by making use of nondeterministic
     concurrency. The chapter uses the standard concurrency API for
     ease of presentation, but the real implementation uses \dejafu{}
     for testing purposes.

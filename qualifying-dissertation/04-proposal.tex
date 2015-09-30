@@ -18,7 +18,11 @@
 
 The goal of my research is to implement libraries and tools to enable
 programmers to make use of potentially nondeterministic concurrency
-whilst being confident of the correctness of their programs.
+whilst being confident of the correctness of their programs. An
+important aspect of this is that anything developed scales to
+real-world programs, not just small examples. Furthermore, whilst much
+of the work is being done in the context of Haskell, results should
+also apply to other pure functional languages.
 
 As many concurrent programs are deterministic, but impossible or
 awkward to express with current libraries, common patterns should be
@@ -26,16 +30,15 @@ identified and generalised into guaranteed-deterministic
 libraries. For the remaining programs which are nondeterministic,
 powerful testing and verification tools should be developed.
 
-
-
 \section{Tasks}
 \label{sec:proposal-tasks}
 
 The planned work can be broken down into a number of tasks. To
 summarise: firstly, the work on concurrency testing will be completed
 by implementing DPOR techniques in \dejafu{}, and then the
-verification of concurrency will be approached gradually, by first
-selecting an appropriate tool, and then developing a core language.
+verification of concurrency will be approached gradually, by selecting
+an appropriate tool (informed by the needs of reasoning about
+functional languages), and then developing a core language.
 
 \subsection*{Task A --- Dynamic Partial-Order Reduction in \dejafu{}}
 \label{sec:proposal-tasks-dpor}
@@ -97,7 +100,7 @@ The primitives available in such a language must be suitable for
 transforming more complex programs to, but must also admit a simple
 translation into the logic selected previously. It is possible that
 something based upon GHC Core might work, as that necessarily covers
-everything allows by GHC Haskell. Further investigation is required.
+everything allowed by GHC Haskell. Further investigation is required.
 
 By the end of this task, I should have developed a core language and
 have a simple translator into the logic selected previously. This
@@ -144,7 +147,7 @@ system scheduler. The \verb|threadWaitRead| (and similar) functions
 are omitted as the readability of a file descriptor cannot be checked
 without blocking.
 
-\dejafu{}, a library for SCT, has been implemented detailed in
+\dejafu{}, a library for SCT, has been implemented as detailed in
 \chap{dejafu}, although only using na\"{\i}ve elimination of duplicate
 schedules. DPOR techniques need to be investigated and integrated into
 the schedule generation process.
@@ -179,8 +182,8 @@ Over the next year, I intend to:
     as the core language will be strongly informed by the chosen
     logic.
 
-  \item[Task D] Develop a more functional verifier for concurrent
-    programs. This consists of a number of subtasks:
+  \item[Task D] Extend the simple verifier produced in Task C. This
+    consists of a number of subtasks:
 
     \begin{enumerate}
       \item Allow relating errors found by the tool back to the
