@@ -1,0 +1,19 @@
+Out of work in the formal verification and model checking field has
+grown the topic of \emph{systematic concurrency testing} (SCT), also
+known as \emph{stateless model checking}. This technique allows the
+reliable, deterministic, and rigorous testing of concurrent programs,
+and has enjoyed some success in the imperative and object-oriented
+settings. We propose that the functional world could also benefit from
+systematic concurrency testing, as GHC Haskell in particular provides
+a very rich set of concurrency primitives.
+
+We have developed a library for writing testable concurrent Haskell
+programs, using a typeclass-abstraction to select based on the context
+of use the concrete implementation to use: the runtime-provided
+primitives, or emulated versions provided as part of a testing
+framework.
+
+This report discusses the design and implementation of this library,
+called \dejafu{}, including some case studies and the community
+reception of the initial version presented at the 2015 Haskell
+Symposium.
