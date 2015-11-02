@@ -1,0 +1,216 @@
+\documentclass[openright, dottedtoc, headinclude, footinclude=true, a4paper, numbers=noenddot]{scrreprt}
+
+\title{D\'{e}j\`{a} Fu Technical Report}
+\author{Michael Walker}
+
+%TC:group minted [ignore] xall
+
+% Stuff cargo-culted from jmct's thesis
+\usepackage[eulermath, pdfspacing]{classicthesis}
+
+\usepackage{setspace}
+\onehalfspacing
+
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{mathtools}
+\usepackage{fancyvrb}
+\usepackage{hyperref}
+\usepackage{subcaption}
+\usepackage{alltt}
+\usepackage{color}
+
+\usepackage{microtype}
+\usepackage{xargs}
+\usepackage{amsmath}
+\usepackage{latexsym}
+\usepackage{textcomp}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{siunitx}
+\usepackage{appendix}
+\usepackage{nomencl}
+
+\usepackage{tikz}
+
+\usepackage{csquotes}
+
+\usepackage{minted}
+\usemintedstyle{trac}
+
+\usepackage{haskell}
+
+\usepackage[vlined, boxed]{algorithm2e}
+
+\hypersetup{
+ colorlinks,
+ citecolor=Red,
+ linkcolor=Black,
+ urlcolor=Blue
+}
+
+\usepackage[square]{natbib}
+
+\newcommand{\defineword}[2]{%
+\begin{description}%
+    \item{\textbf{#1}} \hfill \\%
+        {#2}%
+\end{description}%
+}
+
+\usepackage{tocloft}
+\setcounter{tocdepth}{1}
+
+\DeclareCaptionFormat{myformat}{#1#2#3\hrulefill}
+\DeclareCaptionFormat{fnoline}{#1#2#3}
+\captionsetup[figure]{format=myformat}
+
+\newcommand{\frontmatter}{\cleardoublepage\pagenumbering{roman}}
+
+\newcommand{\mainmatter}{\cleardoublepage\pagenumbering{arabic}}
+
+% Todo notes
+\usepackage[disable, colorinlistoftodos,prependcaption,textsize=small]{todonotes}
+\let\marginpar\oldmarginpar
+
+\newcommandx{\tocite}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{Cite: #2}}
+\newcommandx{\todoinline}[1]{\todo[inline]{#1}}
+\newcommandx{\todofig}[1]{\todo[inline]{Make figure: #1}}
+
+% Misc
+\newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
+\newcommand{\sect}[2]{\S\ref{sec:#1-#2}}
+\newcommand{\chap}[1]{Chapter \ref{chp:#1}}
+\newcommand{\dejafu}{D\'{e}j\`{a} Fu}
+
+\begin{document}
+
+\frontmatter
+
+\input{frontmatter/titlepage.tex}
+
+\cleardoublepage
+
+\input{frontmatter/abstract.tex}
+
+\tableofcontents
+
+%\listoffigures
+%\listoftables
+
+\chapter*{Declaration}
+\input{frontmatter/declaration.tex}
+
+\mainmatter
+
+\chapter{Introduction}
+\label{chap:intro}
+\input{introduction/preamble.tex}
+
+  \section{Scope}
+  \label{sec:intro-scope}
+  \input{introduction/scope.tex}
+
+  \section{Report Roadmap}
+  \label{sec:intro-roadmap}
+  \input{introduction/roadmap.tex}
+
+% %%%%%
+\part{Testable Concurrent Programs}
+\label{part:testable}
+% %%%%%
+
+\null\clearpage
+\chapter{Concurrency Abstraction}
+\label{chap:abstraction}
+\input{abstraction/preamble.tex}
+
+  \section{The \texttt{MonadConc} Typeclass}
+  \label{sec:abstraction-typeclass}
+  \input{abstraction/typeclass.tex}
+
+  \section{Software Transactional Memory}
+  \label{sec:abstraction-stm}
+  \input{abstraction/stm.tex}
+
+  \section{Memory Model}
+  \label{sec:abstraction-mem}
+  \input{abstraction/mem.tex}
+
+\null\clearpage
+\chapter{Program Execution}
+\label{chap:execution}
+\input{execution/preamble.tex}
+
+  \section{Primitive Actions and Free Monads}
+  \label{sec:execution-primops}
+  \input{execution/primops.tex}
+
+  \section{Stepwise Execution}
+  \label{sec:execution-stepwise}
+  \input{execution/stepwise.tex}
+
+  \section{Scheduling}
+  \label{sec:execution-scheduling}
+  \input{execution/scheduling.tex}
+
+\null\clearpage
+\chapter{Systematic Concurrency Testing}
+\label{chap:sct}
+\input{sct/preamble.tex}
+
+  \section{Schedule Bounding}
+  \label{sec:sct-bounding}
+  \input{sct/bounding.tex}
+
+  \section{Partial-order Reduction}
+  \label{sec:sct-por}
+  \input{sct/por.tex}
+
+  \section{Correctness of Testing}
+  \label{sec:sct-correctness}
+  \input{sct/correctness.tex}
+
+% %%%%%
+\part{Real-world Impact}
+\label{part:impact}
+% %%%%%
+
+\null\clearpage
+\chapter{Practical Usage}
+\label{chap:practice}
+\input{practice/preamble.tex}
+
+  \section{Integration with Testing Frameworks}
+  \label{sec:practice-integration}
+  \input{practice/integration.tex}
+
+  \section{Alternatives to Existing Libraries}
+  \label{sec:practice-alternatives}
+  \input{practice/alternatives.tex}
+
+\null\clearpage
+
+\chapter{Future Research \& Conclusions}
+\label{chap:conclusions}
+\input{conclusions/preamble.tex}
+
+  \section{Community Reception}
+  \label{sec:conclusions-reception}
+  \input{conclusions/reception.tex}
+
+  \section{Future Work}
+  \label{sec:conclusions-future}
+  \input{conclusions/future.tex}
+
+\if@openright
+  \cleardoublepage
+\else
+  \clearpage
+\fi
+
+\bibliography{references}
+\bibliographystyle{plainnat}
+
+\end{document}
