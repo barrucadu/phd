@@ -1,0 +1,35 @@
+We aim to support all of the functionality of GHC's concurrency API
+which does not unavoidably \emph{require} support from the runtime,
+and which is not so nondeterministic that there is no sensible way to
+model it accurately.
+
+Some specific examples of things which are out of scope:
+
+\begin{itemize}
+\item \verb|threadDelay|, as all this guarantees is that a thread will
+  not run \textit{sooner} than the delay. There is no upper bound on
+  the delay, and also no guarantee that any other thread will be
+  scheduled during the delay.
+
+\item \verb|threadWaitRead|, \verb|threadWaitWrite|, and the
+  \verb|STM| variants, as there is no way to tell if a file descriptor
+  can be read from or written to without involving \verb|IO|, and in
+  addition this is influenced by other non-Haskell processes accessing
+  the same file.
+
+\item Bound threads, as these affect which operating system thread FFI
+  calls operate on, and so alters program behaviour in a parallel
+  setting.
+
+\item \verb|BlockedIndefinitely| exceptions, as this is a garbage
+  collection problem, which is out of the reach of the runtime. There
+  are some annotation functions to record which shared state a thread
+  knows about, and so this can be supported on a limited scale, but
+  not even GHC makes any guarantee of it being reliable\footnote{
+    \quot{Note that this feature is intended for debugging, and should
+      not be relied on for the correct operation of your
+      program. There is no guarantee that the garbage collector will
+      be accurate enough to detect your deadlock, and no guarantee
+      that the garbage collector will run in a timely enough
+      manner.}{controlConcurrent}}.
+\end{itemize}

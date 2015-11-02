@@ -70,6 +70,16 @@
 
 \newcommand{\mainmatter}{\cleardoublepage\pagenumbering{arabic}}
 
+\makeatletter
+\newenvironment{chapquote}[2][2em]
+  {\setlength{\@tempdima}{#1}%
+   \def\chapquote@author{#2}%
+   \parshape 1 \@tempdima \dimexpr\textwidth-2\@tempdima\relax%
+   \itshape}
+  {\par\normalfont\hfill--\
+    \chapquote@author\hspace*{\@tempdima}\par\noindent\hrulefill\\[1cm]}
+\makeatother
+
 % Todo notes
 \usepackage[disable, colorinlistoftodos,prependcaption,textsize=small]{todonotes}
 \let\marginpar\oldmarginpar
@@ -79,9 +89,9 @@
 \newcommandx{\todofig}[1]{\todo[inline]{Make figure: #1}}
 
 % Misc
-\newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
+\newcommand{\quot}[2]{``\textit{#1}'' \cite{#2}}
 \newcommand{\sect}[2]{\S\ref{sec:#1-#2}}
-\newcommand{\chap}[1]{Chapter \ref{chp:#1}}
+\newcommand{\chap}[1]{Chapter \ref{chap:#1}}
 \newcommand{\dejafu}{D\'{e}j\`{a} Fu}
 
 \begin{document}
@@ -107,11 +117,29 @@
 
 \chapter{Introduction}
 \label{chap:intro}
+\begin{chapquote}{Terry Pratchett, Thief of Time\nocite{pratchett2001}}
+  [\dejafu{} is] A martial art in which the user's limbs move in time
+  as well as space, [\ldots] It is best described as ``the feeling
+  that you have been kicked in the head this way before''.
+\end{chapquote}
+
 \input{introduction/preamble.tex}
+
+  \section{Parallelism vs Concurrency}
+  \label{sec:intro-parconc}
+  \input{introduction/parconc.tex}
+
+  \section{Testing Concurrent Programs}
+  \label{sec:intro-testing}
+  \input{introduction/testing.tex}
 
   \section{Scope}
   \label{sec:intro-scope}
   \input{introduction/scope.tex}
+
+  \section{Goals \& Contributions}
+  \label{sec:intro-contribs}
+  \input{introduction/contribs.tex}
 
   \section{Report Roadmap}
   \label{sec:intro-roadmap}

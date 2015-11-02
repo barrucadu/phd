@@ -1,0 +1,34 @@
+It is worth clarifying at this early stage some terminology which will
+be frequently used throughout this report:
+
+\defineword{Concurrency}{A programming methodology, using concepts
+  such as threads, locks, and mutable variables to structure
+  programs.}
+
+\defineword{Parallelism}{An implementation detail, where a
+  multiplicity of hardware components are used to execute distinct
+  pieces of code simultaneously.}
+
+Concurrency does not require parallelism, as demonstrated by the
+single-core, single-processor computers of yore. Similarly,
+parallelism does not require concurrency, as demonstrated by the
+data-parallel x86 assembly instructions such as \verb|PMULHUW|, which
+computes an element-wise multiplication of two vectors, each
+multiplication in parallel.
+
+Unrestricted concurrency is explicit and \emph{semantically visible}
+\citep{concurrent}. The interleaved execution of threads, when
+combined with mutable state, gives rise to nondeterminism. Semaphores
+and locks give rise to termination errors in the form of deadlock and
+livelock. Parallelism, in particular the parallel evaluation of
+expressions, is \emph{semantically invisible} in a language without
+side-effects.
+
+Concurrency is often implemented using parallelism, and indeed a
+concurrency abstraction can be used to guarantee parallelism (given
+suitable hardware), for example by having the ability to restrict the
+execution of individual threads to given processor cores.
+
+Parallelism is largely outside the scope of this report, although it
+does make an appearance in the discussion of relaxed memory in
+\chap{abstraction}.

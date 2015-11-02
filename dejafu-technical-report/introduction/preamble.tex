@@ -1,0 +1,25 @@
+Concurrency is notoriously difficult to get right \citep{overrated},
+sometimes even leading to death \citep{therac25}. The problem largely
+stems from the nondeterminism of scheduling: the same program with the
+same inputs may produce different results depending on the schedules
+chosen at runtime. This makes it difficult to use traditional testing
+techniques with concurrent programs, which rely on the result of
+executing a test to be deterministic. So-called ``Heisenbugs'' make it
+difficult to be confident of the correctness of concurrent programs:
+no bug has been observed during the testing process, but how do we
+\emph{know} that there aren't any?
+
+Despite the difficulty, concurrency is important for producing many
+real-world applications. For example, applications with a lot of input
+and output can be more responsive by executing I/O asynchronously.
+Concurrency is a useful program structuring technique, and it is here
+to stay.
+
+There are now a few well-known techniques to avoid concurrency bugs,
+such as protecting mutable state with locks, and acquiring locks in a
+fixed order. Exercises like the Dining Philosophers
+\citep{diningphilosophers} and the Santa Claus Problem
+\citep{santaclaus} allow programmers to explore these topics in small
+well-understood settings. However, as systems grow, it becomes
+difficult to think about how different components interact, and it is
+easy to slip up and introduce a bug.

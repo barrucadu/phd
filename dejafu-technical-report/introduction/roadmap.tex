@@ -1,0 +1,17 @@
+The report is divided into two broad parts:
+
+Part I explores the problem of testing concurrent programs and how it
+can be done, culminating in case studies of \dejafu{} applied to two
+instances of pre-existing code, and one custom library in
+\chap{casestudies}. In \chap{abstraction} we discuss our typeclass
+abstraction for concurrency ans how it relates to GHC's standard
+concurrency API in terms of functionality. \chap{execution} explains
+how, given a monadic action polymorphic in the monad (as long as it
+belongs to our typeclass) we can execute it with a given scheduler,
+and \chap{sct} extends this to cover a systematic exploration of the
+space of all schedules.
+
+Part II discusses the real-world impact of this work with
+\chap{practice} discussing the usage of \dejafu{} in combination with
+existing code, and \chap{conclusions} summarising the community
+reception to the idea and what is still to be done.
