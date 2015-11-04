@@ -1,18 +1,24 @@
-Readers already familiar with Haskell's concurrency primitives may
-find it enough to skim this section noting the syntactic differences
-in the \dejafu{} variant.
+Readers already familiar with GHC's concurrency primitives may find it
+enough to skim this section noting the syntactic differences in the
+\dejafu{} variant.
 
 \begin{departure}
   The few departures from the semantics of the traditional concurrency
   abstraction are highlighted like this.
 \end{departure}
 
-The \verb|MonadConc| typeclass has an instance for \verb|IO|, and so
-existing code using only the functions generalised over can be made
-suitable for testing quite simply. Existing code which makes use of
-more functionality may require a light dusting of \verb|liftIO| where
-it is safe to do so, which will be expanded upon in
-\sect{abstraction}{typeclass-lifting}.
+The \verb|MonadConc| typeclass has an instance\footnote{A typeclass
+  has \emph{instances}, each type may have one unique instance for a
+  typeclass.} for \verb|IO|, and so existing code using only the
+functions generalised over can be made suitable for testing quite
+simply. Existing code which makes use of more functionality may
+require a light dusting of \verb|liftIO|\footnote{The \texttt{IO} type
+  allows unrestricted side-effects during execution. It turns out that
+  many useful types are just \texttt{IO} with some extra structure
+  applied, and the \texttt{liftIO} function (which belongs to a
+  typeclass called \texttt{MonadIO}) can be used to `translate' the
+  effects into such a type.} where it is safe to do so, which will be
+expanded upon in \sect{abstraction}{typeclass-lifting}.
 
 \subsection{Threads}
 \label{sec:abstraction-typeclass-threads}
@@ -23,7 +29,13 @@ the program terminates. A thread is the basic unit of concurrency. It
 lets us pretend (with parallelism, it might even be true!) that we're
 computing multiple things at once.
 
-We can start a new thread with the function:
+We can start a new thread with the function:\footnote{This is a
+  function named \texttt{fork} with a \emph{type signature}. Type
+  signatures may contain typeclass constraints, type variables, type
+  constructors (similar to generics in other languages), and concrete
+  types. Here \texttt{ThreadId m} is a type constructor applied to the
+  type variable \texttt{m}, which is constrained to be a type with an
+  instance of \texttt{MonadConc}.}
 
 \begin{haskellcode}
 fork :: MonadConc m => m () -> m (ThreadId m)
@@ -103,7 +115,12 @@ There is no \verb|MonadConc| equivalent of bound threads, as there
 would be no way to reliably test this behaviour. Unfortunately, if
 bound threads are required, \verb|IO| will have to be used.
 
-A few predicates are provided for compatibility:
+A few predicates are provided for compatibility:\footnote{Function
+  application in Haskell uses no special syntax, only juxtaposition,
+  so \texttt{return False} is applying the value \texttt{False} to the
+  function \texttt{return}. \texttt{return} here is used to inject a
+  value into a monad, it is unfortunately named and has nothing to do
+  with the return keyword in other languages.}
 
 \begin{haskellcode}
 rtsSupportsBoundThreads :: Bool
@@ -164,9 +181,10 @@ non-blocking functions which return an indication of success:
 \begin{haskellcode}
 newEmptyCVar :: MonadConc m => m (CVar m a)
 putCVar      :: MonadConc m => CVar m a -> a -> m ()
-tryPutCVar   :: MonadConc m => CVar m a -> a -> m Bool
 readCVar     :: MonadConc m => CVar m a -> m a
 takeCVar     :: MonadConc m => CVar m a -> m a
+tryPutCVar   :: MonadConc m => CVar m a -> a -> m Bool
+tryReadCVar  :: MonadConc m => CVar m a -> m (Maybe a)
 tryTakeCVar  :: MonadConc m => CVar m a -> m (Maybe a)
 \end{haskellcode}
 
@@ -207,11 +225,11 @@ concrete type, different \verb|catch| functions can be nested, to
 handle different types of exceptions.
 
 \begin{departure}
-  The IO \verb|catch| function can catch exceptions from pure
-  code. This is not true in general for MonadConc instances.  So some
-  things which work normally may not work in testing, and we risk
-  false negatives. This is a small cost, however, as exceptions from
-  pure code are things like pattern match failures and evaluating
+  The \verb|IO| \verb|catch| function can catch exceptions from pure
+  code. This is not true in general for \verb|MonadConc| instances.
+  So some things which work normally may not work in testing, and we
+  risk false negatives. This is a small cost, however, as exceptions
+  from pure code are things like pattern match failures and evaluating
   \verb|undefined|, which are arguably bugs.
 \end{departure}
 
@@ -233,7 +251,14 @@ block exceptions from other threads. There are three masking states:
 thrown to it if it is blocked; and \emph{uninterruptible}, in which a
 thread cannot have exceptions thrown to it. When a thread is started,
 it inherits the masking state of its parent. We can also execute a
-subcomputation with a new masking state:
+subcomputation with a new masking state:\footnote{These functions take
+  a \emph{higher-ranked} type. Removing the \texttt{forall} stuff, we
+  have \texttt{(m a -> m a) -> m b}, which is a function which takes a
+  function as an argument and returns a result. The \texttt{forall} is
+  necessary because, without it, the concrete type that the variable
+  \texttt{a} is unified with is fixed across \emph{all} usage sites,
+  whereas with the \texttt{forall} it can be determined uniquely
+  everywhere it is used.}
 
 \begin{haskellcode}
 mask :: MonadConc m
@@ -242,8 +267,9 @@ uninterruptibleMask :: MonadConc m
   => ((forall a. m a -> m a) -> m b) -> m b
 \end{haskellcode}
 
-A thread can be forked and given a function to reset the masking
-state:
+In both cases, the action evaluated is passed a function to reset the
+masking state to the original one. A thread can be forked and given a
+function to reset the masking state:
 
 \begin{haskellcode}
 forkWithUnmask :: MonadConc m

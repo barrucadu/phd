@@ -46,7 +46,9 @@ complex state operations involving multiple shared variables without
 worrying!
 
 Each \verb|MonadConc| has an associated \verb|MonadSTM|, and can
-execute transactions of it atomically:
+execute transactions of it atomically:\footnote{Here \texttt{STMLike}
+  is a \emph{type family}, it is used to relate the \texttt{MonadConc}
+  and \texttt{MonadSTM} typeclasses.}
 
 \begin{haskellcode}
 atomically :: MonadConc m => STMLike m a -> m a

@@ -1,3 +1,6 @@
+For readers who are unfamiliar with Haskell, syntax and terminology
+will be explained as they are introduced.
+
 In order to test concurrent programs, we must first create a
 concurrency abstraction rich enough to express everything that is
 commonly needed. Care must be taken that it does not become so rich
@@ -7,10 +10,15 @@ The abstraction developed for \dejafu{} can be thought of as three
 independent components:
 
 \begin{enumerate}
-\item There is the \verb|MonadConc| typeclass, which abstracts over
-  much of the operations provided in the Control.Concurrent hierarchy,
-  and also some other functionality like mutable memory cells
-  (\verb|IORef|s) and exceptions.
+\item There is the \verb|MonadConc| typeclass,\footnote{Typeclasses
+    are similar to interfaces in object-oriented languages. The key
+    difference is that they also allow polymorphism based on the
+    \emph{return type} of a function as well as the \emph{argument
+      types}.} which abstracts over much of the operations provided in
+  the Control.Concurrent hierarchy,\footnote{Haskell modules are
+    arranged into a hierarchy, corresponding to files and
+    directories.} and also some other functionality like mutable
+  memory cells (\verb|IORef|s) and exceptions.
 
 \item There is the \verb|MonadSTM| typeclass, which abstracts over
   GHC's software transactional memory API, and is related to
