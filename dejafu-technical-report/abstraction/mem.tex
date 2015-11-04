@@ -1,0 +1,30 @@
+There are three memory models supported in \dejafu{}:
+
+\defineword{Sequential Consistency}{The most intuitive model: a
+  program behaves as a simple interleaving of the actions in different
+  threads. When a \texttt{CRef} is written to, that write is
+  immediately visible to all threads.}
+
+\defineword{Total Store Order (TSO)}{Each thread has a write buffer. A
+  thread sees its writes immediately, but other threads will only see
+  writes when they are committed, which may happen later. Writes are
+  committed in the same order that they are created.}
+
+\defineword{Partial Store Order (PSO)}{A relaxation of TSO where each
+  thread has a write buffer for each \texttt{CRef}. A thread sees its
+  writes immediately, but other threads will only see writes when they
+  are committed, which may happen later. Writes to different
+  \texttt{CRef}s are not necessarily committed in the same order that
+  they are created.}
+
+The memory model only makes a difference for unsynchronised
+operations, such as \verb|readCRef|, \verb|writeCRef|, and what the
+atomic-primops\footnote{\url{https://hackage.haskell.org/package/atomic-primops}}
+package provides.
+
+The default memory model for testing is TSO, as that most accurately
+models the behaviour of modern x86 processors. The use of a relaxed
+memory model does cause some blow-up in the number of schedules tested
+when unsynchronised operations are used, but as most of the
+concurrency primitives are synchronised this tends to be fairly
+contained.

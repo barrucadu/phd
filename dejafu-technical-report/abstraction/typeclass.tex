@@ -1,0 +1,294 @@
+Readers already familiar with Haskell's concurrency primitives may
+find it enough to skim this section noting the syntactic differences
+in the \dejafu{} variant.
+
+\begin{departure}
+  The few departures from the semantics of the traditional concurrency
+  abstraction are highlighted like this.
+\end{departure}
+
+The \verb|MonadConc| typeclass has an instance for \verb|IO|, and so
+existing code using only the functions generalised over can be made
+suitable for testing quite simply. Existing code which makes use of
+more functionality may require a light dusting of \verb|liftIO| where
+it is safe to do so, which will be expanded upon in
+\sect{abstraction}{typeclass-lifting}.
+
+\subsection{Threads}
+\label{sec:abstraction-typeclass-threads}
+
+Threads let a program do multiple things at once. Every program has at
+least one thread, which starts where \verb|main| does and runs until
+the program terminates. A thread is the basic unit of concurrency. It
+lets us pretend (with parallelism, it might even be true!) that we're
+computing multiple things at once.
+
+We can start a new thread with the function:
+
+\begin{haskellcode}
+fork :: MonadConc m => m () -> m (ThreadId m)
+\end{haskellcode}
+
+This starts evaluating its argument in a separate thread. It also
+gives us back a (monad-specific) \verb|ThreadId| value, which we can
+use to kill the thread later on, if we want.
+
+A thread can query its own \verb|ThreadId|:
+
+\begin{haskellcode}
+myThreadId :: MonadConc m => m (ThreadId m)
+\end{haskellcode}
+
+In a real machine, there are of course a number of processors and
+cores. It may be that a particular application of concurrency is only
+a net gain if every thread is operating on a separate core, so that
+threads are not interrupting each other. The GHC runtime refers to the
+number of Haskell threads that can run truly simultaneously as the
+number of \emph{capabilities}. We can query this value, and fork
+threads which are bound to a particular capability:
+
+\begin{haskellcode}
+getNumCapabilities :: MonadConc m => m Int
+forkOn :: MonadConc m => Int -> m () -> m (ThreadId m)
+\end{haskellcode}
+
+The \verb|forkOn| function interprets the capability number modulo the
+value returned by \verb|getNumCapabilities|.
+
+\begin{departure}
+  \verb|getNumCapabilities| is not required to return a true
+  result. The testing instances return ``2'' despite executing
+  everything in the same capability, to encourage more
+  concurrency. The \verb|IO| instance does return a true result.
+\end{departure}
+
+Sometimes we just want the special case of evaluating something in a
+separate thread, for which we can use \verb|spawn| (implemented in
+terms of \verb|fork|):
+
+\begin{haskellcode}
+spawn :: MonadConc m => m a -> m (CVar m a)
+\end{haskellcode}
+
+This returns a \verb|CVar| (\emph{Concurrent Variable}), to which we
+can apply \verb|readCVar|, blocking until the computation is done and
+the value is stored.
+
+Threads are scheduled non-deterministically, where every time the
+runtime decides to perform a context switch, one of the runnable
+threads will be executed. Sometimes, however, a thread may be runnable
+but also waiting for something to happen. The programmer can provide a
+clue to the scheduler that another thread should be tried instead:
+
+\begin{haskellcode}
+yield :: MonadConc m => m ()
+\end{haskellcode}
+
+This gives any other thread the opportunity to execute instead of the
+yielding one, but it is not \emph{required} to cause a context switch
+except on co-operative multitasking systems.
+
+\subsubsection{Threading and the Foreign Function Interface}
+\label{sec:abstraction-typeclass-threads-ffi}
+
+In order to accommodate Foreign Function Interface (FFI) calls which
+may block, GHC provides a mechanism for \emph{binding} a Haskell
+thread to an operating system thread. This allows FFI calls to be
+managed by the operating system, unlike normal Haskell threads which
+are managed by the runtime and multiplexed onto a smaller number of
+operating system threads. This means that blocking FFI calls do not
+necessarily block the entire program.
+
+There is no \verb|MonadConc| equivalent of bound threads, as there
+would be no way to reliably test this behaviour. Unfortunately, if
+bound threads are required, \verb|IO| will have to be used.
+
+A few predicates are provided for compatibility:
+
+\begin{haskellcode}
+rtsSupportsBoundThreads :: Bool
+rtsSupportsBoundThreads = False
+
+isCurrentThreadBound :: MonadConc m => m Bool
+isCurrentThreadBound = return False
+\end{haskellcode}
+
+\subsection{Mutable State}
+\label{sec:abstraction-typeclass-crefs}
+
+Threading by itself is not really enough. We need to be able to
+\emph{communicate} between threads: we've already seen an instance
+of this with the \verb|spawn| function.
+
+The simplest type of mutable shared state provided is the \verb|CRef|
+(\emph{Concurrent Reference}). \verb|CRef|s are shared variables which
+can be written to and read from:
+
+\begin{haskellcode}
+newCRef    :: MonadConc m => a -> m (CRef m a)
+readCRef   :: MonadConc m => CRef m a -> m a
+modifyCRef :: MonadConc m => CRef m a -> (a -> (a, b)) -> m b
+writeCRef  :: MonadConc m => CRef m a -> a -> m ()
+\end{haskellcode}
+
+The \verb|readCRef| and \verb|writeCRef| functions are not
+synchronised: it is possible for one thread to read from a \verb|CRef|
+strictly after another thread has written to it and to observe an old
+value!  This is expanded more upon in \sect{abstraction}{mem}. To
+ensure that every thread sees a value as soon as it is written there
+is a synchronised write function:
+
+\begin{haskellcode}
+atomicWriteCRef :: MonadConc m => CRef m a -> a -> m ()
+\end{haskellcode}
+
+However, synchronisation can slow down execution in a parallel
+environment. Note that \verb|modifyCRef| is also synchronised.
+
+As \emph{any} thread can write at \emph{any} time, we risk threads
+overwriting each other's work! At least \verb|modifyCRef| is atomic:
+no thread can update it between the value being read and the new value
+being stored, as could happen if \verb|readCRef| and \verb|writeCRef|
+were composed. Even so, \verb|CRef|s quickly fall down if we want to
+do anything complicated.
+
+\subsection{Mutual Exclusion}
+\label{sec:abstraction-typeclass-cvars}
+
+A \verb|CVar| is a shared variable under \emph{mutual exclusion}. It
+has two possible states: \emph{full} or \emph{empty}. Writing to a
+full \verb|CVar| blocks until it is empty, and reading or taking from
+an empty \verb|CVar| blocks until it is full. There are also
+non-blocking functions which return an indication of success:
+
+\begin{haskellcode}
+newEmptyCVar :: MonadConc m => m (CVar m a)
+putCVar      :: MonadConc m => CVar m a -> a -> m ()
+tryPutCVar   :: MonadConc m => CVar m a -> a -> m Bool
+readCVar     :: MonadConc m => CVar m a -> m a
+takeCVar     :: MonadConc m => CVar m a -> m a
+tryTakeCVar  :: MonadConc m => CVar m a -> m (Maybe a)
+\end{haskellcode}
+
+Unfortunately, the mutual exclusion behaviour of \verb|CVar|s means
+that computations can become \emph{deadlocked}. For example, deadlock
+occurs if every thread tries to take from the same \verb|CVar|. The
+GHC runtime can detect this in some situations (and will complain if
+it does), and so can \dejafu{} in a more informative way.
+
+\begin{departure}
+  \dejafu{} can only detect deadlock to the same extent as GHC if
+  every thread is annotated with which \verb|CVar|s it knows
+  about. This is because GHC uses the garbage collector to solve this
+  problem, which is out of the reach of \dejafu{}.
+\end{departure}
+
+There are also additional functions provided in the
+Control\-.Concurrent\-.CVar and Control\-.Concurrent\-.CVar\-.Strict
+modules.
+
+\subsection{Exceptions}
+\label{sec:abstraction-typeclass-excs}
+
+Exceptions are a way to bail out of a computation early. Whether
+they're a good solution to that problem is a question of style, but
+they can be used to jump quickly to error handling code when
+necessary. The basic functions for dealing with exceptions are:
+
+\begin{haskellcode}
+catch :: (Exception e, MonadConc m) => m a -> (e -> m a) -> m a
+throw :: (Exception e, MonadConc m) => e -> m a
+\end{haskellcode}
+
+Where \verb|throw| causes the computation to jump back to the nearest
+enclosing \verb|catch| capable of handling the particular
+exception. As exceptions belong to a typeclass, rather than being a
+concrete type, different \verb|catch| functions can be nested, to
+handle different types of exceptions.
+
+\begin{departure}
+  The IO \verb|catch| function can catch exceptions from pure
+  code. This is not true in general for MonadConc instances.  So some
+  things which work normally may not work in testing, and we risk
+  false negatives. This is a small cost, however, as exceptions from
+  pure code are things like pattern match failures and evaluating
+  \verb|undefined|, which are arguably bugs.
+\end{departure}
+
+Exceptions can be used to kill a thread:
+
+\begin{haskellcode}
+throwTo :: (Exception e, MonadConc m) => ThreadId m -> e -> m ()
+killThread :: MonadConc m => ThreadId m -> m ()
+\end{haskellcode}
+
+These functions block until the target thread is in an appropriate
+state to receive the exception.
+
+What if we don't want our threads to be subject to destruction in this
+way? A thread also has a \emph{masking state}, which can be used to
+block exceptions from other threads. There are three masking states:
+\emph{unmasked}, in which a thread can have exceptions thrown to it;
+\emph{interruptible}, in which a thread can only have exceptions
+thrown to it if it is blocked; and \emph{uninterruptible}, in which a
+thread cannot have exceptions thrown to it. When a thread is started,
+it inherits the masking state of its parent. We can also execute a
+subcomputation with a new masking state:
+
+\begin{haskellcode}
+mask :: MonadConc m
+  => ((forall a. m a -> m a) -> m b) -> m b
+uninterruptibleMask :: MonadConc m
+  => ((forall a. m a -> m a) -> m b) -> m b
+\end{haskellcode}
+
+A thread can be forked and given a function to reset the masking
+state:
+
+\begin{haskellcode}
+forkWithUnmask :: MonadConc m
+  => ((forall a. m a -> m a) -> m ()) -> m (ThreadId m)
+forkOnWithUnmask :: MonadConc m => Int
+  -> ((forall a. m a -> m a) -> m ()) -> m (ThreadId m)
+\end{haskellcode}
+
+We can also fork a thread and call a supplied function when the thread
+is about to terminate, which is useful for informing the parent when a
+child terminates, for example:
+
+\begin{haskellcode}
+forkFinally :: MonadConc m => m a
+  -> (Either SomeException a -> m ()) -> m (ThreadId m)
+\end{haskellcode}
+
+The \verb|SomeException| type is the top of the exception hierarchy,
+and so can be used to catch all exceptions.
+
+\subsection{Lifting Actions into \texttt{MonadConc}}
+\label{sec:abstraction-typeclass-lifting}
+
+If the programmer needs to make use of \verb|IO| actions, rather than
+\verb|MonadConc| actions, then this can be achieved by adding a
+\verb|MonadIO| context and using \verb|liftIO|. However, this can
+easily compromise the results of testing, as the test runner cannot
+peek inside \verb|IO| actions (that's why the typeclass exists in the
+first place!). Thus, it is only safe if:
+
+\begin{itemize}
+\item \emph{The action is atomic and synchronised.}
+
+  Otherwise the test framework will possibly miss schedules which lead
+  to a bug.
+\item \emph{The action is deterministic} (when executed as part of a
+  computation with a deterministic schedule).
+
+  Otherwise the fundamental assumption behind the testing methodology
+  is false, and no guarantees about completeness can be made.
+\item \emph{The action cannot block on the action of another thread.}
+
+  Otherwise test execution may deadlock.
+\end{itemize}
+
+State transformer actions can also be lifted directly into a
+\verb|MonadConc| computation using the \verb|primitive| function from
+\verb|PrimMonad|. This is only safe if the requirements above hold.

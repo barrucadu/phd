@@ -38,6 +38,7 @@
 
 \usepackage{minted}
 \usemintedstyle{trac}
+\newminted{haskell}{}
 
 \usepackage{haskell}
 
@@ -87,6 +88,21 @@
 \newcommandx{\tocite}[2][1=]{\todo[linecolor=red,backgroundcolor=red!25,bordercolor=red,#1]{Cite: #2}}
 \newcommandx{\todoinline}[1]{\todo[inline]{#1}}
 \newcommandx{\todofig}[1]{\todo[inline]{Make figure: #1}}
+
+% Departures in \chap{abstraction}:
+\usepackage{framed}
+\usepackage{amsthm}
+
+\newenvironment{justspacing}{%
+\def\FrameCommand{\hspace{0pt}}%
+\MakeFramed {\advance\hsize-\width \FrameRestore}}%
+{\endMakeFramed}
+
+\newenvironment{departure}%
+{\begin{justspacing}%
+\noindent%
+\paragraph{Departure}}%
+{\hfill $\qed$ \end{justspacing}}
 
 % Misc
 \newcommand{\quot}[2]{``\textit{#1}'' \cite{#2}}

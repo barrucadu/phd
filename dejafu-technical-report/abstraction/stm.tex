@@ -1,0 +1,70 @@
+\verb|CVar|s are nice, until we need more than one, and find they need
+to be kept synchronised. As we can only claim \emph{one} \verb|CVar|
+atomically, it seems we need to introduce a \verb|CVar| to control
+access to \verb|CVar|s! This is unwieldy and prone to bugs.
+
+\emph{Software transactional memory} (STM) is the solution. STM uses
+\verb|CTVar|s, or \emph{Concurrent Transactional Variables}, and is
+based upon the idea of atomic \emph{transactions}. An STM transaction
+consists of one or more operations over a collection of \verb|CTVar|s,
+where a transaction may be aborted part-way through depending on their
+values. If the transaction fails, \emph{none of its effects take
+  place}, and the thread blocks until the transaction can
+succeed. This means we need to limit the possible actions in an STM
+transaction to those which can be safely undone and repeated, so we
+have another typeclass, \verb|MonadSTM|.
+
+\verb|CTVar|s always contain a value, as shown in the types of the
+functions:
+
+\begin{haskellcode}
+newCTVar   :: MonadSTM s => a -> s (CTVar s a)
+readCTVar  :: MonadSTM s => CTVar s a -> s a
+writeCTVar :: MonadSTM s => CTVar s a -> a -> s ()
+\end{haskellcode}
+
+If we read a \verb|CTVar| and don't like the value it has, the
+transaction can be aborted, and the thread will block until any of the
+referenced \verb|CTVar|s have been mutated:
+
+\begin{haskellcode}
+retry :: MonadSTM s => s a
+check :: MonadSTM s => Bool -> s ()
+\end{haskellcode}
+
+We can also try executing a transaction, and do something else if it
+fails:
+
+\begin{haskellcode}
+orElse :: MonadSTM s => s a -> s a -> s a
+\end{haskellcode}
+
+The nice thing about STM transactions is that they \emph{compose}. We
+can take small transactions and build bigger transactions from them,
+and the whole is still executed atomically. This means we can do
+complex state operations involving multiple shared variables without
+worrying!
+
+Each \verb|MonadConc| has an associated \verb|MonadSTM|, and can
+execute transactions of it atomically:
+
+\begin{haskellcode}
+atomically :: MonadConc m => STMLike m a -> m a
+\end{haskellcode}
+
+The instance of \verb|MonadConc| for \verb|IO| uses \verb|STM| as its
+\verb|MonadSTM|.
+
+STM can also use exceptions:
+
+\begin{haskellcode}
+throwSTM :: (Exception e, MonadSTM s) => e -> s a
+catchSTM :: (Exception e, MonadSTM s) => s a -> (e -> s a) -> s a
+\end{haskellcode}
+
+If an exception propagates uncaught to the top of a transaction, that
+transaction is aborted and the exception is re-thrown in the thread.
+
+There are utility functions for \verb|CTVar|s provided in
+Control\-.Concurrent\-.STM\-.CTVar, and an STM equivalent of
+\verb|CVar|s in Control\-.Concurrent\-.STM\-.CTMVar.

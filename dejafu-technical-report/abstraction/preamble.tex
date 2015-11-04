@@ -1,0 +1,25 @@
+In order to test concurrent programs, we must first create a
+concurrency abstraction rich enough to express everything that is
+commonly needed. Care must be taken that it does not become so rich
+that it becomes difficult to implement, however.
+
+The abstraction developed for \dejafu{} can be thought of as three
+independent components:
+
+\begin{enumerate}
+\item There is the \verb|MonadConc| typeclass, which abstracts over
+  much of the operations provided in the Control.Concurrent hierarchy,
+  and also some other functionality like mutable memory cells
+  (\verb|IORef|s) and exceptions.
+
+\item There is the \verb|MonadSTM| typeclass, which abstracts over
+  GHC's software transactional memory API, and is related to
+  \verb|MonadConc| but can be used independently.
+
+\item There is the memory model, which influences the behaviour of
+  some of the \verb|MonadConc| operations and also the SCT behaviour.
+\end{enumerate}
+
+Originally only a sequentially consistent memory model was provided,
+but some support for relaxed memory was added following community
+feedback.
