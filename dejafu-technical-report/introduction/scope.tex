@@ -25,11 +25,11 @@ Some specific examples of things which are out of scope:
   collection problem, which is out of the reach of the runtime. There
   are some annotation functions to record which shared state a thread
   knows about, and so this can be supported on a limited scale, but
-  not even GHC makes any guarantee of it being reliable\footnote{
+  not even GHC makes any guarantee of it being reliable.\footnote{
     \quot{Note that this feature is intended for debugging, and should
       not be relied on for the correct operation of your
       program. There is no guarantee that the garbage collector will
       be accurate enough to detect your deadlock, and no guarantee
       that the garbage collector will run in a timely enough
-      manner.}{controlConcurrent}}.
+      manner.}{controlConcurrent}}
 \end{itemize}
