@@ -184,7 +184,6 @@ putCVar      :: MonadConc m => CVar m a -> a -> m ()
 readCVar     :: MonadConc m => CVar m a -> m a
 takeCVar     :: MonadConc m => CVar m a -> m a
 tryPutCVar   :: MonadConc m => CVar m a -> a -> m Bool
-tryReadCVar  :: MonadConc m => CVar m a -> m (Maybe a)
 tryTakeCVar  :: MonadConc m => CVar m a -> m (Maybe a)
 \end{haskellcode}
 
