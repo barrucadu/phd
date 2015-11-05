@@ -3,7 +3,8 @@
 \title{D\'{e}j\`{a} Fu Technical Report}
 \author{Michael Walker}
 
-%TC:group minted [ignore] xall
+%TC:group minted      [ignore] xall
+%TC:group haskellcode [ignore] xall
 
 % Stuff cargo-culted from jmct's thesis
 \usepackage[eulermath, pdfspacing]{classicthesis}
@@ -109,6 +110,8 @@
 \newcommand{\sect}[2]{\S\ref{sec:#1-#2}}
 \newcommand{\chap}[1]{Chapter \ref{chap:#1}}
 \newcommand{\dejafu}{D\'{e}j\`{a} Fu}
+\newcommand{\defineprim}[3]{\defineword{#1 \textit{#2}}{#3}}
+\newcommand{\arr}{$\rightarrow$ }
 
 \begin{document}
 
@@ -188,7 +191,7 @@
 \label{chap:execution}
 \input{execution/preamble.tex}
 
-  \section{Primitive Actions and Free Monads}
+  \section{Primitive Actions}
   \label{sec:execution-primops}
   \input{execution/primops.tex}
 
