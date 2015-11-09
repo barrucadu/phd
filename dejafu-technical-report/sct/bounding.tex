@@ -1,0 +1,57 @@
+Schedule bounding is an \emph{incomplete} approach to SCT. Each
+sequence of scheduling decisions is associated with a \emph{bound
+  value}, by some \emph{bound function}. Such a function could be the
+number of pre-emptive context switches, for example. Schedule bounding
+was introduced in \citep{pbound}, and came from work in the model
+checking field.
+
+There are some common bound functions in use today:
+
+\definewordc{Pre-emption Bounding}{pbound}{%
+  The number of pre-emptive context switches is bounded.}
+
+\definewordc{Fair Bounding}{fbound}{%
+  The difference between the number of times different threads call
+  \texttt{yield} is bounded.}
+
+\definewordc{Delay Bounding}{dbound}{%
+  The number of deviations from a deterministic scheduler is bounded.}
+
+Both pre-emption bounding and delay bounding have empirical evidence,
+in \citep{empirical}, showing that small bounds are good for finding
+bugs in many real-world programs.
+
+Fair bounding is used to handle programs which make use of lock-free
+constructs such as spinlocks. A spinlock may be implemented like so:
+
+\begin{haskellcode}
+lock p var = spin where
+  spin = do
+    x <- readCRef var
+    unless (p x) (yield >> spin)
+\end{haskellcode}
+
+Here, a \verb|CRef| is read from and, if some predicate on its value
+is not satisfied, the thread yields and tries again. This can easily
+give rise to infinitely long executions: simply don't execute any
+other thread after the \verb|yield|, as it doesn't \emph{force} a
+context switch. Fair bounding bounds the difference between the number
+of times that threads have called \verb|yield|: if the thread that has
+yielded the fewest times has done so 1 time, and the thread that has
+yielded the most times has done so 10 times, then the bound value is
+9.
+
+Strictly speaking, schedule bounding refers to trying only those
+schedules with a bound value equal to some fixed parameter. A variant
+of this is \emph{iterative} bounding, where this parameter is
+increased from zero up to some limit. Another variant is where an
+inequality, rather than an equality, is used. This explores the same
+schedules as iterative bounding, but doesn't impose the same ordering
+properties over schedules tried. In practice, ``schedule bounding''
+typically refers to this third type, unless specified otherwise.
+
+\dejafu{} uses a combination of pre-emption and fair bounding, with a
+pre-emption bound of 2 and a fair bound of 5, in order to gracefully
+handle computations which use spinlocking techniques. The pre-emption
+bound was chosen based on empirical evidence, but the fair bound was
+picked fairly arbitrarily.
