@@ -398,17 +398,21 @@ exception handling than these.
 
 \begin{haskellcode}
 newCTVar a = toSTM (SNew a)
-
-readCTVar ctvar = S (SRead ctvar)
-
-writeCTVar ctvar a = S (\c -> SWrite ctvar a (c ()))
 \end{haskellcode}
 
 \defineprim{SNew}{a (ctvar a \arr action)}{%
   Create a new \texttt{CTVar} containing the given value.}
 
+\begin{haskellcode}
+readCTVar ctvar = S (SRead ctvar)
+\end{haskellcode}
+
 \defineprim{SRead}{(ctvar a) (a \arr action)}{%
   Read the current value of a \texttt{CTVar}.}
+
+\begin{haskellcode}
+writeCTVar ctvar a = S (\c -> SWrite ctvar a (c ()))
+\end{haskellcode}
 
 \defineprim{SWrite}{(ctvar a) a action}{%
   Update a \texttt{CTVar}.}
@@ -444,10 +448,10 @@ _concAllKnown       = M (\c -> AAllKnown       (c ()))
 The deadlock detection process works like so: if a thread is blocked
 on a \verb|CVar| or \verb|CTVar| (an STM transaction referencing it
 has aborted), \emph{and} it is known what variables all threads have
-access to, \emph{and} no other thread has a reference to that
-variable, \emph{then} the thread is deadlocked. This can easily be
-extended to collections of threads which are all blocked on the same
-variable.
+access to, \emph{and} all other threads with a reference to that
+variable are also blocked on it, \emph{then} the thread is
+deadlocked. This can easily be extended to collections of threads
+which are all blocked on the same variable.
 
 \subsection{Lifting from the Underlying Monad}
 \label{sec:execution-primops-lift}

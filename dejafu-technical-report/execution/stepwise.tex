@@ -139,7 +139,9 @@ stepWriteRef cref@(CRef (crid, _)) a c = case memtype of
 
 There are three memory models supported by \dejafu{}, each of which
 has a different implementation for writing to a \verb|CRef|. Firstly,
-sequential consistency. This does not have any relaxed memory effects:
+sequential consistency. This does not have any relaxed memory
+effects:\footnote{This is an emple of \emph{do notation}, which is a
+  convenient synctatic sugar for composition of monadic functions.}
 
 \begin{haskellcode}
   SequentialConsistency -> do
@@ -157,9 +159,10 @@ they will be committed in that same order to main memory:
 \begin{haskellcode}
   TotalStoreOrder -> do
     wb' <- bufferWrite wb tid cref a tid
-    return (Right
-      (goto c tid threads, idSource, WriteRef crid, wb'))
+    return $ Right
+      (goto c tid threads, idSource, WriteRef crid, wb')
 \end{haskellcode}
+%$
 
 The \verb|bufferWrite| function appends a write to the relevant write
 buffer, in this case the one corresponding to that thread. Total store
@@ -173,9 +176,10 @@ rather than each thread:
 \begin{haskellcode}
   PartialStoreOrder -> do
     wb' <- bufferWrite wb crid cref a tid
-    return (Right
-      (goto c tid threads, idSource, WriteRef crid, wb'))
+    return $ Right
+      (goto c tid threads, idSource, WriteRef crid, wb')
 \end{haskellcode}
+%$
 
 Both the TSO and PSO cases update the thread-specific map. A thread
 will always see the writes it has made, but other threads may not.
@@ -206,15 +210,19 @@ Modifying a \verb|CRef| is a little different, as this has the effect
 of being a memory barrier: any uncommitted writes to any \verb|CRef|
 are committed before the modification is done, and the result is
 immediately globally visible. There is a \verb|synchronised| function
-for actions which have this barrier property:
+for actions which have this barrier property:\footnote{The \texttt{\$}
+  operator is function application, but with a very low
+  precedence. This makes it convenient for avoiding parentheses, which
+  can be more readable when multi-line expressions are involved.}
 
 \begin{haskellcode}
-stepModRef cref@(CRef (crid, _)) f c = synchronised (do
+stepModRef cref@(CRef (crid, _)) f c = synchronised $ do
   val <- readCRef cref tid
   let (new, ret) = f val
   writeImmediate cref new
-  simple (goto (c val) tid threads) (ModRef crid))
+  simple (goto (c val) tid threads) (ModRef crid)
 \end{haskellcode}
+%$
 
 The modification is made globally visible by the use of
 \verb|writeImmediate| here. The implementation of \verb|synchronised|
@@ -259,10 +267,10 @@ stepNewRef a c = do
   ref <- newRef (empty, a)
 
   let (idSource', newcrid) = nextCRId idSource
-  let cref = CRef (newcrid, ref)
+  let cref = (CRef (newcrid, ref))
+  let threads' = goto (c cref) tid threads
 
-  return (Right
-    (goto (c cref) tid threads, idSource', NewRef newcrid, wb))
+  return (Right (threads', idSource', NewRef newcrid, wb))
 \end{haskellcode}
 
 \subsection{\texttt{CVar}s}
@@ -284,10 +292,10 @@ stepNewVar c = do
 
   let (idSource', newcvid) = nextCVId idSource
   let cvar = CVar (newcvid, ref)
-  let threads' = goto (c cvar) tid threads
+  let threads' = knows [Left newcvid] tid
+                 (goto (c cvar) tid threads)
 
-  return (Right
-    (knows [Left newcvid] tid threads', idSource', New newcvid, wb))
+  return (Right (threads', idSource', New newcvid, wb))
 \end{haskellcode}
 
 There is a difference, however. The \verb|knows| function is used to
@@ -298,35 +306,47 @@ Fortunately there is a lot of similarity between the \verb|CVar|
 functions, which makes them easy to follow.
 
 \begin{haskellcode}
-stepPutVar cvar@(CVar (cvid, _)) a c = synchronised (do
-  (success, threads', woken) <- putIntoCVar cvar a c tid threads
-  let action = if success then Put cvid woken else BlockedPut cvid
-  simple threads' action)
+stepPutVar cvar@(CVar (cvid, _)) a c = synchronised $ do
+  (success, threads', woken) <-
+    putIntoCVar cvar a c tid threads
 
-stepTryPutVar cvar@(CVar (cvid, _)) a c = synchronised (do
-  (success, threads', woken) <- tryPutIntoCVar cvar a c tid threads
-  simple threads' (TryPut cvid success woken))
+  simple threads' $ if success
+    then Put cvid woken else BlockedPut cvid
+
+stepTryPutVar cvar@(CVar (cvid, _)) a c = synchronised $ do
+  (success, threads', woken) <-
+    tryPutIntoCVar cvar a c tid threads
+
+  simple threads' (TryPut cvid success woken)
 \end{haskellcode}
+%$
 
 Note that these functions are all \verb|synchronised|, and so commit
 \verb|CRef| writes. All \verb|CVar| actions (other than
 \verb|ANewVar|) are.
 
 \begin{haskellcode}
-stepReadVar cvar@(CVar (cvid, _)) c = synchronised (do
-  (success, threads', _) <- readFromCVar cvar c tid threads
-  let action = if success then Read cvid else BlockedRead cvid
-  simple threads' action)
+stepReadVar cvar@(CVar (cvid, _)) c = synchronised $ do
+  (success, threads', _) <-
+    readFromCVar cvar c tid threads
 
-stepTakeVar cvar@(CVar (cvid, _)) c = synchronised (do
-  (success, threads', woken) <- takeFromCVar cvar c tid threads
-  let action = if success then Take cvid woken else BlockedTake cvid
-  simple threads' action)
+  simple threads' $ if success
+    then Read cvid else BlockedRead cvid
 
-stepTryTakeVar cvar@(CVar (cvid, _)) c = synchronised (do
-  (success, threads', woken) <- tryTakeFromCVar cvar c tid threads
-  simple threads' (TryTake cvid success woken))
+stepTakeVar cvar@(CVar (cvid, _)) c = synchronised $ do
+  (success, threads', woken) <-
+    takeFromCVar cvar c tid threads
+
+  simple threads' $ if success
+    then Take cvid woken else BlockedTake cvid
+
+stepTryTakeVar cvar@(CVar (cvid, _)) c = synchronised $ do
+  (success, threads', woken) <-
+    tryTakeFromCVar cvar c tid threads
+
+  simple threads' (TryTake cvid success woken)
 \end{haskellcode}
+%$
 
 The \verb|putInto|/\verb|readFrom|/\verb|takeFromCVar| functions, and
 their \verb|try| variants, handle waking threads which are blocked in
@@ -388,7 +408,7 @@ Throwing an exception to another thread is significantly more
 complicated, and is also a \verb|synchronised| operation:
 
 \begin{haskellcode}
-stepThrowTo t e c = synchronised (
+stepThrowTo t e c = synchronised $
   let threads' = goto c tid threads
       blocked  = block (OnMask t) tid threads
   in if interruptible (lookup t threads)
@@ -398,8 +418,9 @@ stepThrowTo t e c = synchronised (
               | t == 0 -> return (Left UncaughtException)
               | otherwise ->
                 simple (kill t threads') (ThrowTo t)
-     else simple blocked (BlockedThrowTo t))
+     else simple blocked (BlockedThrowTo t)
 \end{haskellcode}
+%$
 
 Firstly, whether the thread is interruptible is checked. If it's not,
 the current thread is blocked. If it is interruptible, then the
@@ -410,11 +431,16 @@ thread is killed and is the main thread, the entire computation
 terminates.
 
 \begin{haskellcode}
-stepMasking m ma c = simple threads' (SetMasking False m) where
+stepMasking m ma c = simple threads' (SetMasking False m)
+  where
   a = runCont (ma umask) (AResetMask False False m' . c)
 
   m' = masking (lookup tid threads)
-  umask mb = resetMask True m' >> mb >>= \b -> resetMask False m >> return b
+  umask mb = do
+    resetMask True m'
+    b <- mb
+    resetMask False m
+    return b
   resetMask typ ms = cont (\k -> AResetMask typ True ms (k ()))
 
   threads' = goto a tid (mask m tid threads)
@@ -442,11 +468,12 @@ but it is just iterated until termination.
 Firstly, the transaction is executed:
 
 \begin{haskellcode}
-stepAtom stm c = synchronised (do
+stepAtom stm c = synchronised $ do
   (res, newctvid) <- runstm stm (nextCTVId idSource)
   let idSource'   = idSource { nextCTVId = newctvid }
   case res of
 \end{haskellcode}
+%$
 
 There are now three possible results: the transaction succeeded; the
 transaction aborted due to calling \verb|retry|; or the transaction
@@ -458,7 +485,8 @@ which were modified are woken:
 \begin{haskellcode}
     Success readen written val
       let (threads', woken) = wake (OnCTVar written) threads
-      in return (Right (goto (c val) tid threads', idSource', STM woken, wb))
+      in return (Right
+         (goto (c val) tid threads', idSource', STM woken, wb))
 \end{haskellcode}
 
 If the transaction aborts due to \verb|retry|, the thread is blocked
@@ -532,7 +560,9 @@ transaction stm onSuccess = onFailure stm onSuccess
 onFailure stm onSuccess onRetry onException = do
   (res, undo) <- doTransaction stm
   case res of
-    Success readen written val -> return (onSuccess val, undo, readen, written)
+    Success readen written val -> return
+      (onSuccess val, undo, readen, written)
+
     Retry readen  -> onRetry readen
     Exception exc -> onException exc
 \end{haskellcode}
@@ -567,8 +597,6 @@ perform is one of these three.
 \subsection{Testing Annotations}
 \label{sec:execution-stepwise-annotations}
 
-\todoinline{This functionality might be dropped entirely.}
-
 Normally \dejafu{} can only detect a deadlock when \emph{every} thread
 is blocked. However, it may be the case that a smaller collection of
 threads are deadlocked, if they are all blocked on a \verb|CVar| which
@@ -581,9 +609,14 @@ on programmer-provided hints about which \verb|CVar|s and
 \verb|CTVar|s are known about by which threads.
 
 \begin{haskellcode}
-stepKnowsAbout v c = simple (knows   [v] tid (goto c tid threads)) KnowsAbout
-stepForgets    v c = simple (forgets [v] tid (goto c tid threads)) Forgets
-stepAllKnown     c = simple (fullknown   tid (goto c tid threads)) AllKnown
+stepKnowsAbout v c = simple
+  (knows   [v] tid (goto c tid threads)) KnowsAbout
+
+stepForgets    v c = simple
+  (forgets [v] tid (goto c tid threads)) Forgets
+
+stepAllKnown     c = simple
+  (fullknown   tid (goto c tid threads)) AllKnown
 \end{haskellcode}
 
 The \verb|knows| and \verb|forgets| functions are used to modify the
@@ -591,13 +624,10 @@ set of variables that a thread is known to have a reference to. The
 \verb|fullknown| function indicates that this set is complete.
 
 If every thread is in a fully-known state, then the deadlock detection
-algorithm is enhanced to: for a given blocked thread, if no other
-thread \emph{which is not also blocked on the same thing, or on a
-  thread blocked on the same thing} has the capacity to unblock it,
-then the thread is deadlocked. This allows detecting, for example, if
-one thread is blocked on a \verb|CVar|, and the only other thread that
-has a reference to it is blocked on throwing an exception to the
-original thread, then both are deadlocked.
+algorithm is enhanced to: for a given thread blocked on a \verb|CVar|
+or \verb|CTVar|, if no other thread \emph{which is not also blocked on
+  the same thing} has a reference to that variable, then the thread is
+deadlocked.
 
 \subsection{Lifting from the Underlying Monad}
 \label{sec:execution-stepwise-lift}
