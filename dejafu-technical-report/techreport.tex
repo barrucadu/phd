@@ -24,6 +24,7 @@
 \usepackage{microtype}
 \usepackage{xargs}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{latexsym}
 \usepackage{textcomp}
 \usepackage{multicol}
@@ -54,6 +55,8 @@
 
 \usepackage[square]{natbib}
 
+% Definitions
+
 \newcommand{\defineword}[2]{%
 \begin{description}%
     \item{\textbf{#1}} \hfill \\%
@@ -68,6 +71,8 @@
 \end{description}%
 }
 
+% Front-matter
+
 \usepackage{tocloft}
 \setcounter{tocdepth}{1}
 
@@ -78,6 +83,8 @@
 \newcommand{\frontmatter}{\cleardoublepage\pagenumbering{roman}}
 
 \newcommand{\mainmatter}{\cleardoublepage\pagenumbering{arabic}}
+
+% Chapter quotes
 
 \makeatletter
 \newenvironment{chapquote}[2][2em]
@@ -118,6 +125,7 @@
 \newcommand{\chap}[1]{Chapter \ref{chap:#1}}
 \newcommand{\dejafu}{D\'{e}j\`{a} Fu}
 \newcommand{\defineprim}[3]{\defineword{#1 \textit{#2}}{#3}}
+\newcommand{\dependent}{\nleftrightarrow}
 \newcommand{\arr}{$\rightarrow$ }
 
 \begin{document}

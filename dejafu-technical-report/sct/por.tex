@@ -1,0 +1,205 @@
+Partial-order reduction is a \emph{complete} approach to SCT. It is
+based on the insight that, when comparing different execution traces,
+only the relative ordering of \emph{dependent} actions is
+important. Two actions are dependent if the order in which they are
+performed could affect the result of the program:
+
+\definewordc{Dependency Relation}{dpor}{%
+  Let $\mathcal T$ be the set of transitions in a concurrent system. A
+  binary, reflexive, and symmetric relation $\mathcal D \subseteq
+  \mathcal T \times \mathcal T$ is a valid \emph{dependency relation}
+  iff, for all $t_{1}, t_{2} \in \mathcal T$, $(t_{1}, t_{2}) \notin
+  \mathcal D$ ($t_{1}$ and $t_{2}$ are \emph{independent}) implies
+  that the following properties hold for all program states $s$:
+
+  \begin{enumerate}
+  \item if $t_{1}$ is enabled in $s$ and $s \xrightarrow{t_{1}} s'$,
+    then $t_{2}$ is enabled in $s$ iff $t_{2}$ is enabled in $s'$; and
+
+  \item if $t_{1}$ and $t_{2}$ are enabled in $s$, then there is a
+    unique state $s'$ such that $s \xrightarrow{t_{1}t_{2}} s'$ and $s
+    \xrightarrow{t_{2}t_{1}} s'$.
+  \end{enumerate}}
+
+In other words, independent transitions cannot enable or disable each
+other, and enabled independent transitions commute. Rather than use
+this relational definition directly, typically instead a collection of
+conditions sufficient for dependency are identified. These conditions
+are determined by what sorts of things the concurrent system under
+test can express.
+
+Typically for the presentation of algorithms, a very simple core
+concurrent language of just reads and writes is shown. This gives rise
+to the following dependency condition:
+
+\begin{align*}
+  x \dependent y \iff& \mathrm{thread\_id}(x) = \mathrm{thread\_id}(y) \lor\\
+    &\left(\mathrm{variable}(x) = \mathrm{variable}(y)
+     \land \left(\mathrm{is\_write}(x) \lor \mathrm{is\_write}(y)\right)\right)
+\end{align*}
+
+Where $x \dependent y$ is read as ``$x$ and $y$ are dependent''. This
+choice of notation would suggest a symbol $\leftrightarrow$ meaning
+independence, but that doesn't seem to be used.
+
+The dependency relation for \dejafu{} is rather more complex than
+this, as there are more actions than just reads and writes, however it
+can be simplified to a few quite general conditions over different
+sorts of reads and writes, with some remaining special cases.
+
+These special cases are:
+
+\begin{haskellcode}
+dependent (t1, a1) (t2, a2) = case (a1, a2) of
+  (Lift, Lift)   -> True
+  (ThrowTo t, _) -> t == t2
+  (_, ThrowTo t) -> t == t1
+  (STM _, STM _) -> True
+\end{haskellcode}
+
+\begin{itemize}
+\item Two lifts from the underlying monad are always dependent, as in
+  general this allows arbitrary I/O to be performed. The only
+  restriction over I/O is that, given a fixed schedule, the I/O is
+  deterministic.
+
+\item Throwing an exception to a thread is dependent with anything, as
+  all actions can be pre-empted by an exception.
+
+\item STM transactions are always dependent. This final case could
+  probably be refined to STM transactions which have some overlap in
+  the \verb|CTVar|s they modify, but this is an optimisation which has
+  not yet been tried.
+\end{itemize}
+
+The general cases are defined in terms of synchronised and
+unsynchronised actions. Synchronised actions commit all pending
+\verb|CRef| writes, and do not have any relaxed memory
+properties. Unsynchronised actions do not have this property.
+
+\begin{haskellcode}
+dependentActions memtype buf a1 a2 = case (a1, a2) of
+  (UnsynchronisedRead  r1, UnsynchronisedWrite r2)
+    -> r1 == r2 && memtype == SequentialConsistency
+  (UnsynchronisedWrite r1, UnsynchronisedWrite r2)
+    -> r1 == r2 && memtype == SequentialConsistency
+
+  (UnsynchronisedRead r1, _)
+    | isBarrier a2 -> isBuffered buf r1
+
+  _ ->
+    same crefOf && (isSynchronised a1 || isSynchronised a2)
+    || same cvarOf
+\end{haskellcode}
+
+\begin{itemize}
+\item A read and write to the same \verb|CRef| are only dependent
+  under a sequentially-consistent memory model, as are two writes.
+
+\item An unsynchronised read is dependent with an action that imposes
+  a memory barrier if there are buffered writes to the variable being
+  read from.
+
+\item Any two actions on the same \verb|CRef| where at least one of
+  them will cause a commit are dependent.
+
+\item Any two actions on the same \verb|CVar| are dependent.
+\end{itemize}
+
+Characterising the execution of a concurrent program by the ordering
+of its dependent actions only gives us a \emph{partial order} over the
+actions in the entire program. An execution trace may be just one
+possible \emph{total} order corresponding to the same partial
+order. The goal of partial-order reduction, then, is to eliminate
+these redundant total orders by intelligently making scheduling
+decisions to permute the order of dependent actions.
+
+This can be done by executing a program with a deterministic
+scheduler, and then examining the trace, the total order, for
+\emph{backtracking points}. A backtracking point is a place in the
+execution where multiple dependent choices were available, and only
+one was tried. The exploration of the state space continues by making
+the same scheduling decisions up to that point, and then making a
+different decision. This process of doing partial-order reduction
+based on information gathered at run-time, rather than static
+analysis, is called \emph{dynamic partial-order reduction} (DPOR).
+
+% Implementation in dejafu
+
+In an imperative language, DPOR is usually done by executing the
+program under test stepwise in a recursive function, where each stack
+frame has a set of decisions still to try, and this is mutated by
+later calls when a backtracking point is identified. As \dejafu{} is a
+Haskell library, this is not a very natural way to formulate anything,
+and so a different approach was taken.
+
+\dejafu{} explicitly constructs a graph structure in memory, where
+each path from the root to a leaf corresponds to one complete
+execution. Forks in the tree correspond to places where multiple
+decisions have been tried. The operation proceeds like so:
+
+\begin{haskellcode}
+sctBounded memtype bf run = go initialState where
+  go state = case next state of
+    Just decisions -> do
+      (result, s, trace) <- run decisions
+      let bpoints = findBacktrack memtype s trace
+      let newBPOR = todo bf bpoints (grow memtype trace state)
+
+      go newState >>= ((result, trace) :)
+
+    Nothing -> return []
+\end{haskellcode}
+
+Here \verb|next| returns a schedule prefix; \verb|run| executes the
+computation with a given sequence of initial scheduling decisions,
+returning the final result, the final scheduler state (which includes
+a tentative list of bracktracking points), and the execution trace;
+\verb|findBacktrack| identifies a list of actual backtracking points
+from these tentative ones; \verb|grow| adds the trace to the tree
+structure; and \verb|todo| adds the newly-identified backtracking
+points. It is also the responsibility of \verb|todo| to ensure these
+new backtracking points do not cause schedules exceeding the bound to
+be generated; the \verb|bf| function is the bound function, expressed
+as a predicate.
+
+The entire process terminates when \verb|next| returns \verb|Nothing|,
+which means that there are no unexplored backtracking points left.
+
+\subsection{Integration with Schedule Bounding}
+\label{sec:sct-por-bounding}
+
+The na\"{\i}ve way to integrate DPOR with schedule bounding would be
+to first use partial-order techniques to prune the search space, and
+then to additionally filter things out with schedule bounding.
+
+Unfortunately, this is unsound. This approach misses parts of the
+search space reachable within the bound. This is because the
+introduction of the bound introduces new dependencies between actions,
+which cannot be determined \emph{a priori}. The solution is to add
+\emph{conservative} backtracking points to account for the bound in
+addition to any normal backtracking points that are identified. Where
+to insert these depends on the bound function.
+
+In the case of pre-emption bounding, it suffices to try all
+possibilities at the last context switch before a normal backtracking
+point. This is because context switches influence the number of
+pre-emptions needed to reach a given program state, depending on which
+thread gets scheduled. As pre-emption bounding has been found
+empirically to be successful with a low number of threads, and DPOR is
+already eliminating a lot of possibilities, this is not in practice a
+huge additional cost.
+
+\subsection{Integration with Relaxed Memory}
+\label{sec:sct-por-relaxed}
+
+Due to the use of phantom threads, explained in
+\sect{execution}{scheduling}, almost nothing needs to be done to
+support relaxed memory!
+
+The \verb|dependentActions| function has some knowledge of it in order
+to make less pessimistic decisions, as otherwise the assumption would
+have to be made that there are always uncommitted writes. The only
+other change is related to the integration with schedule bounding: a
+pre-emption immediately before (or immediately after) a phantom thread
+is free.
