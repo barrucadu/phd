@@ -1,5 +1,3 @@
-\todoinline{Add missing chapters}
-
 The report is divided into two broad parts:
 
 Part I explores the problem of testing concurrent programs and how it
@@ -11,7 +9,9 @@ concurrency API in terms of functionality. \chap{execution} explains
 how, given a monadic action polymorphic in the monad (as long as it
 belongs to our typeclass) we can execute it with a given scheduler,
 and \chap{sct} extends this to cover a systematic exploration of the
-space of all schedules.
+space of all schedules. \chap{correctness} discusses the issues of
+correctness: how do we know if a result reported by \dejafu{} is
+actually right?
 
 Part II discusses the real-world impact of this work with
 \chap{practice} discussing the usage of \dejafu{} in combination with
