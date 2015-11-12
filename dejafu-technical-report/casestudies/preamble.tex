@@ -1,0 +1,9 @@
+Three case studies are discussed, two of which are from pre-existing
+libraries which have been modified to use the \verb|MonadConc|
+abstraction. Two known bugs are reproduced in the
+\emph{auto-update}\footnote{\hackage{auto-update}} library. Then,
+there is a bug which arose unintentionally in the implementation of a
+library for expressing parallel search problems, where an incorrect
+use of \verb|CTMVar|s allowed a user to observe a partial
+result. Finally, one of the schedulers in the
+\emph{monad-par}\footnote{\hackage{monad-par}} is tested.

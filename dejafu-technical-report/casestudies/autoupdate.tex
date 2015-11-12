@@ -1,0 +1,136 @@
+The \emph{auto-update} library runs tasks periodically, but only if
+needed. For example, a single worker thread may get the time every
+second and store it to a shared \verb|IORef|, rather than have many
+threads starting within a second of each other all get the time
+independently \citep{autoupdate}. Despite the core functionality being
+very simple, two race conditions were noticed by users inspecting the
+code in October 2014.
+
+\begin{figure}[t]
+  \centering
+  \begin{minted}{haskell}
+data UpdateSettings a = UpdateSettings
+    { updateFreq           :: Int
+    , updateSpawnThreshold :: Int
+    , updateAction         :: IO a
+    }
+
+defaultUpdateSettings :: UpdateSettings ()
+defaultUpdateSettings = UpdateSettings
+    { updateFreq           = 1000000
+    , updateSpawnThreshold = 3
+    , updateAction         = return ()
+    }
+
+mkAutoUpdate :: UpdateSettings a -> IO (IO a)
+mkAutoUpdate us = do
+    currRef      <- newIORef Nothing
+    needsRunning <- newEmptyMVar
+    lastValue    <- newEmptyMVar
+
+    void $ forkIO $ forever $ do
+        takeMVar needsRunning
+
+        a <- catchSome $ updateAction us
+
+        writeIORef currRef $ Just a
+        void $ tryTakeMVar lastValue
+        putMVar lastValue a
+
+        threadDelay $ updateFreq us
+
+        writeIORef currRef Nothing
+        void $ takeMVar lastValue
+
+    return $ do
+        mval <- readIORef currRef
+        case mval of
+            Just val -> return val
+            Nothing -> do
+                void $ tryPutMVar needsRunning ()
+                readMVar lastValue
+
+catchSome :: IO a -> IO a
+catchSome act = catch act $
+  \e -> return $ throw (e :: SomeException)
+  \end{minted}
+  \caption{\emph{auto-update} implementation}
+  \label{fig:example-autoupdate}
+\end{figure}
+
+The entire implementation, excluding comments and imports, is
+reproduced in Figure \ref{fig:example-autoupdate}. The
+\verb|mkAutoUpdate| function spawns a worker thread, which performs
+the update action at the given frequency, only if the
+\verb|needsRunning| flag has been set. It returns an action to attempt
+to read the current result, demanding one be computed and blocking
+until it has been done if there isn't one.
+
+The simpler race condition occurs if the reading thread is pre-empted
+by the worker thread after putting into \verb|needsRunning|, and does
+not run again until after the delay has passed. In this case the
+worker thread can become blocked on taking for a second time from
+\verb|needsRunning|. The reader thread will be unable to read from
+\verb|lastValue| as the worker thread emptied it as the last action it
+performed. The transformation to the \verb|MonadConc| typeclass is
+mostly simple, however the \verb|threadDelay| must be wrapped inside a
+call to \verb|liftIO|. The first race condition can be exhibited with
+the following test:
+
+\begin{minted}{haskell}
+test :: (MonadConc m, MonadIO m) => m ()
+test = do
+  auto <- mkAutoUpdate defaultUpdateSettings
+  auto
+\end{minted}
+
+The output is as we would expect, knowing the bug is present:
+
+\begin{verbatim}
+> autocheckIO test
+[fail] Never Deadlocks (checked: 1)
+        [deadlock] S0--------S1-----------S0-
+[pass] No Exceptions (checked: 9)
+[fail] Consistent Result (checked: 8)
+        [deadlock] S0-----P1-S0---S1-----------S0-
+        () S0--------S1---------P0---
+False
+\end{verbatim}
+
+This deadlock may arise in any use of the library, as it depends only
+on the timing of the delay, and not on the computation performed.
+
+The more complex race condition arises if \verb|readMVar| isn't
+atomic, as in GHC versions before 7.8. In this case an old value can
+be returned if the read of \verb|lastValue| is pre-empted between the
+internal take and put operations, as shown in this test:
+
+\begin{minted}{haskell}
+test :: (MonadConc m, MonadIO m) => m Int
+test = do
+  var  <- newCRef 0
+  auto <- mkAutoUpdate $ defaultUpdateSettings
+    { updateAction = modifyCRef var (\x -> (x+1, x)) }
+
+  auto
+  auto
+\end{minted}
+%$
+
+Here \verb|auto| is called twice to update the counter variable
+twice. Actually reproducing this bug requires a new \verb|readCVar|
+function be written, as the library does not currently provide an
+option for non-atomic reads. Exhibiting this bug requires three
+pre-emptions:
+
+\begin{verbatim}
+> dejafusIO' TotalStoreOrder 3 5 test [("Consistent Result", alwaysSame)]
+[fail] Consistent Result (checked: 23)
+        [deadlock] S0------P1-S0---S1-----------S0-
+        0 S0---------S1--------P0-----
+        1 S0---------S1---------P0---P1--------P0---
+\end{verbatim}
+
+Despite the bugs being rather simple, one not requiring any
+pre-emptions at all to trigger, they both arose in practice. How easy
+it is to make mistakes when implementing concurrent programs!
