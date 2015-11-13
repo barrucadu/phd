@@ -1,0 +1,165 @@
+The \verb|Par| monad \citep{parmonad} is a library providing a
+traditional-looking concurrency abstraction, providing the programmer
+with threads and mutable state, however it maintains determinism by
+restricting its shared variables to one write, and operations to read
+block until a value has been written. Thus, \verb|Par|'s \verb|IVar|s
+are \emph{futures}, not \emph{mutable} state. \verb|Par| uses a
+work-stealing scheduler running on multiple operating system threads,
+fully evaluating values on their own threads before inserting them
+into an \verb|IVar|. Despite its limitations, the \verb|Par| monad can
+be very effective in speeding up pure code.
+
+The following example maps a function in parallel over a list, fully
+evaluating it. Of course, laziness is generally what is desired in
+Haskell programs, but often it is known that an entire result will
+definitely be needed:
+
+\begin{minted}{haskell}
+parMap :: NFData b => (a -> b) -> [a] -> [b]
+parMap f as = runPar $ do
+  bs <- mapM (spawnP . f) as
+  mapM get bs
+\end{minted}
+%$
+
+However, with a lack of multi-write shared variables and non-blocking
+reads, \verb|Par| is unsuitable for long-lived concurrent programs
+with a central shared state. It could not be used to implement a
+multi-threaded work-stealing scheduler, such as the one underpinning
+\verb|Par| itself. The library provides a number of different
+schedulers, the default being the ``trace'' scheduler. Due to reports
+of potential deadlocks with the ``direct'' scheduler from a year ago
+\citep{parreddit}, it was tested with \dejafu{}.
+
+To reduce the effort in modifying the code, only the direct
+dependencies of the ``direct'' scheduler were modified, the rest of
+the library being left unchanged. This resulted in four files needing
+change: two from the
+\emph{abstract-deque}\footnote{\hackage{abstract-deque}} package and
+two from the \emph{monad-par}\footnote{\hackage{monad-par}} package.
+
+Converting \emph{monad-par} to use \dejafu{} was quite simple. All
+relevant types were parametrised by the underlying monad, all
+functions had a \verb|MonadConc| context added, functions were swapped
+for their \dejafu{} alternatives, and a \verb|runPar'| function was
+added:
+
+\begin{minted}{haskell}
+runPar' :: MonadConc m => Par m a -> m a
+\end{minted}
+
+Some simplifications were made in the conversion process:
+
+\begin{itemize}
+\item \verb|Par| normally uses the
+  \emph{mwc-random}\footnote{\hackage{mwc-random}} package when
+  performing its internal scheduling. This was initially replaced with
+  a constant function, and then a \verb|StdGen|.
+
+\item Behaviour of the \verb|Par| scheduler can be configured using
+  cpp, but only the default configuration was tested.
+\end{itemize}
+
+Figure \ref{fig:example-parmonad-sched} shows the original and
+converted scheduler initialisation code. As can be seen, they are very
+similar, even though this is a core component of a rather
+sophisticated library, where the types have been changed.
+
+Converting the \emph{abstract-deque} package proved a little more
+challenging, as the typeclass interface requires knowledge of both the
+queue type and the monad results are produced in. This issue was
+solved by use of type families:
+
+\begin{minted}{haskell}
+class MonadConc (MConc d) => DequeClass d where
+  type MConc d :: * -> *
+
+  newQ :: MConc d (d elt)
+  ...
+\end{minted}
+
+This solution is not ideal as it adds explicit knowledge of
+\verb|MonadConc| to the \verb|DequeClass| typeclass, but it suffices
+for testing purposes.
+
+With the constant value `PRNG', a deadlock was discovered. It only
+arises after 200 queries. Given that the range of values is from 0 to
+the number of capabilities, and the probability is uniformly
+distributed, the probability of an actual deadlock is about $4 \times
+10^{-121}$ on a quad-core computer. No deadlocks were discovered when
+using the \verb|StdGen| generator, with a variety of initial seeds
+tried. If there is still a deadlock, it may require more than 2
+capabilities to manifest.
+
+\begin{landscape}
+\begin{figure*}[t]
+  \captionsetup{format=fnoline}
+  \centering
+  \begin{minipage}[t]{0.49\linewidth}
+    \begin{minted}{haskell}
+makeScheds :: Int -> IO [Sched]
+makeScheds main = do
+  caps <- getNumCapabilities
+  workpools <- replicateM caps R.newQ
+  rngs <- replicateM caps
+            (Random.create >>= newHotVar)
+  idle <- newHotVar []
+
+  sessionFinished <- newHotVar False
+  let sess = [Session baseSessionID sessionFinished]
+  sessionStacks <- mapM newHotVar
+                     (replicate caps sess)
+  activeSessions <- newHotVar S.empty
+  sessionCounter <- newHotVar (baseSessionID + 1)
+  let allscheds =
+       [ Sched { no=x, idle, isMain=(x==main),
+                 workpool=wp, scheds=allscheds,
+                 rng=rng, sessions=stck,
+                 activeSessions=activeSessions,
+                 sessionCounter=sessionCounter
+               }
+         | x    <- [0 .. caps-1]
+         | wp   <- workpools
+         | rng  <- rngs
+         | stck <- sessionStacks
+       ]
+  return allscheds
+    \end{minted}
+    \caption*{Original}
+  \end{minipage}
+  \begin{minipage}[t]{0.49\linewidth}
+    \begin{minted}{haskell}
+makeScheds :: MonadConc m => Int -> m [Sched m]
+makeScheds main = do
+  caps <- getNumCapabilities
+  workpools <- replicateM caps R.newQ
+  rngs <- replicateM caps
+            (newHotVar (mkStdGen 0))
+  idle <- newHotVar []
+
+  sessionFinished <- newHotVar False
+  let sess = [Session baseSessionID sessionFinished]
+  sessionStacks <- mapM newHotVar
+                     (replicate caps sess)
+  activeSessions <- newHotVar S.empty
+  sessionCounter <- newHotVar (baseSessionID + 1)
+  let allscheds =
+       [ Sched { no=x, idle, isMain=(x==main),
+                 workpool=wp, scheds=allscheds,
+                 rng=rng, sessions=stck,
+                 activeSessions=activeSessions,
+                 sessionCounter=sessionCounter
+               }
+         | x    <- [0 .. caps-1]
+         | wp   <- workpools
+         | rng  <- rngs
+         | stck <- sessionStacks
+       ]
+  return allscheds
+    \end{minted}
+    \caption*{\dejafu{}}
+  \end{minipage}
+  \caption{Par ``direct'' scheduler initialisation}
+  \label{fig:example-parmonad-sched}
+\end{figure*}
+\end{landscape}
