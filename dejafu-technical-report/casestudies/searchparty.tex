@@ -1,0 +1,71 @@
+The \emph{Search Party}\footnote{\github{barrucadu}{search-party}}
+library supports speculative parallelism in generate-and-test search
+problems. It is motivated by the consideration that: if multiple
+acceptable solutions exist, it may not matter which one is
+returned. Initially, only single results could be returned, but
+support for returning all results was later added, incorrectly,
+introducing a bug.
+
+The key piece of code causing the problem was this part of the worker
+loop:
+
+\begin{minted}{haskell}
+case maybea of
+  Just a -> do
+    atomically $ do
+      val <- tryTakeCTMVar res
+      case val of
+        Just (Just as) -> putCTMVar res $ Just (a:as)
+        _ -> putCTMVar res $ Just [a]
+    unless shortcircuit $
+      process remaining res
+  Nothing -> process remaining res
+\end{minted}
+
+Here \verb|maybea| is a value indicating whether the computation just
+evaluated was successful. The intended behaviour is that, if a
+computation is successful, its result is added to the list in the
+\verb|res| \verb|CTMVar|. This \verb|CTMVar| is exposed indirectly to
+the user of the library, as it is blocked upon when the final result
+of the search is requested.
+
+There are some small tests in \emph{Search Party}, verifying that
+deadlocks and exceptions don't arise, and that results are as
+expected. Upon introducing this new functionality, tests began to fail
+with differing result lists returned for different schedules,
+prompting the test:\footnote{The \texttt{representative} function
+  picks only one trace for each unique result.}
+
+\begin{minted}{haskell}
+checkResultLists :: Eq a => Predicate [a]
+checkResultLists = representative (alwaysTrue2 check) where
+  check (Right (Just as)) (Right (Just bs)) =
+    as `elem` permutations bs
+  check a b = a == b
+\end{minted}
+
+Given this predicate, we can very clearly see the problem:
+
+\begin{verbatim}
+> dejafu (runFind $ [0..2] @! const True)
+    ("Result Lists", checkResultLists)
+
+[fail] Result Lists (checked: 145)
+        Just [0] S0-----S1---------S3-------S0-------
+        Just [1] S0-----S1---------S3---P2-------S0-------
+        Just [1,0] S0-----S1---------S3-------S2-------S0-------
+        Just [0,1] S0-----S1---------S3---P2-------S3----S0-------
+False
+\end{verbatim}
+
+The problem was a lack of any indication that a list-producing
+computation had finished. As results were written directly to the
+\verb|CTMVar|, partial result lists could be read depending on how the
+worker threads and the main thread were interleaved.
+
+In this case, fixing the failure did not require any interactive
+debugging. Only one place had been modified in introducing the new
+functionality, and the bug was found by re-reading the code with the
+possibility of error in mind. However, the ability to produce a test
+case which reliably reproduces the problem gives confidence that it
+will not be accidentally reintroduced.
