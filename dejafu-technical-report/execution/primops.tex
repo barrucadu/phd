@@ -302,11 +302,10 @@ with the \verb|ACatching| primitive, and removed from with the
 There is one primitive action when entering a new masking state:
 
 \begin{haskellcode}
-mask (M mb) = M
-  (AMasking MaskedInterruptible (\f -> mb f))
+mask (M mb) = M (AMasking MaskedInterruptible (\f -> mb f))
 
-uninterruptibleMask (M mb) = M
-  (AMasking MaskedUninterruptible (\f -> mb f))
+uninterruptibleMask (M mb) = M (AMasking MaskedUninterruptible
+  (\f -> mb f))
 \end{haskellcode}
 
 \defineprim{AMasking}{masking\_state (unmask \arr action) continuation}{%

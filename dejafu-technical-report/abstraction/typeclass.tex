@@ -260,8 +260,7 @@ subcomputation with a new masking state:\footnote{These functions take
   everywhere it is used.}
 
 \begin{haskellcode}
-mask :: MonadConc m
-  => ((forall a. m a -> m a) -> m b) -> m b
+mask :: MonadConc m => ((forall a. m a -> m a) -> m b) -> m b
 uninterruptibleMask :: MonadConc m
   => ((forall a. m a -> m a) -> m b) -> m b
 \end{haskellcode}
@@ -271,8 +270,8 @@ masking state to the original one. A thread can be forked and given a
 function to reset the masking state:
 
 \begin{haskellcode}
-forkWithUnmask :: MonadConc m
-  => ((forall a. m a -> m a) -> m ()) -> m (ThreadId m)
+forkWithUnmask :: MonadConc m => ((forall a. m a -> m a) -> m ())
+  -> m (ThreadId m)
 forkOnWithUnmask :: MonadConc m => Int
   -> ((forall a. m a -> m a) -> m ()) -> m (ThreadId m)
 \end{haskellcode}

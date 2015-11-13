@@ -25,8 +25,7 @@ stepStop = simple (kill tid threads) Stop
 The \verb|simple| function is defined as follows:
 
 \begin{haskellcode}
-simple threads' act =
-  return (Right (threads', idSource, act, wb))
+simple threads' act = return (Right (threads', idSource, act, wb))
 \end{haskellcode}
 
 The effect of \verb|stepStop| can be read as: remove the current
