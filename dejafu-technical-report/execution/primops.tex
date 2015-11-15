@@ -1,6 +1,4 @@
-\todoinline{Discuss atomic-primops}
-
-There are currently 27 primitive actions used to construct the testing
+There are currently 31 primitive actions used to construct the testing
 instances of \verb|MonadConc|, one of which only arises when testing
 under relaxed memory. These primitive actions contain a continuation,
 allowing individual actions to be composed into larger execution
@@ -165,31 +163,57 @@ implementing relaxed memory, allowing different threads to see values
 more recent than the \emph{canonical} value inside the \verb|CRef|.
 
 \begin{haskellcode}
-readCRef ref = M (AReadRef ref)
+readCRef   ref = M (AReadRef    ref)
+readForCAS ref = M (AReadRefCas ref)
 \end{haskellcode}
 
 \defineprim{AReadRef}{(cref a) (a \arr action)}{%
   Read the currently visible value of a \texttt{CRef}.}
 
+\defineprim{AReadRefCas}{(cref a) (ticket a \arr action)}{%
+  Produce a \texttt{Ticket} from the currently visible state of a
+  \texttt{CRef}.}
+
 Note that when testing under relaxed memory, \verb|AReadRef| may not
 read the \emph{latest} value, as a write by another thread may have
-not yet been committed.
+not yet been committed; similarly \verb|AReadRefCas| might not produce
+a ticket for the latest value either.
 
 \begin{haskellcode}
-modifyCRef ref f = M (AModRef ref f)
+peekTicket tick = M (APeekTicket tick)
+\end{haskellcode}
+
+\defineprim{APeekTicket}{(ticket a) (a \arr action)}{%
+  Get the value out of a \texttt{Ticket}.}
+
+This will always return the value seen when the \verb|Ticket| was
+produced, regardless of whether it has been updated since then.
+
+\begin{haskellcode}
+modifyCRef    ref f = M (AModRef    ref f)
+modifyCRefCAS ref f = M (AModRefCas ref f)
 \end{haskellcode}
 
 \defineprim{AModRef}{(cref a) (a \arr (a, b)) (b \arr action)}{%
   Commit all pending writes and atomically modify the value within a
   \texttt{CRef}.}
 
+\defineprim{AModRefCas}{(cref a) (a \arr (a, b)) (b \arr action)}{%
+  Commit all pending writes and atomically modify the value within a
+  \texttt{CRef} using a compare-and-swap.}
+
 \begin{haskellcode}
-writeCRef ref a = M (\c -> AWriteRef ref a (c ()))
+writeCRef ref      a = M (\c -> AWriteRef ref a (c ()))
+casCRef   ref tick a = M (ACasRef ref tick a)
 \end{haskellcode}
 
 \defineprim{AWriteRef}{(cref a) a action}{%
   Update the value of a \texttt{CRef}. This is visible to the current
   thread immediately.}
+
+\defineprim{ACasRef}{(cref a) (ticket a) a ((succeeded?, ticket a) \arr action}{%
+  Update the value of a \texttt{CRef} if it hasn't changed since the
+  ticket was produced..}
 
 When testing under a relaxed memory model, the \verb|AWriteRef|
 primitive does not cause the write to be visible to threads other than
@@ -344,25 +368,34 @@ atomically stm = M (AAtom stm)
 \defineprim{AAtom}{transaction continuation}{%
   Execute an STM transaction atomically.}
 
-There are far fewer \verb|MonadSTM| operations than \verb|MonadConc|
-ones, so the entirety of the STM implementation is presented here.
-
-\begin{haskellcode}
-retry = S (\_ -> SRetry)
-
-check b = if b then return () else retry
-\end{haskellcode}
-
-\defineprim{SRetry}{}{%
-  Abort the current transaction.}
-
 When a transaction is executed by \verb|AAtom|, one of three possible
 conditions are differentiated between: the transaction completed
 successfully, and returned a value; the transaction aborted due to an
 uncaught exception; and the transaction aborted due to a call to
 \verb|retry|. In this third case, the thread is blocked until any of
 the \verb|CTVar|s referenced in the transaction are mutated, after
-which it can be tried again.
+which it can be tried again. There are far fewer \verb|MonadSTM|
+operations than \verb|MonadConc| ones, so the entirety of the STM
+implementation is presented here.
+
+\begin{haskellcode}
+retry = S (\_ -> SRetry)
+\end{haskellcode}
+
+\defineprim{SRetry}{}{%
+  Abort the current transaction.}
+
+the \verb|check| function is provided as a simple wrapper around
+\verb|retry|:
+
+\begin{haskellcode}
+check b = if b then return () else retry
+\end{haskellcode}
+
+Transactions can be composed into larger atomic transactions, and so
+it is necessary to be able to handle an aborting transaction without
+needing to break atomicity. The \verb|orElse| function allows
+combining transactions in this way:
 
 \begin{haskellcode}
 orElse a b = S (SOrElse (runSTM a) (runSTM b))
@@ -371,10 +404,6 @@ orElse a b = S (SOrElse (runSTM a) (runSTM b))
 \defineprim{SOrElse}{transaction transaction continuation}{%
   Try executing the first transaction, if it fails, execute the
   second.}
-
-Transactions can be composed into larger atomic transactions, and so
-it is necessary to be able to handle an aborting transaction without
-needing to break atomicity.
 
 \begin{haskellcode}
 throwSTM e = S (\_ -> SThrow e)
@@ -418,15 +447,16 @@ writeCTVar ctvar a = S (\c -> SWrite ctvar a (c ()))
 
 Remember that the effects of a transaction only take place when it
 completes successfully, so \verb|SWrite| will not have any
-externally-visible effects until the whole thing finishes.
+externally-visible effects until the whole thing
+finishes. Furthermore, executing a transaction with \verb|AAtom|
+enforces a write barrier.
 
 \subsection{Testing Annotations}
 \label{sec:execution-primops-annotations}
 
-Finally, there are the optional annotations for testing. These are
-used so that \dejafu{} can perform limited detection of \verb|CVar|-
+In order for \dejafu{} to perform limited detection of \verb|CVar|-
 and \verb|CTVar|-based deadlocks, something which GHC can use the
-garbage collector for.
+garbage collector for, there are the optional testing annotations:
 
 \begin{haskellcode}
 _concKnowsAbout var = M (\c -> AKnowsAbout var (c ()))

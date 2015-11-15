@@ -148,12 +148,12 @@ modifyCRef :: MonadConc m => CRef m a -> (a -> (a, b)) -> m b
 writeCRef  :: MonadConc m => CRef m a -> a -> m ()
 \end{haskellcode}
 
-The \verb|readCRef| and \verb|writeCRef| functions are not
-synchronised: it is possible for one thread to read from a \verb|CRef|
-strictly after another thread has written to it and to observe an old
-value!  This is expanded more upon in \sect{abstraction}{mem}. To
-ensure that every thread sees a value as soon as it is written there
-is a synchronised write function:
+The \verb|modifyCRef| function is atomic. The \verb|readCRef| and
+\verb|writeCRef| functions are not synchronised: it is possible for
+one thread to read from a \verb|CRef| strictly after another thread
+has written to it and to observe an old value!  This is expanded more
+upon in \sect{abstraction}{mem}. To ensure that every thread sees a
+value as soon as it is written there is a synchronised write function:
 
 \begin{haskellcode}
 atomicWriteCRef :: MonadConc m => CRef m a -> a -> m ()
@@ -162,12 +162,45 @@ atomicWriteCRef :: MonadConc m => CRef m a -> a -> m ()
 However, synchronisation can slow down execution in a parallel
 environment. Note that \verb|modifyCRef| is also synchronised.
 
-As \emph{any} thread can write at \emph{any} time, we risk threads
-overwriting each other's work! At least \verb|modifyCRef| is atomic:
-no thread can update it between the value being read and the new value
-being stored, as could happen if \verb|readCRef| and \verb|writeCRef|
-were composed. Even so, \verb|CRef|s quickly fall down if we want to
-do anything complicated.
+\subsection{Compare-and-swap (CAS)}
+\label{sec:abstraction-typeclass-cas}
+
+As \verb|CRef|s correspond very closely to mutable memory locations,
+there is also a compare-and-swap interface available. Compare-and-swap
+is a synchronised atomic primitive which is used to update a location
+in memory if and only if it has not been changed since some witness
+value was produced. This role of this witness value is called a
+\verb|Ticket| here:
+
+\begin{haskellcode}
+readForCAS :: MonadConc m => CRef m a -> m (Ticket m a)
+peekTicket :: MonadConc m => Ticket m a -> m a
+\end{haskellcode}
+
+A \verb|Ticket| can be used to check if a \verb|CRef| has been written
+to since it was produced, and can also be used to get the value that
+was seen then.
+
+\begin{haskellcode}
+casCRef :: MonadConc m => CRef m a -> Ticket m a -> a
+  -> m (Bool, Ticket m a)
+\end{haskellcode}
+
+The \verb|casCRef| function is synchronised, is strict in the value
+written, and will replace the value within a \verb|CRef| if it hasn't
+been modified since the \verb|Ticket| was produced. It returns an
+indication of success and a \verb|Ticket| to use in future
+operations. This operation is often used in the implementation of
+lock-free synchronisation primitives.
+
+There is also an equivalent of \verb|modifyCRef| using a
+compare-and-swap. This behaves almost the same as the non-CAS version
+but may be more performant in some cases, and is strict in the value
+being written:
+
+\begin{haskellcode}
+modifyCRefCAS :: MonadConc m => CRef m a -> (a -> (a, b)) -> m b
+\end{haskellcode}
 
 \subsection{Mutual Exclusion}
 \label{sec:abstraction-typeclass-cvars}
@@ -312,7 +345,3 @@ first place!). Thus, it is only safe if:
 
   Otherwise test execution may deadlock.
 \end{itemize}
-
-State transformer actions can also be lifted directly into a
-\verb|MonadConc| computation using the \verb|primitive| function from
-\verb|PrimMonad|. This is only safe if the requirements above hold.

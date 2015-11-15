@@ -18,9 +18,8 @@ There are three memory models supported in \dejafu{}:
   they are created.}
 
 The memory model only makes a difference for unsynchronised
-operations, such as \verb|readCRef|, \verb|writeCRef|, and what the
-atomic-primops\footnote{\url{https://hackage.haskell.org/package/atomic-primops}}
-package provides.
+operations, such as \verb|readCRef|, \verb|writeCRef|, and
+\verb|readForCAS|.
 
 The default memory model for testing is TSO, as that most accurately
 models the behaviour of modern x86 processors. The use of a relaxed

@@ -122,15 +122,27 @@ view of updating the state of the system, it is no different to
 \label{sec:execution-stepwise-cref}
 
 \begin{haskellcode}
-newtype CRef r a = CRef (CRefId, r (Map ThreadId a, a))
+newtype CRef r a = CRef (CRefId, r (Map ThreadId a, Integer, a))
 \end{haskellcode}
 
 A \verb|CRef| is implemented as a mutable reference containing a
-\emph{globally visible} value, and a number of \emph{thread-specific}
-values. These thread-specific values correspond to uncommitted writes,
-and so only show up when using relaxed memory.\footnote{The
+\emph{globally visible} value, a counter of how many write commits
+there have been, and a number of \emph{thread-specific} values. These
+thread-specific values correspond to uncommitted writes, and so only
+show up when using relaxed memory.\footnote{The
   \texttt{name@(pattern)} syntax is called an \emph{as-pattern}. The
   name before the \texttt{@} can refers to the entire value.}
+
+\begin{haskellcode}
+newtype Ticket a = Ticket (CRefId, Integer, a)
+\end{haskellcode}
+
+A \verb|Ticket| just keeps track of the \verb|CRef| it was produced
+for, what the write count was when it was produced, and the
+thread-specific value seen by its creating thread. Checking if a
+\verb|CRef| has been modified since the creation of a \verb|Ticket|
+becomes very simple with this implementation: the write counts are
+compared.
 
 \begin{haskellcode}
 stepWriteRef cref@(CRef (crid, _)) a c = case memtype of
@@ -183,6 +195,45 @@ rather than each thread:
 Both the TSO and PSO cases update the thread-specific map. A thread
 will always see the writes it has made, but other threads may not.
 
+The compare-and-swap write is a little different, as this has the
+effect of being a memory barrier: any uncommitted writes to any
+\verb|CRef| are committed before the CAS is done, and the result is
+immediately globally visible. There is a \verb|synchronised| function
+for actions which have this barrier property:\footnote{The \texttt{\$}
+  operator is function application, but with a very low
+  precedence. This makes it convenient for avoiding parentheses, which
+  can be more readable when multi-line expressions are involved.}
+
+\begin{haskellcode}
+stepCasRef cref@(CRef (crid, _)) tick a c = synchronised $ do
+  (suc, tick') <- casCRef cref tid tick a
+  simple (goto (c (suc, tick')) tid threads) (CasRef crid suc)
+\end{haskellcode}
+%$
+
+The \verb|casCRef| function here generates a new \verb|Ticket|,
+compares the write counts, and then swaps the value. It is provided,
+rather than the logic be included verbatim, as it is used again in the
+implementation of \verb|stepModRefCas|.
+
+The implementation of \verb|synchronised| is as follows:
+
+\begin{haskellcode}
+synchronised ma = do
+  writeBarrier wb
+  res <- ma
+
+  case res of
+    Right (threads', idSource', act', _) -> return
+      (Right (threads', idSource', act', emptyBuffer))
+    _ -> return res
+\end{haskellcode}
+
+Here \verb|writeBarrier| commits all cached writes. The action is then
+executed, and an empty write buffer returned. This is why
+\verb|simple| can be used in the implementation of \verb|stepModRef|
+despite the write buffer being changed.
+
 Cached writes can be committed to the globally visible value (at which
 point the thread-specific values disappear) by executing an
 \verb|ACommit| action:
@@ -205,43 +256,24 @@ test; they are introduced by the test runner when executing under a
 relaxed memory model. This is expanded upon in
 \sect{execution}{scheduling}.
 
-Modifying a \verb|CRef| is a little different, as this has the effect
-of being a memory barrier: any uncommitted writes to any \verb|CRef|
-are committed before the modification is done, and the result is
-immediately globally visible. There is a \verb|synchronised| function
-for actions which have this barrier property:\footnote{The \texttt{\$}
-  operator is function application, but with a very low
-  precedence. This makes it convenient for avoiding parentheses, which
-  can be more readable when multi-line expressions are involved.}
-
 \begin{haskellcode}
 stepModRef cref@(CRef (crid, _)) f c = synchronised $ do
   val <- readCRef cref tid
   let (new, ret) = f val
   writeImmediate cref new
-  simple (goto (c val) tid threads) (ModRef crid)
+  simple (goto (c ret) tid threads) (ModRef crid)
+
+stepModRefCas cref@(CRef (crid, _)) f c = synchronised $ do
+  tick@(Ticket (_, _, val)) <- readForTicket cref tid
+  let (new, ret) = f val
+  casCRef cref tid tick new
+  simple (goto (c ret) tid threads) (ModRefCas crid)
 \end{haskellcode}
-%$
 
 The modification is made globally visible by the use of
-\verb|writeImmediate| here. The implementation of \verb|synchronised|
-is as follows:
-
-\begin{haskellcode}
-synchronised ma = do
-  writeBarrier wb
-  res <- ma
-
-  case res of
-    Right (threads', idSource', act', _) -> return
-      (Right (threads', idSource', act', emptyBuffer))
-    _ -> return res
-\end{haskellcode}
-
-Here \verb|writeBarrier| commits all cached writes. The action is then
-executed, and an empty write buffer returned. This is why
-\verb|simple| can be used in the implementation of \verb|stepModRef|
-despite the write buffer being changed.
+\verb|writeImmediate|. Here \verb|casCRef| is used in the
+implementation \verb|stepModRefCas|, because it is strict in the value
+written, which \verb|writeImmediate| is not.
 
 Reading a reference is quite simple:
 
@@ -249,25 +281,29 @@ Reading a reference is quite simple:
 stepReadRef cref@(CRef (crid, _)) c = do
   val <- readCRef cref tid
   simple (goto (c val) tid threads) (ReadRef crid)
+
+stepReadRefCas cref@(CRef (crid, _)) c = do
+  tick <- readForTicket cref tid
+  simple (goto (c tick) tid threads) (ReadRefCas crid)
 \end{haskellcode}
 
 The \verb|readCRef| function checks if there is a cached value for
 that thread and, if so, returns it. Otherwise it returns the globally
-visible value.
+visible value. The \verb|readForTicket| function behaves similarly,
+but returns a \verb|Ticket| rather than the current value.
 
 Creating a new \verb|CRef| looks a little more involved, but it is
 really quite simple. Firstly, a new mutable reference containing the
 given value and no thread-specific values is created; then this is
 packaged up into a \verb|CRef| by giving it a unique identifier;
 finally the thread is given it:
-
+\pagebreak
 \begin{haskellcode}
 stepNewRef a c = do
-  ref <- newRef (empty, a)
+  ref <- newRef (empty, 0, a)
 
   let (idSource', newcrid) = nextCRId idSource
-  let cref = (CRef (newcrid, ref))
-  let threads' = goto (c cref) tid threads
+  let threads' = goto (c (CRef (newcrid, ref))) tid threads
 
   return (Right (threads', idSource', NewRef newcrid, wb))
 \end{haskellcode}
@@ -290,9 +326,8 @@ stepNewVar c = do
   ref <- newRef Nothing
 
   let (idSource', newcvid) = nextCVId idSource
-  let cvar = CVar (newcvid, ref)
   let threads' = knows [Left newcvid] tid
-                 (goto (c cvar) tid threads)
+                 (goto (c (CVar (newcvid, ref))) tid threads)
 
   return (Right (threads', idSource', New newcvid, wb))
 \end{haskellcode}
@@ -308,14 +343,12 @@ functions, which makes them easy to follow.
 stepPutVar cvar@(CVar (cvid, _)) a c = synchronised $ do
   (success, threads', woken) <-
     putIntoCVar cvar a c tid threads
-
   simple threads' $ if success
     then Put cvid woken else BlockedPut cvid
 
 stepTryPutVar cvar@(CVar (cvid, _)) a c = synchronised $ do
   (success, threads', woken) <-
     tryPutIntoCVar cvar a c tid threads
-
   simple threads' (TryPut cvid success woken)
 \end{haskellcode}
 %$
@@ -324,25 +357,23 @@ Note that these functions are all \verb|synchronised|, and so commit
 \verb|CRef| writes. All \verb|CVar| actions (other than
 \verb|ANewVar|) are.
 
+\pagebreak
 \begin{haskellcode}
 stepReadVar cvar@(CVar (cvid, _)) c = synchronised $ do
   (success, threads', _) <-
     readFromCVar cvar c tid threads
-
   simple threads' $ if success
     then Read cvid else BlockedRead cvid
 
 stepTakeVar cvar@(CVar (cvid, _)) c = synchronised $ do
   (success, threads', woken) <-
     takeFromCVar cvar c tid threads
-
   simple threads' $ if success
     then Take cvid woken else BlockedTake cvid
 
 stepTryTakeVar cvar@(CVar (cvid, _)) c = synchronised $ do
   (success, threads', woken) <-
     tryTakeFromCVar cvar c tid threads
-
   simple threads' (TryTake cvid success woken)
 \end{haskellcode}
 %$
@@ -498,7 +529,7 @@ until any of the read \verb|CTVar|s are modified:
 \end{haskellcode}
 
 If the transaction aborts due to an uncaught exception, the exception
-is thrown in the thread.
+is thrown in the thread:
 
 \begin{haskellcode}
     Exception e -> stepThrow e
