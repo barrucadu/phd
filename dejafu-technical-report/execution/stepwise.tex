@@ -239,7 +239,7 @@ point the thread-specific values disappear) by executing an
 \verb|ACommit| action:
 
 \begin{haskellcode}
-stepCommit c t = do
+stepCommit t c = do
   wb' <- case memtype of
     TotalStoreOrder   -> commitWrite wb t
     PartialStoreOrder -> commitWrite wb c

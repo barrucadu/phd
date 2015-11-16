@@ -80,9 +80,9 @@ properties. Unsynchronised actions do not have this property.
 \begin{haskellcode}
 dependentActions memtype buf a1 a2 = case (a1, a2) of
   (UnsynchronisedRead  r1, UnsynchronisedWrite r2)
-    -> r1 == r2 && memtype == SequentialConsistency
+    -> r1 == r2
   (UnsynchronisedWrite r1, UnsynchronisedWrite r2)
-    -> r1 == r2 && memtype == SequentialConsistency
+    -> r1 == r2
 
   (UnsynchronisedRead r1, _)
     | isBarrier a2 -> isBuffered buf r1
@@ -93,8 +93,10 @@ dependentActions memtype buf a1 a2 = case (a1, a2) of
 \end{haskellcode}
 
 \begin{itemize}
-\item A read and write to the same \verb|CRef| are only dependent
-  under a sequentially-consistent memory model, as are two writes.
+\item A read and write to the same \verb|CRef| are dependent, as are
+  two writes. The reason for this dependence even under a relaxed
+  memory model is because writes give rise to commits, which \emph{do}
+  synchronise.
 
 \item An unsynchronised read is dependent with an action that imposes
   a memory barrier if there are buffered writes to the variable being
