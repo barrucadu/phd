@@ -1,0 +1,22 @@
+In order to be useful, a testing tool must be \emph{correct}. More
+specifically, it needs to be:
+
+\defineword{Sound}{%
+  Every result which the testing functions report as possible can show
+  up under actual execution.}
+
+\defineword{Complete}{%
+  The testing functions report as possible every result which can show
+  up under actual execution.}
+
+Nothing is missed, and nothing is made up. Comparing test results
+against multiple actual results can give confidence in the correctness
+of \dejafu{}, but the whole point of systematic concurrency testing is
+to move \emph{away} from running things many times! In order to be
+certain of correctness, a correspondence must be established,
+formally, between the semantics of the true concurrency abstraction
+and the testing implementation.
+
+Establishing the correctness of \dejafu{} decomposes very naturally
+into two parts: is the execution of a computation under a single
+arbitrary schedule correct; and is the SCT implementation correct?
