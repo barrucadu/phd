@@ -1,0 +1,90 @@
+Correctness of execution asks whether the result of an arbitrary
+execution of \dejafu{}'s testing implementation happen in reality.
+Furthermore, do all real-world executions correspond to a possible
+execution under \dejafu{}? To put it more simply:
+
+\begin{itemize}
+\item Is the behaviour of the primitive functions the same?
+
+\item Is the granularity of scheduling decisions the same?
+\end{itemize}
+
+Both of these come with the caveat that the behaviour can be
+different, as long as this difference can't be observed.
+
+\subsection{Primitives}
+\label{sec:correctness-execution-primops}
+
+The method of implementing the members of the \verb|MonadConc|
+typeclass that would be most amenable to proof would be to implement
+analogues of the GHC primitives directly, and implement everything
+else in terms of these. This matches how actual Haskell is
+implemented, and would lend itself to establishing a formal
+correspondence between the \dejafu{} primitives and the GHC
+primitives, and the higher-level \verb|MonadConc| functions and the
+higher-level functions in Control.\-Concurrent.
+
+This approach was not taken, however. Firstly, it ties the
+implementation and correctness of \dejafu{} very closely to the
+implementation of GHC; in principle the implementation of GHC's
+concurrency primitives could be completely changed but the behaviour
+preserved. Secondly, this restricts \dejafu{} to a very specific type
+of concurrency, supporting low-level operations, which may not map to
+all interesting implementations of concurrency.
+
+Instead, a reimplementation of GHC's concurrency based on the
+documented and observable behaviour of the various functions was
+done. This allows observing the behaviour of a program and
+determining, intuitively, whether it is correct or not; but it's not
+so good for proof. The matter is complicated by there being no
+standard for concurrent Haskell, there is only what GHC provides.
+
+The correctness of operations using \verb|CRef|s is complicated even
+further, as the behaviour of these depends on the underlying memory
+model. Total store order was chosen to be the default, as it is what
+x86 processors do with unsynchronised memory accesses, but a
+\verb|CRef| is more complicated than a simple memory cell: it is a
+pointer to a cell, which can be moved around in garbage collection,
+and it is accessed through primitive operations more complicated than
+simple loads and stores. The lack of a standard, or even comprehensive
+documentation, means that in order to formally establish the memory
+model for \verb|CRef|s, the compilation of \verb|IORef| functions must
+be traced through GHC from Haskell source to machine code. As GHC uses
+C{-}{-} as an intermediary language, this may also require determining
+a memory model for C{-}{-}.
+
+Finally, there are some intended departures from the behaviour of
+GHC's behaviour documented in \sect{abstraction}{typeclass}:
+
+\begin{itemize}
+\item \verb|getNumCapabilities| is not required to return a true
+  result.
+
+\item Deadlock detection can only function to the same extent as GHC
+  if every thread is annotated with which \verb|CVar|s and
+  \verb|CTVar|s it knows about, as \dejafu{} cannot use the garbage
+  collector for this task.
+
+\item \verb|catch| is not required to be able to catch exceptions from
+  pure code.
+\end{itemize}
+
+\subsection{Scheduling}
+\label{sec:correctness-execution-scheduling}
+
+The stepwise implementation allows for a scheduling decision to be
+made between each primitive action, which doesn't quite correspond to
+how GHC handles scheduling:
+
+\quot{GHC implements pre-emptive multitasking: the execution of
+  threads are interleaved in a random fashion. More specifically, a
+  thread may be pre-empted whenever it allocates some memory, which
+  unfortunately means that tight loops which do no allocation tend to
+  lock out other threads (this only seems to happen with pathological
+  benchmark-style code, however).}{controlConcurrent}
+
+That is, GHC allows for pre-emptions to occur whilst evaluating pure
+code, which the stepwise executor does not. There are executions
+involving the pre-emption of the evaluation of non-terminating
+expressions which are possible under GHC but not under \dejafu{}, but
+whether this can be used to produce different outputs is less clear.
