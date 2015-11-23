@@ -1,0 +1,125 @@
+There are two popular libraries for unit testing in Haskell,
+\emph{HUnit}\footnote{\hackage{HUnit}} and
+\emph{tasty}\footnote{\hackage{tasty}}. From the perspective of the
+user, both libraries are very similar, but from the perspective of the
+implementer, they have different approaches to integration. Packages
+providing integration with both, called \emph{hunit-dejafu} and
+\emph{tasty-dejafu} are provided.
+
+Both packages provide a common set of testing functions, an analogue
+of Test.\-DejaFu but constructing values representing individual tests
+which the frameworks can run, rather than executing and printing
+results directly:
+
+\begin{haskellcode}
+testAuto :: (Eq a, Show a)
+  => (forall t. ConcST t a) -> Test
+
+testDejafu :: Show a
+  => (forall t. ConcST t a) -> String -> Predicate a -> Test
+
+testDejafus :: Show a
+  => (forall t. ConcST t a) -> [(String, Predicate a)] -> Test
+\end{haskellcode}
+
+Here \verb|Test| is the type of individual tests, from
+\emph{HUnit}. \emph{tasty} uses \verb|TestTree|, which has a similar
+purpose; it also uses \verb|TestName| rather than \verb|String|. To
+complete the set, variants of these functions for \verb|ConcIO|, and
+also taking the schedule bounds and memory type as parameters, are
+provided. All of the testing functions are implemented in terms of
+\verb|testDejafus'| and \verb|testDejafusIO'|.
+
+The \emph{test-framework}\footnote{\hackage{test-framework}} library
+is also in common use, however it supports integration with
+\emph{HUnit}, and so needs no special support.
+
+\subsection{HUnit}
+\label{sec:practice-integration-hunit}
+
+Tests in \emph{HUnit} are just a thin wrapper around an \verb|IO ()|
+action, which can be grouped together into collections and given
+names. The testing model is very simple: a test fails if and only if
+it produces some output. There are a number of provided testing
+functions, which throw an exception if they fail, terminating the rest
+of the test case.
+
+\begin{haskellcode}
+test :: Show a => MemType -> Bounds
+  -> (forall t. ConcST t a) -> [(String, Predicate a)]
+  -> Test
+test memtype cb conc tests = case map toTest tests of
+  [t] -> t
+  ts  -> TestList ts
+
+  where
+    toTest (name, p) = TestLabel name . TestCase .
+      assertString . showErr $ p traces
+
+    traces = sctBound memtype cb conc
+\end{haskellcode}
+%$
+
+Here, each \verb|(String, Predicate a)| pair is turned into a separate
+test case. If there is only one, it is returned directly, otherwise
+they are grouped together into a \verb|TestList|. A \verb|TestList|
+\emph{can} consist of only one entry, but making this distinction
+results in a closer correspondance between the generated \verb|Test|
+and the call to the testing function which produced it.
+
+The \verb|assertString| function is provided by \emph{HUnit}. If the
+provided string is non-empty (\verb|showErr| here is a function to
+pretty-print the failures, if any) the test fails.
+
+\subsection{tasty}
+\label{sec:practice-integration-tasty}
+
+In contrast to the simple function-based method of \emph{HUnit},
+\emph{tasty} has a much more complex approach based on a typeclass of
+things which can be converted to a unit test:
+
+\begin{haskellcode}
+test :: Show a => MemType -> Bounds
+  -> (forall t. ConcST t a) -> [(TestName, Predicate a)]
+  -> TestTree
+test memtype cb conc tests = case map toTest tests of
+  [t] -> t
+  ts  -> testGroup "Deja Fu Tests" ts
+
+  where
+    toTest (name, p) = singleTest name $ ConcTest traces p
+
+    traces = sctBound memtype cb conc
+\end{haskellcode}
+%$
+
+This is very similar to the \emph{HUnit} approach, however instead of
+constructing a test value directly, it constructs an intermediate
+\verb|ConcTest| value. Note also that \emph{tasty} does not allow
+nameless test lists. The \verb|singleTest| function takes a value
+which is a member of the \verb|IsTest| typeclass, and uses that to
+construct a \verb|TestTree|:
+
+\begin{haskellcode}
+data ConcTest where
+  ConcTest :: Show a => [(Either Failure a, Trace)] -> Predicate a
+    -> ConcTest
+  deriving Typeable
+
+instance IsTest ConcTest where
+  testOptions = return []
+
+  run _ (ConcTest traces p) _ =
+    let err = showErr $ p traces
+     in return $ if null err then testPassed "" else testFailed err
+\end{haskellcode}
+
+\emph{tasty} allows for passing tests to also have output associated
+with them, through the \verb|testPassed| function, which is only
+displayed if the tests are executed with sufficient
+verbosity. Furthermore, tests can have options associated with them,
+which can be set when the test is executed. Neither of these features
+are used, as this was largely just a port of
+\emph{hunit-dejafu}. \emph{tasty} is definitely a more featureful
+library than \emph{HUnit}, but this comes at the cost of additional
+complexity for developers trying to integrate new functionality.

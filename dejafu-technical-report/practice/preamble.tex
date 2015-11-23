@@ -1,0 +1,9 @@
+A tool is effectively useless if it is too difficult to use. The main
+obstacle to the use of \dejafu{} is existing libraries which use
+\verb|IO|; one cannot simply use \verb|liftIO| everywhere, without
+almost certainly sacrificing completeness in all but trivial examples.
+
+A second, more tractable, problem, is integration with existing
+testing frameworks; using \dejafu{} for little stand-alone programs is
+all well and good, but in order to take off, it must be easy to use in
+the testing context people are already familiar with.
