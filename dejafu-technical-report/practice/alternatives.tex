@@ -1,0 +1,62 @@
+There are a number of popular Haskell libraries specifically for
+concurrency. One of these is the
+\emph{async}\footnote{\hackage{async}} library, for expressing
+asynchronous computations. This library is intended to be a
+higher-level and safer way of expressing asynchronous computations
+than using \verb|forkIO| and \verb|MVar|s directly. It provides two
+main functions to execute an action asynchronously:
+
+\begin{haskellcode}
+async :: IO a -> IO (Async a)
+withAsync :: IO a -> (Async a -> IO b) -> IO b
+\end{haskellcode}
+
+Both of these fork the computation into a separate thread, providing
+this \verb|Async| value, containing an \verb|MVar| which can be
+blocked on in order to retrieve the value. In addition,
+\verb|withAsync| kills the thread if the inner action completes before
+it, to help prevent resource leaks.
+
+There is a further abstraction atop \verb|Async|, called
+\verb|Concurrently|, which has Functor, Applicative, and Alternative
+instances, and represents an action which can be composed with other
+actions and execute concurrently. The concurrency is achieved by
+having \verb|(<*>)| execute each action asynchronously. There was a
+Monad instance for \verb|Concurrently|, but this broke the laws, as
+\verb|ap| was not the same as
+\verb|(<*>)|\footnote{\url{https://github.com/simonmar/async/pull/26}}. This
+was due to \verb|ap| executing its arguments sequentially, as that is
+all which can be done with \verb|(>>=)|.
+
+This bug could have been discovered through testing, but only
+probabilistically. If \emph{async} were written using
+\verb|MonadConc|, the relevant laws could have been specified as unit
+tests and checked and the bug could have been caught before it showed
+up in user code. Furthermore, by using \verb|IO| directly, it is not
+possible to write a generic \verb|MonadConc| action which makes use of
+\emph{async}, which is very unfortunate.
+
+To address both of these issues, there is an \emph{async-dejafu}
+package, which provides almost the same API as \emph{async}, but is
+parameterised by a \verb|MonadConc|, giving functions like this:
+
+\begin{haskellcode}
+async :: MonadConc m => m a -> m (Async m a)
+withAsync :: MonadConc m => m a -> (Async m a -> m b) -> m b
+\end{haskellcode}
+
+There is a test suite using \dejafu{}, whereas the test suite for
+\emph{async} just runs most tests a single time, although one of them
+is run 1000 times. Using \dejafu{} here to automatically seek out
+interesting schedules is a much more principled approach.
+
+Not all of the features of \emph{async} are supported by
+\emph{async-dejafu}: as \verb|MonadConc| does not support bound
+threads, those functions that use them have been omitted.
+
+Of course, \emph{async} is just one library, and providing an
+alternative library people will have to switch to is far from
+optimal. However, until library authors start to use \dejafu{} and
+\verb|MonadConc| directly, such alternatives will be needed to answer
+the question ``why should I use this if I can't use it with all of my
+familiar tools?''
