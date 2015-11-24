@@ -72,6 +72,10 @@ dependent (t1, a1) (t2, a2) = case (a1, a2) of
   not yet been tried.
 \end{itemize}
 
+Furthermore, as a Haskell program terminates when the main thread
+terminates, there is a dependency between the last action in a trace
+(whatever it may be) and \emph{everything} else.
+
 The general cases are defined in terms of synchronised and
 unsynchronised actions. Synchronised actions commit all pending
 \verb|CRef| writes, and do not have any relaxed memory
