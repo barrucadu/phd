@@ -1,0 +1,42 @@
+This work was inspired by attending a talk on systematic concurrency
+testing, the talk mentioned tools for languages like Java and C, but
+functional languages were not mentioned at all. The questions to be
+answered, then, were:
+
+\begin{itemize}
+\item \textbf{Can concurrency testing techniques from the imperative
+    and object-oriented worlds be applied in the functional?} \hfill
+
+  The answer to this would seem to be a resounding ``yes''. There was
+  some difficulty in implementing these techniques to a purely
+  functional setting, as the algorithms are typically expressed in
+  terms of mutable state, but this was overcome.
+
+\item \textbf{Does the purely functional setting allow for new
+    techniques to be developed?} \hfill
+
+  Initially it was hoped that the lack of side-effects in regular
+  evaluation, amongst other things, would allow for new techniques to
+  be developed. Unfortunately, as concurrency testing explicitly cares
+  about \emph{execution} rather than \emph{evaluation} (although these
+  are one and the same in most languages), this does not seem to be
+  the case.
+\end{itemize}
+
+In \citep{dejafu}, we asked if the cost of a programmer needing to
+write their code in terms of \verb|MonadConc| rather than \verb|IO|
+was too high, and would discourage people. This is still definitely a
+concern, but with the development of libraries to integrate with or
+replace entirely others, we hope that the use of \dejafu{} will appear
+attractive enough to overcome this.
+
+The contributions of this work are:
+
+\begin{itemize}
+\item a generalisation of a large subset of the GHC concurrency
+  abstraction;
+
+\item a library called \dejafu{} for the systematic testing of
+  concurrent Haskell programs, including those using relaxed-memory
+  effects.
+\end{itemize}
