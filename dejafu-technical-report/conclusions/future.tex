@@ -1,7 +1,7 @@
 There are a number of areas available for further exploration. 
 
-\begin{description}
-\item[Verification of \dejafu{}] \hfill
+\begin{itemize}
+\item \textbf{Verification of \dejafu{}} \hfill
 
   Work has already begun on one aspect of this, the formalisation in
   Isabelle/HOL of prefix validity in the SCT implementation. The other
@@ -10,7 +10,7 @@ There are a number of areas available for further exploration.
   primitive actions; granularity of scheduling decisions; generated
   schedule prefix validity; and result completeness.
 
-\item[Memory model for GHC Haskell / C{-}{-}] \hfill
+\item \textbf{Memory model for GHC Haskell / C{-}{-}} \hfill
 
   In order to fully validate the testing stepwise executor, a
   formalism of the memory model of the primitives used is
@@ -21,7 +21,7 @@ There are a number of areas available for further exploration.
   Work on formalising the C++11 memory model in \citep{c++11} may be
   of use here.
 
-\item[Generating test cases for concurrent APIs] \hfill
+\item \textbf{Generating test cases for concurrent APIs} \hfill
 
   The QuickSpec tool, introduced in \citep{quickspec}, can generate
   laws that a collection of functions appear to hold based on random
@@ -33,7 +33,7 @@ There are a number of areas available for further exploration.
   QuickSpec-like tool which can generate laws about a
   concurrency-using API would be interesting and useful.
 
-\item[Multi-level memory caching] \hfill
+\item \textbf{Multi-level memory caching} \hfill
 
   The current approach taken for modelling relaxed memory assumes only
   a single level of cache. This works well for x86 processors, but not
@@ -48,7 +48,7 @@ There are a number of areas available for further exploration.
   assignment is \emph{not} static however, as this then introduces
   another source of nondeterminism.
 
-\item[Application to distributed systems] \hfill
+\item \textbf{Application to distributed systems} \hfill
 
   There is no reason why different threads in a concurrent program
   need to operate on the same physical machine, as long as the
@@ -65,4 +65,4 @@ There are a number of areas available for further exploration.
   Work on modelling concurrent data stores as replicated
   eventually-consistent data types in \citep{replicated} may be
   relevant.
-\end{description}
+\end{itemize}
