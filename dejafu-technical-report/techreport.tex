@@ -140,20 +140,58 @@
 
 \frontmatter
 
-\input{frontmatter/titlepage.tex}
+\begin{titlepage}
+\begin{center}
 
-\cleardoublepage
+\textsc{\Huge \dejafu{} Technical Report}\\[0.25cm]
 
-\chapter*{Abstract}
-\input{frontmatter/abstract.tex}
+\large{\github{barrucadu}{dejafu}}\\[0.5cm]
+
+\textsc{\LARGE Michael Walker}
+\end{center}
+
+\vspace{3cm}
+
+\centerline{\rule{40pt}{1pt} \textsc{\large Abstract} \rule{40pt}{1pt}}
+\vspace{0.1cm}
+
+Out of work in the formal verification and model checking field has
+grown the topic of \emph{systematic concurrency testing} (SCT), also
+known as \emph{stateless model checking}. This technique allows the
+reliable, deterministic, and rigorous testing of concurrent programs,
+and has enjoyed some success in the imperative and object-oriented
+settings. We propose that the functional world could also benefit from
+systematic concurrency testing, as GHC Haskell in particular provides
+a very rich set of concurrency primitives.
+
+We have developed a library for writing testable concurrent Haskell
+programs, using a typeclass-abstraction to select based on the context
+of use the concrete implementation to use: the runtime-provided
+primitives, or emulated versions provided as part of a testing
+framework.
+
+This report discusses the design and implementation of this library,
+called \dejafu{}, including some case studies and the community
+reception of the initial version presented at the 2015 Haskell
+Symposium.
+
+\vspace{0.1cm}
+\centerline{\rule{130pt}{1pt}}
+
+\vfill
+
+\begin{center}
+Department of Computer Science\par
+University of York \\[1,3cm]
+
+November 2015
+\end{center}
+\end{titlepage}
 
 \tableofcontents
 
 %\listoffigures
 %\listoftables
-
-\chapter*{Declaration}
-\input{frontmatter/declaration.tex}
 
 \mainmatter
 
