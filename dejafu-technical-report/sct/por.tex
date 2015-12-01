@@ -83,17 +83,14 @@ properties. Unsynchronised actions do not have this property.
 
 \begin{haskellcode}
 dependentActions memtype buf a1 a2 = case (a1, a2) of
-  (UnsynchronisedRead  r1, UnsynchronisedWrite r2)
-    -> r1 == r2
-  (UnsynchronisedWrite r1, UnsynchronisedWrite r2)
-    -> r1 == r2
+  (UnsynchronisedRead  r1, UnsynchronisedWrite r2) -> r1 == r2
+  (UnsynchronisedWrite r1, UnsynchronisedRead  r2) -> r1 == r2
+  (UnsynchronisedWrite r1, UnsynchronisedWrite r2) -> r1 == r2
 
-  (UnsynchronisedRead r1, _)
-    | isBarrier a2 -> isBuffered buf r1
+  (UnsynchronisedRead r1, _) | isBarrier a2 -> isBuffered buf r1
+  (_, UnsynchronisedRead r2) | isBarrier a1 -> isBuffered buf r2
 
-  _ ->
-    same crefOf && (isSynchronised a1 || isSynchronised a2)
-    || same cvarOf
+  _ -> same crefOf && (isSynchronised a1 || isSynchronised a2) || same cvarOf
 \end{haskellcode}
 
 \begin{itemize}
@@ -152,10 +149,11 @@ sctBounded memtype bf run = go initialState where
       let bpoints = findBacktrack memtype s trace
       let newBPOR = todo bf bpoints (grow memtype trace state)
 
-      go newState >>= ((result, trace) :)
+      ((result, trace) :) <$> go newState
 
     Nothing -> return []
 \end{haskellcode}
+%$
 
 Here \verb|next| returns a schedule prefix; \verb|run| executes the
 computation with a given sequence of initial scheduling decisions,

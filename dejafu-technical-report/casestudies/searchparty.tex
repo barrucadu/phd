@@ -39,16 +39,14 @@ prompting the test:\footnote{The \texttt{representative} function
 \begin{minted}{haskell}
 checkResultLists :: Eq a => Predicate [a]
 checkResultLists = representative (alwaysTrue2 check) where
-  check (Right (Just as)) (Right (Just bs)) =
-    as `elem` permutations bs
+  check (Right (Just as)) (Right (Just bs)) = as `elem` permutations bs
   check a b = a == b
 \end{minted}
 
 Given this predicate, we can very clearly see the problem:
 
 \begin{verbatim}
-> dejafu (runFind $ [0..2] @! const True)
-    ("Result Lists", checkResultLists)
+> dejafu (runFind $ [0..2] @! const True) ("Result Lists", checkResultLists)
 
 [fail] Result Lists (checked: 145)
         Just [0] S0-----S1---------S3-------S0-------

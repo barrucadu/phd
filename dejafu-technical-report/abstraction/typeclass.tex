@@ -64,8 +64,9 @@ getNumCapabilities :: MonadConc m => m Int
 forkOn :: MonadConc m => Int -> m () -> m (ThreadId m)
 \end{haskellcode}
 
+% Layout hack - line is too long otherwise
 The \verb|forkOn| function interprets the capability number modulo the
-value returned by \verb|getNumCapabilities|.
+value returned by \\\verb|getNumCapabilities|.
 
 \begin{departure}
   \verb|getNumCapabilities| is not required to return a true
@@ -182,8 +183,7 @@ to since it was produced, and can also be used to get the value that
 was seen then.
 
 \begin{haskellcode}
-casCRef :: MonadConc m => CRef m a -> Ticket m a -> a
-  -> m (Bool, Ticket m a)
+casCRef :: MonadConc m => CRef m a -> Ticket m a -> a -> m (Bool, Ticket m a)
 \end{haskellcode}
 
 The \verb|casCRef| function is synchronised, is strict in the value
@@ -294,8 +294,7 @@ subcomputation with a new masking state:\footnote{These functions take
 
 \begin{haskellcode}
 mask :: MonadConc m => ((forall a. m a -> m a) -> m b) -> m b
-uninterruptibleMask :: MonadConc m
-  => ((forall a. m a -> m a) -> m b) -> m b
+uninterruptibleMask :: MonadConc m => ((forall a. m a -> m a) -> m b) -> m b
 \end{haskellcode}
 
 In both cases, the action evaluated is passed a function to reset the
@@ -305,8 +304,8 @@ function to reset the masking state:
 \begin{haskellcode}
 forkWithUnmask :: MonadConc m => ((forall a. m a -> m a) -> m ())
   -> m (ThreadId m)
-forkOnWithUnmask :: MonadConc m => Int
-  -> ((forall a. m a -> m a) -> m ()) -> m (ThreadId m)
+forkOnWithUnmask :: MonadConc m => Int -> ((forall a. m a -> m a) -> m ())
+  -> m (ThreadId m)
 \end{haskellcode}
 
 We can also fork a thread and call a supplied function when the thread
@@ -314,8 +313,8 @@ is about to terminate, which is useful for informing the parent when a
 child terminates, for example:
 
 \begin{haskellcode}
-forkFinally :: MonadConc m => m a
-  -> (Either SomeException a -> m ()) -> m (ThreadId m)
+forkFinally :: MonadConc m => m a -> (Either SomeException a -> m ())
+  -> m (ThreadId m)
 \end{haskellcode}
 
 The \verb|SomeException| type is the top of the exception hierarchy,

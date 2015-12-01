@@ -13,8 +13,7 @@ Computations are composed out of a continuation monad, defined as
 follows:
 
 \begin{haskellcode}
-newtype M n r s a = M
-  { runM :: (a -> Action n r s) -> Action n r s }
+newtype M n r s a = M { runM :: (a -> Action n r s) -> Action n r s }
 \end{haskellcode}
 
 The \verb|Action| type is the type of primitive actions. The type
@@ -328,8 +327,7 @@ There is one primitive action when entering a new masking state:
 \begin{haskellcode}
 mask (M mb) = M (AMasking MaskedInterruptible (\f -> mb f))
 
-uninterruptibleMask (M mb) = M (AMasking MaskedUninterruptible
-  (\f -> mb f))
+uninterruptibleMask (M mb) = M (AMasking MaskedUninterruptible (\f -> mb f))
 \end{haskellcode}
 
 \defineprim{AMasking}{masking\_state (unmask \arr action) continuation}{%

@@ -93,9 +93,7 @@ There are a number of functions to ease manipulating this structure,
 create a new thread:
 
 \begin{haskellcode}
-stepFork a b = return result where
-  result = Right (threads', idSource', Fork newtid, wb)
-
+stepFork a b = return (Right (threads', idSource', Fork newtid, wb)) where
   threads' = goto (b newtid) tid (launch tid newtid a threads)
   (idSource', newtid) = nextTId idSource
 \end{haskellcode}
@@ -170,10 +168,8 @@ they will be committed in that same order to main memory:
 \begin{haskellcode}
   TotalStoreOrder -> do
     wb' <- bufferWrite wb tid cref a tid
-    return $ Right
-      (goto c tid threads, idSource, WriteRef crid, wb')
+    return (Right (goto c tid threads, idSource, WriteRef crid, wb'))
 \end{haskellcode}
-%$
 
 The \verb|bufferWrite| function appends a write to the relevant write
 buffer, in this case the one corresponding to that thread. Total store
@@ -187,10 +183,8 @@ rather than each thread:
 \begin{haskellcode}
   PartialStoreOrder -> do
     wb' <- bufferWrite wb crid cref a tid
-    return $ Right
-      (goto c tid threads, idSource, WriteRef crid, wb')
+    return (Right (goto c tid threads, idSource, WriteRef crid, wb'))
 \end{haskellcode}
-%$
 
 Both the TSO and PSO cases update the thread-specific map. A thread
 will always see the writes it has made, but other threads may not.
@@ -341,14 +335,11 @@ functions, which makes them easy to follow.
 
 \begin{haskellcode}
 stepPutVar cvar@(CVar (cvid, _)) a c = synchronised $ do
-  (success, threads', woken) <-
-    putIntoCVar cvar a c tid threads
-  simple threads' $ if success
-    then Put cvid woken else BlockedPut cvid
+  (success, threads', woken) <- putIntoCVar cvar a c tid threads
+  simple threads' $ if success then Put cvid woken else BlockedPut cvid
 
 stepTryPutVar cvar@(CVar (cvid, _)) a c = synchronised $ do
-  (success, threads', woken) <-
-    tryPutIntoCVar cvar a c tid threads
+  (success, threads', woken) <- tryPutIntoCVar cvar a c tid threads
   simple threads' (TryPut cvid success woken)
 \end{haskellcode}
 %$
@@ -360,20 +351,15 @@ Note that these functions are all \verb|synchronised|, and so commit
 \pagebreak
 \begin{haskellcode}
 stepReadVar cvar@(CVar (cvid, _)) c = synchronised $ do
-  (success, threads', _) <-
-    readFromCVar cvar c tid threads
-  simple threads' $ if success
-    then Read cvid else BlockedRead cvid
+  (success, threads', _) <- readFromCVar cvar c tid threads
+  simple threads' $ if success then Read cvid else BlockedRead cvid
 
 stepTakeVar cvar@(CVar (cvid, _)) c = synchronised $ do
-  (success, threads', woken) <-
-    takeFromCVar cvar c tid threads
-  simple threads' $ if success
-    then Take cvid woken else BlockedTake cvid
+  (success, threads', woken) <- takeFromCVar cvar c tid threads
+  simple threads' $ if success then Take cvid woken else BlockedTake cvid
 
 stepTryTakeVar cvar@(CVar (cvid, _)) c = synchronised $ do
-  (success, threads', woken) <-
-    tryTakeFromCVar cvar c tid threads
+  (success, threads', woken) <- tryTakeFromCVar cvar c tid threads
   simple threads' (TryTake cvid success woken)
 \end{haskellcode}
 %$
@@ -445,9 +431,8 @@ stepThrowTo t e c = synchronised $
      then case propagate e t threads' of
             Just threads'' -> simple threads'' (ThrowTo t)
             Nothing
-              | t == 0 -> return (Left UncaughtException)
-              | otherwise ->
-                simple (kill t threads') (ThrowTo t)
+              | t == 0    -> return (Left UncaughtException)
+              | otherwise -> simple (kill t threads') (ThrowTo t)
      else simple blocked (BlockedThrowTo t)
 \end{haskellcode}
 %$
@@ -461,8 +446,7 @@ thread is killed and is the main thread, the entire computation
 terminates.
 
 \begin{haskellcode}
-stepMasking m ma c = simple threads' (SetMasking False m)
-  where
+stepMasking m ma c = simple threads' (SetMasking False m) where
   a = runCont (ma umask) (AResetMask False False m' . c)
 
   m' = masking (lookup tid threads)
@@ -515,8 +499,7 @@ which were modified are woken:
 \begin{haskellcode}
     Success readen written val
       let (threads', woken) = wake (OnCTVar written) threads
-      in return (Right
-         (goto (c val) tid threads', idSource', STM woken, wb))
+      in return (Right (goto (c val) tid threads', idSource', STM woken, wb))
 \end{haskellcode}
 
 If the transaction aborts due to \verb|retry|, the thread is blocked
@@ -590,8 +573,7 @@ transaction stm onSuccess = onFailure stm onSuccess
 onFailure stm onSuccess onRetry onException = do
   (res, undo) <- doTransaction stm
   case res of
-    Success readen written val -> return
-      (onSuccess val, undo, readen, written)
+    Success readen written val -> return (onSuccess val, undo, readen, written)
 
     Retry readen  -> onRetry readen
     Exception exc -> onException exc
@@ -639,14 +621,9 @@ on programmer-provided hints about which \verb|CVar|s and
 \verb|CTVar|s are known about by which threads.
 
 \begin{haskellcode}
-stepKnowsAbout v c = simple
-  (knows   [v] tid (goto c tid threads)) KnowsAbout
-
-stepForgets    v c = simple
-  (forgets [v] tid (goto c tid threads)) Forgets
-
-stepAllKnown     c = simple
-  (fullknown   tid (goto c tid threads)) AllKnown
+stepKnowsAbout v c = simple (knows   [v] tid (goto c tid threads)) KnowsAbout
+stepForgets    v c = simple (forgets [v] tid (goto c tid threads)) Forgets
+stepAllKnown     c = simple (fullknown   tid (goto c tid threads)) AllKnown
 \end{haskellcode}
 
 The \verb|knows| and \verb|forgets| functions are used to modify the

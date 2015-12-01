@@ -12,14 +12,9 @@ which the frameworks can run, rather than executing and printing
 results directly:
 
 \begin{haskellcode}
-testAuto :: (Eq a, Show a)
-  => (forall t. ConcST t a) -> Test
-
-testDejafu :: Show a
-  => (forall t. ConcST t a) -> String -> Predicate a -> Test
-
-testDejafus :: Show a
-  => (forall t. ConcST t a) -> [(String, Predicate a)] -> Test
+testAuto    :: (Eq a, Show a) => (forall t. ConcST t a) -> Test
+testDejafu  :: Show a => (forall t. ConcST t a) -> String -> Predicate a -> Test
+testDejafus :: Show a => (forall t. ConcST t a) -> [(String, Predicate a)] -> Test
 \end{haskellcode}
 
 Here \verb|Test| is the type of individual tests, from
@@ -45,16 +40,14 @@ functions, which throw an exception if they fail, terminating the rest
 of the test case.
 
 \begin{haskellcode}
-test :: Show a => MemType -> Bounds
-  -> (forall t. ConcST t a) -> [(String, Predicate a)]
-  -> Test
+test :: Show a => MemType -> Bounds -> (forall t. ConcST t a)
+  -> [(String, Predicate a)] -> Test
 test memtype cb conc tests = case map toTest tests of
   [t] -> t
   ts  -> TestList ts
 
   where
-    toTest (name, p) = TestLabel name . TestCase .
-      assertString . showErr $ p traces
+    toTest (name, p) = TestLabel name . TestCase . assertString . showErr $ p traces
 
     traces = sctBound memtype cb conc
 \end{haskellcode}
@@ -79,9 +72,8 @@ In contrast to the simple function-based method of \emph{HUnit},
 things which can be converted to a unit test:
 
 \begin{haskellcode}
-test :: Show a => MemType -> Bounds
-  -> (forall t. ConcST t a) -> [(TestName, Predicate a)]
-  -> TestTree
+test :: Show a => MemType -> Bounds -> (forall t. ConcST t a)
+  -> [(TestName, Predicate a)] -> TestTree
 test memtype cb conc tests = case map toTest tests of
   [t] -> t
   ts  -> testGroup "Deja Fu Tests" ts
@@ -102,8 +94,7 @@ construct a \verb|TestTree|:
 
 \begin{haskellcode}
 data ConcTest where
-  ConcTest :: Show a => [(Either Failure a, Trace)] -> Predicate a
-    -> ConcTest
+  ConcTest :: Show a => [(Either Failure a, Trace)] -> Predicate a -> ConcTest
   deriving Typeable
 
 instance IsTest ConcTest where
