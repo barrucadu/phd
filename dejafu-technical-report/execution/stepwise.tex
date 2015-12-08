@@ -55,7 +55,7 @@ The effect of \verb|stepReturn| can be read as: extract the
 continuation of the action and replace the continuation of the current
 thread with it.
 
-\subsection{Threading}
+\subsubsection{Threading}
 \label{sec:execution-stepwise-threading}
 
 Threads are represented as a record type:
@@ -116,7 +116,7 @@ here. Its effect is purely a scheduling concern; from the point of
 view of updating the state of the system, it is no different to
 \verb|AReturn|.
 
-\subsection{\texttt{CRef}s and Relaxed Memory}
+\subsubsection{\texttt{CRef}s and Relaxed Memory}
 \label{sec:execution-stepwise-cref}
 
 \begin{haskellcode}
@@ -271,6 +271,9 @@ written, which \verb|writeImmediate| is not.
 
 Reading a reference is quite simple:
 
+% Layout hack
+\pagebreak
+
 \begin{haskellcode}
 stepReadRef cref@(CRef (crid, _)) c = do
   val <- readCRef cref tid
@@ -291,7 +294,7 @@ really quite simple. Firstly, a new mutable reference containing the
 given value and no thread-specific values is created; then this is
 packaged up into a \verb|CRef| by giving it a unique identifier;
 finally the thread is given it:
-\pagebreak
+
 \begin{haskellcode}
 stepNewRef a c = do
   ref <- newRef (empty, 0, a)
@@ -302,7 +305,7 @@ stepNewRef a c = do
   return (Right (threads', idSource', NewRef newcrid, wb))
 \end{haskellcode}
 
-\subsection{\texttt{CVar}s}
+\subsubsection{\texttt{CVar}s}
 \label{sec:execution-stepwise-cvar}
 
 As there are no relaxed memory issues to worry about, the \verb|CVar|
@@ -348,7 +351,6 @@ Note that these functions are all \verb|synchronised|, and so commit
 \verb|CRef| writes. All \verb|CVar| actions (other than
 \verb|ANewVar|) are.
 
-\pagebreak
 \begin{haskellcode}
 stepReadVar cvar@(CVar (cvid, _)) c = synchronised $ do
   (success, threads', _) <- readFromCVar cvar c tid threads
@@ -375,7 +377,7 @@ no standard for Haskell concurrency, and so that ordering is only an
 implementation detail which could, conceivably, be changed in the
 future if another were judged more desirable.
 
-\subsection{Exceptions}
+\subsubsection{Exceptions}
 \label{sec:execution-stepwise-exception}
 
 A thread has both a stack of exception handlers, and a masking
@@ -472,7 +474,7 @@ stepResetMask b1 b2 m c = simple threads' action where
   threads' = goto c tid (mask m tid threads)
 \end{haskellcode}
 
-\subsection{Software Transactional Memory}
+\subsubsection{Software Transactional Memory}
 \label{sec:execution-stepwise-stm}
 
 As STM transactions are atomic, the implementation is vastly
@@ -606,7 +608,7 @@ stepStop    = return (SStop,    nothing, [], [])
 Termination is achieved by checking if the next action a thread will
 perform is one of these three.
 
-\subsection{Testing Annotations}
+\subsubsection{Testing Annotations}
 \label{sec:execution-stepwise-annotations}
 
 Normally \dejafu{} can only detect a deadlock when \emph{every} thread
@@ -636,7 +638,7 @@ or \verb|CTVar|, if no other thread \emph{which is not also blocked on
   the same thing} has a reference to that variable, then the thread is
 deadlocked.
 
-\subsection{Lifting from the Underlying Monad}
+\subsubsection{Lifting from the Underlying Monad}
 \label{sec:execution-stepwise-lift}
 
 Because all of the step functions are defined in terms of the

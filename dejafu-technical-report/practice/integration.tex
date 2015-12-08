@@ -29,7 +29,7 @@ The \emph{test-framework}\footnote{\hackage{test-framework}} library
 is also in common use, however it supports integration with
 \emph{HUnit}, and so needs no special support.
 
-\subsection{HUnit}
+\subsubsection{HUnit}
 \label{sec:practice-integration-hunit}
 
 Tests in \emph{HUnit} are just a thin wrapper around an \verb|IO ()|
@@ -64,7 +64,7 @@ The \verb|assertString| function is provided by \emph{HUnit}. If the
 provided string is non-empty (\verb|showErr| here is a function to
 pretty-print the failures, if any) the test fails.
 
-\subsection{tasty}
+\subsubsection{tasty}
 \label{sec:practice-integration-tasty}
 
 In contrast to the simple function-based method of \emph{HUnit},

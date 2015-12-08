@@ -20,7 +20,7 @@ require a light dusting of \verb|liftIO|\footnote{The \texttt{IO} type
   effects into such a type.} where it is safe to do so, which will be
 expanded upon in \sect{abstraction}{typeclass-lifting}.
 
-\subsection{Threads}
+\subsubsection{Threads}
 \label{sec:abstraction-typeclass-threads}
 
 Threads let a program do multiple things at once. Every program has at
@@ -102,7 +102,7 @@ yielding one, but it is not \emph{required} to cause a context switch
 except on co-operative multitasking systems.
 
 \subsubsection{Threading and the Foreign Function Interface}
-\label{sec:abstraction-typeclass-threads-ffi}
+\label{sec:abstraction-typeclass-ffithreads}
 
 In order to accommodate Foreign Function Interface (FFI) calls which
 may block, GHC provides a mechanism for \emph{binding} a Haskell
@@ -131,7 +131,7 @@ isCurrentThreadBound :: MonadConc m => m Bool
 isCurrentThreadBound = return False
 \end{haskellcode}
 
-\subsection{Mutable State}
+\subsubsection{Mutable State}
 \label{sec:abstraction-typeclass-crefs}
 
 Threading by itself is not really enough. We need to be able to
@@ -163,7 +163,7 @@ atomicWriteCRef :: MonadConc m => CRef m a -> a -> m ()
 However, synchronisation can slow down execution in a parallel
 environment. Note that \verb|modifyCRef| is also synchronised.
 
-\subsection{Compare-and-swap (CAS)}
+\subsubsection{Compare-and-swap (CAS)}
 \label{sec:abstraction-typeclass-cas}
 
 As \verb|CRef|s correspond very closely to mutable memory locations,
@@ -202,7 +202,7 @@ being written:
 modifyCRefCAS :: MonadConc m => CRef m a -> (a -> (a, b)) -> m b
 \end{haskellcode}
 
-\subsection{Mutual Exclusion}
+\subsubsection{Mutual Exclusion}
 \label{sec:abstraction-typeclass-cvars}
 
 A \verb|CVar| is a shared variable under \emph{mutual exclusion}. It
@@ -237,7 +237,7 @@ There are also additional functions provided in the
 Control\-.Concurrent\-.CVar and Control\-.Concurrent\-.CVar\-.Strict
 modules.
 
-\subsection{Exceptions}
+\subsubsection{Exceptions}
 \label{sec:abstraction-typeclass-excs}
 
 Exceptions are a way to bail out of a computation early. Whether
@@ -320,7 +320,7 @@ forkFinally :: MonadConc m => m a -> (Either SomeException a -> m ())
 The \verb|SomeException| type is the top of the exception hierarchy,
 and so can be used to catch all exceptions.
 
-\subsection{Lifting Actions into \texttt{MonadConc}}
+\subsubsection{Lifting Actions into \texttt{MonadConc}}
 \label{sec:abstraction-typeclass-lifting}
 
 If the programmer needs to make use of \verb|IO| actions, rather than

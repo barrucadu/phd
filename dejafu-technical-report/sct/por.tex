@@ -170,7 +170,7 @@ as a predicate.
 The entire process terminates when \verb|next| returns \verb|Nothing|,
 which means that there are no unexplored backtracking points left.
 
-\subsection{Integration with Schedule Bounding}
+\subsubsection{Integration with Schedule Bounding}
 \label{sec:sct-por-bounding}
 
 The na\"{\i}ve way to integrate DPOR with schedule bounding would be
@@ -194,7 +194,7 @@ empirically to be successful with a low number of threads, and DPOR is
 already eliminating a lot of possibilities, this is not in practice a
 huge additional cost.
 
-\subsection{Integration with Relaxed Memory}
+\subsubsection{Integration with Relaxed Memory}
 \label{sec:sct-por-relaxed}
 
 Due to the use of phantom threads, explained in

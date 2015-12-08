@@ -7,7 +7,7 @@
 %TC:group haskellcode [ignore] xall
 
 % Stuff cargo-culted from jmct's thesis
-\usepackage[eulermath, pdfspacing]{classicthesis}
+\usepackage[eulermath, pdfspacing, nochapters]{classicthesis}
 
 \usepackage{setspace}
 \onehalfspacing
@@ -85,6 +85,9 @@
 
 \newcommand{\mainmatter}{\cleardoublepage\pagenumbering{arabic}}
 
+\renewcommand*\thesection{\arabic{section}}
+\setcounter{tocdepth}{2}
+
 % Chapter quotes
 
 \makeatletter
@@ -126,7 +129,7 @@
 % Misc
 \newcommand{\quot}[2]{``\textit{#1}'' \cite{#2}}
 \newcommand{\sect}[2]{\S\ref{sec:#1-#2}}
-\newcommand{\chap}[1]{Chapter \ref{chap:#1}}
+\newcommand{\chap}[1]{Section \ref{chap:#1}}
 \newcommand{\dejafu}{D\'{e}j\`{a} Fu}
 \newcommand{\defineprim}[3]{\defineword{#1 \textit{#2}}{#3}}
 \newcommand{\dependent}{\nleftrightarrow}
@@ -196,7 +199,7 @@ November 2015
 
 \mainmatter
 
-\chapter{Introduction}
+\section{Introduction}
 \label{chap:intro}
 \begin{chapquote}{Terry Pratchett, Thief of Time\nocite{pratchett2001}}
   [\dejafu{} is] A martial art in which the user's limbs move in time
@@ -206,131 +209,123 @@ November 2015
 
 \input{introduction/preamble.tex}
 
-  \section{Parallelism vs Concurrency}
+  \subsection{Parallelism vs Concurrency}
   \label{sec:intro-parconc}
   \input{introduction/parconc.tex}
 
-  \section{Testing Concurrent Programs}
+  \subsection{Testing Concurrent Programs}
   \label{sec:intro-testing}
   \input{introduction/testing.tex}
 
-  \section{Scope}
+  \subsection{Scope}
   \label{sec:intro-scope}
   \input{introduction/scope.tex}
 
-  \section{Goals \& Contributions}
+  \subsection{Goals \& Contributions}
   \label{sec:intro-contribs}
   \input{introduction/contribs.tex}
 
-  \section{Report Roadmap}
+  \subsection{Report Roadmap}
   \label{sec:intro-roadmap}
   \input{introduction/roadmap.tex}
 
-\null\clearpage
-\chapter{Concurrency Abstraction}
+\section{Concurrency Abstraction}
 \label{chap:abstraction}
 \input{abstraction/preamble.tex}
 
-  \section{The \texttt{MonadConc} Typeclass}
+  \subsection{The \texttt{MonadConc} Typeclass}
   \label{sec:abstraction-typeclass}
   \input{abstraction/typeclass.tex}
 
-  \section{Software Transactional Memory}
+  \subsection{Software Transactional Memory}
   \label{sec:abstraction-stm}
   \input{abstraction/stm.tex}
 
-  \section{Memory Model}
+  \subsection{Memory Model}
   \label{sec:abstraction-mem}
   \input{abstraction/mem.tex}
 
-\null\clearpage
-\chapter{Program Execution}
+\section{Program Execution}
 \label{chap:execution}
 \input{execution/preamble.tex}
 
-  \section{Primitive Actions}
+  \subsection{Primitive Actions}
   \label{sec:execution-primops}
   \input{execution/primops.tex}
 
-  \section{Stepwise Execution}
+  \subsection{Stepwise Execution}
   \label{sec:execution-stepwise}
   \input{execution/stepwise.tex}
 
-  \section{Scheduling}
+  \subsection{Scheduling}
   \label{sec:execution-scheduling}
   \input{execution/scheduling.tex}
 
-\null\clearpage
-\chapter{Systematic Concurrency Testing}
+\section{Systematic Concurrency Testing}
 \label{chap:sct}
 \input{sct/preamble.tex}
 
-  \section{Schedule Bounding}
+  \subsection{Schedule Bounding}
   \label{sec:sct-bounding}
   \input{sct/bounding.tex}
 
-  \section{Partial-order Reduction}
+  \subsection{Partial-order Reduction}
   \label{sec:sct-por}
   \input{sct/por.tex}
 
-\null\clearpage
-\chapter{Correctness}
+\section{Correctness}
 \label{chap:correctness}
 \input{correctness/preamble.tex}
 
-  \section{Of Execution}
+  \subsection{Of Execution}
   \label{sec:correctness-execution}
   \input{correctness/execution.tex}
 
-  \section{Of Testing}
+  \subsection{Of Testing}
   \label{sec:correctness-testing}
   \input{correctness/testing.tex}
 
-\null\clearpage
-\chapter{Case Studies}
+\section{Case Studies}
 \label{chap:casestudies}
 \input{casestudies/preamble.tex}
 
-  \section{auto-update}
+  \subsection{auto-update}
   \label{sec:casestudies-autoupdate}
   \input{casestudies/autoupdate.tex}
 
-  \section{Search Party}
+  \subsection{Search Party}
   \label{sec:casestudies-searchparty}
   \input{casestudies/searchparty.tex}
 
-  \section{The Par Monad}
+  \subsection{The Par Monad}
   \label{sec:casestudies-parmonad}
   \input{casestudies/parmonad.tex}
 
-\null\clearpage
-\chapter{Practical Usage}
+\section{Practical Usage}
 \label{chap:practice}
 \input{practice/preamble.tex}
 
-  \section{Integration with Testing Frameworks}
+  \subsection{Integration with Testing Frameworks}
   \label{sec:practice-integration}
   \input{practice/integration.tex}
 
-  \section{Alternatives to Existing Libraries}
+  \subsection{Alternatives to Existing Libraries}
   \label{sec:practice-alternatives}
   \input{practice/alternatives.tex}
 
-\null\clearpage
-
-\chapter{Future Research \& Conclusions}
+\section{Future Research \& Conclusions}
 \label{chap:conclusions}
 \input{conclusions/preamble.tex}
 
-  \section{Community Reception}
+  \subsection{Community Reception}
   \label{sec:conclusions-reception}
   \input{conclusions/reception.tex}
 
-  \section{Related Work}
+  \subsection{Related Work}
   \label{sec:conclusions-related}
   \input{conclusions/related.tex}
 
-  \section{Future Work}
+  \subsection{Future Work}
   \label{sec:conclusions-future}
   \input{conclusions/future.tex}
 

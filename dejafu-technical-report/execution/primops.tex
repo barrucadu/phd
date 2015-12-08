@@ -74,7 +74,7 @@ instance Monad (M n r s) where
 Each of the operations in \verb|MonadConc| will now be mapped down to
 the primitive actions which comprise them.
 
-\subsection{Threading}
+\subsubsection{Threading}
 \label{sec:execution-primops-threading}
 
 All of the forking functions are implemented with the same primitive
@@ -136,7 +136,7 @@ yield = M (\c -> AYield (c ()))
   Execute the given action, but also signify to the scheduler that it
   may be worth running a different thread now.}
 
-\subsection{\texttt{CRef}s}
+\subsubsection{\texttt{CRef}s}
 \label{sec:execution-primops-cref}
 
 There are two testing implementations of \verb|MonadConc|, which
@@ -230,7 +230,7 @@ The \verb|atomicWrite| operation is implemented in terms of
 atomicWriteCRef ref a = modifyCRef ref (const (a, ()))
 \end{haskellcode}
 
-\subsection{\texttt{CVar}s}
+\subsubsection{\texttt{CVar}s}
 \label{sec:execution-primops-cvar}
 
 The implementation of \verb|CVar|s is very similar to \verb|CRef|s,
@@ -276,7 +276,7 @@ tryTakeCVar cvar = M (ATryTakeVar cvar)
 Furthermore, all the \verb|CVar| operations (other than creating a new
 one) cause all uncommitted \verb|CRef| writes to be committed.
 
-\subsection{Exceptions}
+\subsubsection{Exceptions}
 \label{sec:execution-primops-exceptions}
 
 Exceptions can be used to terminate a computation, either in the
@@ -350,7 +350,7 @@ when an unmasking function passed in to a continuation was used. This
 is much more helpful for debugging purposes than just seeing that the
 masking state had been changed.
 
-\subsection{Software Transactional Memory}
+\subsubsection{Software Transactional Memory}
 \label{sec:execution-primops-stm}
 
 STM is implemented with its own set of primitive actions which operate
@@ -449,7 +449,7 @@ externally-visible effects until the whole thing
 finishes. Furthermore, executing a transaction with \verb|AAtom|
 enforces a write barrier.
 
-\subsection{Testing Annotations}
+\subsubsection{Testing Annotations}
 \label{sec:execution-primops-annotations}
 
 In order for \dejafu{} to perform limited detection of \verb|CVar|-
@@ -480,7 +480,7 @@ variable are also blocked on it, \emph{then} the thread is
 deadlocked. This can easily be extended to collections of threads
 which are all blocked on the same variable.
 
-\subsection{Lifting from the Underlying Monad}
+\subsubsection{Lifting from the Underlying Monad}
 \label{sec:execution-primops-lift}
 
 Finally, there is the \verb|ALift| primitive, for lifting an action
