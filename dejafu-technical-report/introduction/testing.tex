@@ -1,17 +1,16 @@
 Systematic concurrency testing (SCT) \citep{dpor, pbound, heisenbugs,
-  empirical} is a technique for avoiding the problem of nondeterminism
-when writing tests. It aims to test a large number of schedules,
-whilst typically also making use of local knowledge of the program to
-reduce the number of schedules needed to be confident of an accurate
+  empirical} is a way of tackling the problem of nondeterminism when
+writing tests. It aims to test a large number of schedules, whilst
+typically also making use of local knowledge of the program to reduce
+the number of schedules needed to be confident of an accurate
 result. By testing many schedules, we can be confident that any bugs
 which have not been found are unlikely to be exhibited.
 
 SCT overcomes the scheduling problem by forcing a concurrent program
 to use a scheduler implemented as part of the testing framework:
-either by overriding the concurrency primitives of the language (as in
-LazyLocks [Paul Thompson, to appear]), or by modifying the program
-under test to call out to this new scheduler (as in PULSE
-\citep{pulse}).
+either by overriding the concurrency primitives of the language, or by
+modifying the program under test to call out to this new scheduler (as
+in PULSE \citep{pulse}).
 
 Once the scheduler is under control, schedules can be recorded and
 replayed, giving reproducibility. Furthermore, by observing which
@@ -19,6 +18,7 @@ scheduling decisions are available at each decision point, possible
 schedules can be systematically explored, making different decisions
 on subsequent executions. Common methods of choosing schedules to take
 are random \citep{empirical}, schedule bounding \citep{pbound}, and
-partial-order reduction \citep{dpor}; the latter is \emph{complete}:
-it will find all distinct program states given enough time, in a more
-intelligent way than just trying all schedules.
+partial-order reduction \citep{dpor}. The last of these is
+\emph{complete}: partial-order reduction will find all distinct
+program states given enough time, in a more intelligent way than just
+trying all schedules.

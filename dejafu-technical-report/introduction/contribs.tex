@@ -1,15 +1,14 @@
-The primary contribution of this report is a library for testing
-concurrent Haskell programs based on a somewhat novel algorithm for
-reducing the number of schedules to test.
-
 Our contributions can be seen as follows:
 
 \begin{itemize}
 \item Existing results from the concurrency testing world have been
-  ported to functional programming, an area historically without much
-  in this topic, and verified to apply.
+  applied to functional programming.
 
-\item A partial-order reduction algorithm for systematic concurrency
-  testing based on a combination of two others: bounded partial-order
-  reduction \cite{bpor} and relaxed-memory DPOR \cite{rdpor}.
+\item A somewhat novel partial-order reduction algorithm for
+  systematic concurrency testing based on a combination of two others:
+  bounded partial-order reduction \cite{bpor} and relaxed-memory DPOR
+  \cite{rdpor}.
+
+\item The \dejafu{} library for testing concurrent Haskell programs,
+  using this algorithm.
 \end{itemize}

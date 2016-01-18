@@ -5,7 +5,7 @@ be frequently used throughout this report:
   such as threads, locks, and mutable variables to structure
   programs.}
 
-\defineword{Parallelism}{An implementation detail, where a
+\defineword{Parallelism}{An aspect of an implementation, where a
   multiplicity of hardware components are used to execute distinct
   pieces of code simultaneously.}
 
@@ -19,12 +19,12 @@ multiplication in parallel.
 Unrestricted concurrency is explicit and \emph{semantically visible}
 \citep{concurrent}. The interleaved execution of threads, when
 combined with mutable state, gives rise to nondeterminism. Semaphores
-and locks give rise to termination errors in the form of deadlock and
-livelock. Parallelism, in particular the parallel evaluation of
+and locks can give rise to termination errors in the form of deadlock
+and livelock. Parallelism, in particular the parallel evaluation of
 expressions, is \emph{semantically invisible} in a language without
 side-effects.
 
-Concurrency is often implemented using parallelism, and indeed a
+Concurrency is often implemented using parallelism. Indeed a
 concurrency abstraction can be used to guarantee parallelism (given
 suitable hardware), for example by having the ability to restrict the
 execution of individual threads to given processor cores.
