@@ -54,10 +54,10 @@ myThreadId :: MonadConc m => m (ThreadId m)
 In a real machine, there are of course a number of processors and
 cores. It may be that a particular application of concurrency is only
 a net gain if every thread is operating on a separate core, so that
-threads are not interrupting each other. The GHC runtime refers to the
-number of Haskell threads that can run truly simultaneously as the
-number of \emph{capabilities}. We can query this value, and fork
-threads which are bound to a particular capability:
+threads are not interrupting each other. The GHC run-time system
+refers to the number of Haskell threads that can run truly
+simultaneously as the number of \emph{capabilities}. We can query this
+value, and fork threads which are bound to a particular capability:
 
 \begin{haskellcode}
 getNumCapabilities :: MonadConc m => m Int
@@ -88,10 +88,11 @@ can apply \verb|readCVar|, blocking until the computation is done and
 the value is stored.
 
 Threads are scheduled non-deterministically, where every time the
-runtime decides to perform a context switch, one of the runnable
-threads will be executed. Sometimes, however, a thread may be runnable
-but also waiting for something to happen. The programmer can provide a
-clue to the scheduler that another thread should be tried instead:
+run-time system decides to perform a context switch, one of the
+runnable threads will be executed. Sometimes, however, a thread may be
+runnable but also waiting for something to happen. The programmer can
+provide a clue to the scheduler that another thread should be tried
+instead:
 
 \begin{haskellcode}
 yield :: MonadConc m => m ()
@@ -108,9 +109,9 @@ In order to accommodate Foreign Function Interface (FFI) calls which
 may block, GHC provides a mechanism for \emph{binding} a Haskell
 thread to an operating system thread. This allows FFI calls to be
 managed by the operating system, unlike normal Haskell threads which
-are managed by the runtime and multiplexed onto a smaller number of
-operating system threads. This means that blocking FFI calls do not
-necessarily block the entire program.
+are managed by the run-time system and multiplexed onto a smaller
+number of operating system threads. This means that blocking FFI calls
+do not necessarily block the entire program.
 
 There is no \verb|MonadConc| equivalent of bound threads, as there
 would be no way to reliably test this behaviour. Unfortunately, if
@@ -223,8 +224,8 @@ tryTakeCVar  :: MonadConc m => CVar m a -> m (Maybe a)
 Unfortunately, the mutual exclusion behaviour of \verb|CVar|s means
 that computations can become \emph{deadlocked}. For example, deadlock
 occurs if every thread tries to take from the same \verb|CVar|. The
-GHC runtime can detect this in some situations (and will complain if
-it does), and so can \dejafu{} in a more informative way.
+GHC run-time system can detect this in some situations (and will
+complain if it does), and so can \dejafu{} in a more informative way.
 
 \begin{departure}
   \dejafu{} can only detect deadlock to the same extent as GHC if
