@@ -4,17 +4,13 @@
  publisher = {HarperCollins},
  year = {2001},
  address = {New York},
- isbn = {0-06-019956-3}
 }
 
 @inproceedings{overrated,
   author = {Junfeng Yang and Heming Cui and Jingyue Wu},
   title = {{Determinism Is Overrated: What Really Makes Multithreaded Programs Hard to Get Right and What Can Be Done About It}},
-  booktitle = {Presented as part of the 5th USENIX Workshop on Hot Topics in Parallelism},
+  booktitle = {Presented at the 5th USENIX Workshop on Hot Topics in Parallelism},
   year = {2013},
-  location = {San Jose, CA},
-  url = {https://www.usenix.org/conference/hotpar13/workshop-program/presentation/Yang},
-  publisher = {USENIX},
   address = {Berkeley, CA}
 }
 
@@ -59,12 +55,13 @@
 }
 
 @inproceedings{concurrent,
-  title={{Concurrent Haskell}},
-  author={Jones, Simon Peyton and Gordon, Andrew and Finne, Sigbjorn},
-  booktitle={POPL},
-  volume={96},
-  pages={295--308},
-  year={1996}
+ author = {Peyton Jones, Simon and Gordon, Andrew and Finne, Sigbjorn},
+ title = {{Concurrent Haskell}},
+ booktitle = {Proceedings of the 23rd ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+ series = {POPL '96},
+ year = {1996},
+ pages = {295--308},
+ publisher = {ACM},
 }
 
 @inproceedings{empirical,
@@ -97,12 +94,13 @@
 }
 
 @inproceedings{heisenbugs,
-  title={{Finding and Reproducing Heisenbugs in Concurrent Programs}},
-  author={Musuvathi, Madanlal and Qadeer, Shaz and Ball, Thomas and Basler, Gerard and Nainar, Piramanayagam Arumuga and Neamtiu, Iulian},
-  booktitle={OSDI},
-  volume={8},
-  pages={267--280},
-  year={2008}
+ author = {Musuvathi, Madanlal and Qadeer, Shaz and Ball, Thomas and Basler, Gerard and Nainar, Piramanayagam Arumuga and Neamtiu, Iulian},
+ title = {{Finding and Reproducing Heisenbugs in Concurrent Programs}},
+ booktitle = {Proceedings of the 8th USENIX Conference on Operating Systems Design and Implementation},
+ series = {OSDI'08},
+ year = {2008},
+ pages = {267--280},
+ publisher = {USENIX Association},
 }
 
 @inproceedings{pulse,
@@ -123,24 +121,14 @@
   urldate={2015-10-02}
 }
 
-@article{bpor,
+@inproceedings{bpor,
  author = {Coons, Katherine E. and Musuvathi, Madan and McKinley, Kathryn S.},
- title = {Bounded Partial-order Reduction},
- journal = {SIGPLAN Not.},
- issue_date = {October 2013},
- volume = {48},
- number = {10},
- month = oct,
+ title = {{Bounded Partial-order Reduction}},
+ booktitle = {Proceedings of the 2013 ACM SIGPLAN International Conference on Object Oriented Programming Systems Languages \&\#38; Applications},
+ series = {OOPSLA '13},
  year = {2013},
- issn = {0362-1340},
  pages = {833--848},
- numpages = {16},
- url = {http://doi.acm.org/10.1145/2544173.2509556},
- doi = {10.1145/2544173.2509556},
- acmid = {2509556},
  publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {bounded partial-order reduction, concurrency, dynamic partial-order reduction, fairness, liveness, model checking, shared-memory programs, software testing},
 }
 
 @inproceedings{rdpor,
@@ -149,16 +137,8 @@
  booktitle = {Proceedings of the 36th ACM SIGPLAN Conference on Programming Language Design and Implementation},
  series = {PLDI 2015},
  year = {2015},
- isbn = {978-1-4503-3468-6},
- location = {Portland, OR, USA},
  pages = {250--259},
- numpages = {10},
- url = {http://doi.acm.org/10.1145/2737924.2737956},
- doi = {10.1145/2737924.2737956},
- acmid = {2737956},
  publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {DPOR, PSO, Stateless model checking, TSO, partial order reduction, relaxed memory model, runtime verification},
 }
 
 @inproceedings{dbound,
@@ -171,25 +151,15 @@
   publisher={ACM}
 }
 
-@article{fbound,
+@inproceedings{fbound,
  author = {Musuvathi, Madanlal and Qadeer, Shaz},
- title = {Fair Stateless Model Checking},
- journal = {SIGPLAN Not.},
- issue_date = {June 2008},
- volume = {43},
- number = {6},
- month = jun,
+ title = {{Fair Stateless Model Checking}},
+ booktitle = {Proceedings of the 29th ACM SIGPLAN Conference on Programming Language Design and Implementation},
+ series = {PLDI '08},
  year = {2008},
- issn = {0362-1340},
  pages = {362--371},
- numpages = {10},
- url = {http://doi.acm.org/10.1145/1379022.1375625},
- doi = {10.1145/1379022.1375625},
- acmid = {1375625},
  publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {concurrency, fairness, liveness, model checking, multi-threading, shared-memory programs, software testing},
-}
+} 
 
 @online{autoupdate,
   title={{Announcing auto-update}},
@@ -217,115 +187,72 @@
   urldate={2015-06-03}
 }
 
-@book{por,
-  title={Partial-order methods for the verification of concurrent systems: an approach to the state-explosion problem},
-  author={Godefroid, Patrice and van Leeuwen, J and Hartmanis, J and Goos, G and Wolper, Pierre},
-  volume={1032},
-  year={1996},
-  publisher={Springer Heidelberg}
-}
-
-@article{c++11,
- author = {Batty, Mark and Owens, Scott and Sarkar, Susmit and Sewell, Peter and Weber, Tjark},
- title = {Mathematizing C++ Concurrency},
- journal = {SIGPLAN Not.},
- issue_date = {January 2011},
- volume = {46},
- number = {1},
- month = jan,
- year = {2011},
- issn = {0362-1340},
- pages = {55--66},
- numpages = {12},
- url = {http://doi.acm.org/10.1145/1925844.1926394},
- doi = {10.1145/1925844.1926394},
- acmid = {1926394},
- publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {relaxed memory models, semantics},
+@phdthesis{por,
+ author = {Godefroid, Patrice},
+ editor = {Leeuwen, J. van and Hartmanis, J. and Goos, G.},
+ title = {{Partial-Order Methods for the Verification of Concurrent Systems: An Approach to the State-Explosion Problem}},
+ year = {1996},
+ publisher = {Springer-Verlag New York, Inc.},
 } 
 
-@incollection{quickspec,
-  title={QuickSpec: Guessing formal specifications using testing},
-  author={Claessen, Koen and Smallbone, Nicholas and Hughes, John},
-  booktitle={Tests and Proofs},
-  pages={6--21},
-  year={2010},
-  publisher={Springer}
+@inproceedings{c++11,
+ author = {Batty, Mark and Owens, Scott and Sarkar, Susmit and Sewell, Peter and Weber, Tjark},
+ title = {{Mathematizing C++ Concurrency}},
+ booktitle = {Proceedings of the 38th Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+ series = {POPL '11},
+ year = {2011},
+ pages = {55--66},
+ publisher = {ACM},
+} 
+
+@inproceedings{quickspec,
+ author = {Claessen, Koen and Smallbone, Nicholas and Hughes, John},
+ title = {{QuickSpec: Guessing Formal Specifications Using Testing}},
+ booktitle = {Proceedings of the 4th International Conference on Tests and Proofs},
+ series = {TAP'10},
+ year = {2010},
+ pages = {6--21},
+ publisher = {Springer-Verlag},
 }
 
-@article{replicated,
+@inproceedings{replicated,
  author = {Burckhardt, Sebastian and Gotsman, Alexey and Yang, Hongseok and Zawirski, Marek},
- title = {Replicated Data Types: Specification, Verification, Optimality},
- journal = {SIGPLAN Not.},
- issue_date = {January 2014},
- volume = {49},
- number = {1},
- month = jan,
+ title = {{Replicated Data Types: Specification, Verification, Optimality}},
+ booktitle = {Proceedings of the 41st ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages},
+ series = {POPL '14},
  year = {2014},
- issn = {0362-1340},
  pages = {271--284},
- numpages = {14},
- url = {http://doi.acm.org/10.1145/2578855.2535848},
- doi = {10.1145/2578855.2535848},
- acmid = {2535848},
  publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {eventual consistency, replication, weak memory},
-}
+} 
 
 @inproceedings{rapos,
  author = {Sen, Koushik},
- title = {Effective Random Testing of Concurrent Programs},
+ title = {{Effective Random Testing of Concurrent Programs}},
  booktitle = {Proceedings of the Twenty-second IEEE/ACM International Conference on Automated Software Engineering},
  series = {ASE '07},
  year = {2007},
- isbn = {978-1-59593-882-4},
- location = {Atlanta, Georgia, USA},
  pages = {323--332},
- numpages = {10},
- url = {http://doi.acm.org/10.1145/1321631.1321679},
- doi = {10.1145/1321631.1321679},
- acmid = {1321679},
  publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {concurrent programs, random testing},
 }
 
 @inproceedings{racefuzzer,
  author = {Sen, Koushik},
- title = {Race Directed Random Testing of Concurrent Programs},
+ title = {{Race Directed Random Testing of Concurrent Programs}},
  booktitle = {Proceedings of the 29th ACM SIGPLAN Conference on Programming Language Design and Implementation},
  series = {PLDI '08},
  year = {2008},
- isbn = {978-1-59593-860-2},
- location = {Tucson, AZ, USA},
  pages = {11--21},
- numpages = {11},
- url = {http://doi.acm.org/10.1145/1375581.1375584},
- doi = {10.1145/1375581.1375584},
- acmid = {1375584},
  publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {concurrency, dynamic analysis, race detection, random testing},
 }
 
 @inproceedings{procrastination,
  author = {Arts, Thomas and Hughes, John and Norell, Ulf and Smallbone, Nicholas and Svensson, Hans},
- title = {Accelerating Race Condition Detection Through Procrastination},
+ title = {{Accelerating Race Condition Detection Through Procrastination}},
  booktitle = {Proceedings of the 10th ACM SIGPLAN Workshop on Erlang},
  series = {Erlang '11},
  year = {2011},
- isbn = {978-1-4503-0859-5},
- location = {Tokyo, Japan},
  pages = {14--22},
- numpages = {9},
- url = {http://doi.acm.org/10.1145/2034654.2034659},
- doi = {10.1145/2034654.2034659},
- acmid = {2034659},
  publisher = {ACM},
- address = {New York, NY, USA},
- keywords = {erlang, quickcheck, race conditions},
 } 
 
 @article{empirical2,
@@ -335,7 +262,7 @@
 }
 
 @online{typeclass,
-  title={{Haskell. Testing a Multithreaded Application}},
+  title={{Testing a Multithreaded Application}},
   author={Ankuzik},
   year={2014},
   url={http://kukuruku.co/hub/haskell/haskell-testing-a-multithread-application},
@@ -344,18 +271,10 @@
 
 @inproceedings{dejafu,
   author    = {Walker, Michael and Runciman, Colin},
-  title     = {D{\'e}J\`{a} Fu: A Concurrency Testing Library for Haskell},
+  title     = {{D{\'e}j\`{a} Fu: A Concurrency Testing Library for Haskell}},
   booktitle = {Proceedings of the 8th ACM SIGPLAN Symposium on Haskell},
   series    = {Haskell 2015},
   year      = {2015},
-  isbn      = {978-1-4503-3808-0},
-  location  = {Vancouver, BC, Canada},
   pages     = {141--152},
-  numpages  = {12},
-  url       = {http://doi.acm.org/10.1145/2804302.2804306},
-  doi       = {10.1145/2804302.2804306},
-  acmid     = {2804306},
   publisher = {ACM},
-  address   = {New York, NY, USA},
-  keywords  = {Concurrency, Haskell, functional programming, nondeterminism, systematic concurrency testing},
 }

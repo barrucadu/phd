@@ -28,8 +28,10 @@ with a central shared state. It could not be used to implement a
 multi-threaded work-stealing scheduler, such as the one underpinning
 \verb|Par| itself. The library provides a number of different
 schedulers, the default being the ``trace'' scheduler. Due to reports
-of potential deadlocks with the ``direct'' scheduler from a year ago
-\citep{parreddit}, it was tested with \dejafu{}.
+of potential deadlocks with the ``direct'' scheduler from a year ago,
+it was tested with \dejafu{}.
+
+% removed: \citep{parreddit}
 
 To reduce the effort in modifying the code, only the direct
 dependencies of the ``direct'' scheduler were modified, the rest of
