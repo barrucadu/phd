@@ -130,3 +130,15 @@ the standard concurrency primitives, the inspiration for this
 approach, and the basic idea behind how to do SCT in Haskell, was
 provided by \citep{typeclass}. However, both the family of primitives
 and the approach to testing have been significantly advanced.
+
+% Prior Publication
+
+An earlier version of this work was published as \citep{dejafu}. The
+version discussed in this publication does not make any use of
+partial-order reduction, relying solely on schedule bounding to prune
+the search space. As a result it suffers from state explosion as
+programs under test become larger, and is less applicable to
+real-world applications. Furthermore, it lacks any support for relaxed
+memory. This was originally a design decision, on the assumption that
+most real-world concurrent Haskell programs do not use such behaviour,
+but initial feedback led to this decision being revised.
