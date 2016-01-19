@@ -1,9 +1,9 @@
 There are three memory models supported in \dejafu{}:
 
-\defineword{Sequential Consistency}{The most intuitive model: a
-  program behaves as a simple interleaving of the actions in different
-  threads. When a \texttt{CRef} is written to, that write is
-  immediately visible to all threads.}
+\defineword{Sequential Consistency}{This model is the most
+  intuitive. A program behaves as a simple interleaving of the actions
+  in different threads. When a \texttt{CRef} is written to, that write
+  is immediately visible to all threads.}
 
 \defineword{Total Store Order (TSO)}{Each thread has a write buffer. A
   thread sees its writes immediately, but other threads will only see
@@ -23,7 +23,5 @@ operations, such as \verb|readCRef|, \verb|writeCRef|, and
 
 The default memory model for testing is TSO, as that most accurately
 models the behaviour of modern x86 processors. The use of a relaxed
-memory model does cause some blow-up in the number of schedules tested
-when unsynchronised operations are used, but as most of the
-concurrency primitives are synchronised this tends to be fairly
-contained.
+memory model can require a much larger number of schedules to be
+tested when unsynchronised operations are used.

@@ -9,16 +9,16 @@ enough to skim this section noting the syntactic differences in the
 
 The \verb|MonadConc| typeclass has an instance\footnote{A typeclass
   has \emph{instances}, each type may have one unique instance for a
-  typeclass.} for \verb|IO|, and so existing code using only the
-functions generalised over can be made suitable for testing quite
+  typeclass.} for \verb|IO|, and so existing code using no I/O other
+than concurrency and exceptions can be made suitable for testing quite
 simply. Existing code which makes use of more functionality may
 require a light dusting of \verb|liftIO|\footnote{The \texttt{IO} type
   allows unrestricted side-effects during execution. It turns out that
   many useful types are just \texttt{IO} with some extra structure
   applied, and the \texttt{liftIO} function (which belongs to a
   typeclass called \texttt{MonadIO}) can be used to `translate' the
-  effects into such a type.} where it is safe to do so, which will be
-expanded upon in \sect{abstraction}{typeclass-lifting}.
+  effects into such a type.} where it is safe, see
+\sect{abstraction}{typeclass-lifting}.
 
 \subsubsection{Threads}
 \label{sec:abstraction-typeclass-threads}
@@ -41,9 +41,9 @@ We can start a new thread with the function:\footnote{This is a
 fork :: MonadConc m => m () -> m (ThreadId m)
 \end{haskellcode}
 
-This starts evaluating its argument in a separate thread. It also
-gives us back a (monad-specific) \verb|ThreadId| value, which we can
-use to kill the thread later on, if we want.
+The \verb|fork| function starts evaluating its argument in a separate
+thread. It also gives us back a (monad-specific) \verb|ThreadId|
+value, which we can use to kill the thread later on, if we want.
 
 A thread can query its own \verb|ThreadId|:
 
@@ -83,24 +83,23 @@ terms of \verb|fork|):
 spawn :: MonadConc m => m a -> m (CVar m a)
 \end{haskellcode}
 
-This returns a \verb|CVar| (\emph{Concurrent Variable}), to which we
-can apply \verb|readCVar|, blocking until the computation is done and
-the value is stored.
+A \verb|spawn| application returns a \verb|CVar| (\emph{Concurrent
+  Variable}), to which we can apply \verb|readCVar|, blocking until
+the computation is done and the value is stored.
 
-Threads are scheduled non-deterministically, where every time the
-run-time system decides to perform a context switch, one of the
-runnable threads will be executed. Sometimes, however, a thread may be
-runnable but also waiting for something to happen. The programmer can
-provide a clue to the scheduler that another thread should be tried
-instead:
+Threads are scheduled non-deterministically. Every time the run-time
+system decides to perform a context switch, one of the runnable
+threads will be executed. Sometimes, however, a thread may be runnable
+but also waiting for something to happen. The programmer can provide a
+clue to the scheduler that another thread should be tried instead:
 
 \begin{haskellcode}
 yield :: MonadConc m => m ()
 \end{haskellcode}
 
-This gives any other thread the opportunity to execute instead of the
-yielding one, but it is not \emph{required} to cause a context switch
-except on co-operative multitasking systems.
+Calling \verb|yield| gives any other thread the opportunity to execute
+instead of the yielding one, but it is not \emph{required} to cause a
+context switch except on co-operative multitasking systems.
 
 \subsubsection{Threading and the Foreign Function Interface}
 \label{sec:abstraction-typeclass-ffithreads}
@@ -114,15 +113,16 @@ number of operating system threads. This means that blocking FFI calls
 do not necessarily block the entire program.
 
 There is no \verb|MonadConc| equivalent of bound threads, as there
-would be no way to reliably test this behaviour. Unfortunately, if
+would be no way to reliably test their behaviour. Unfortunately, if
 bound threads are required, \verb|IO| will have to be used.
 
 A few predicates are provided for compatibility:\footnote{Function
-  application in Haskell uses no special syntax, only juxtaposition,
-  so \texttt{return False} is applying the value \texttt{False} to the
-  function \texttt{return}. \texttt{return} here is used to inject a
-  value into a monad, it is unfortunately named and has nothing to do
-  with the return keyword in other languages.}
+  application in Haskell uses no special syntax to denote argument
+  values, only juxtaposition, so \texttt{return False} is applying the
+  value \texttt{False} to the function \texttt{return}. The function
+  \texttt{return} is used to inject a value into a monad, it is
+  unfortunately named and has nothing to do with the return keyword in
+  other languages.}
 
 \begin{haskellcode}
 rtsSupportsBoundThreads :: Bool
@@ -153,9 +153,9 @@ writeCRef  :: MonadConc m => CRef m a -> a -> m ()
 The \verb|modifyCRef| function is atomic. The \verb|readCRef| and
 \verb|writeCRef| functions are not synchronised: it is possible for
 one thread to read from a \verb|CRef| strictly after another thread
-has written to it and to observe an old value!  This is expanded more
-upon in \sect{abstraction}{mem}. To ensure that every thread sees a
-value as soon as it is written there is a synchronised write function:
+has written to it and to observe an old value! See
+\sect{abstraction}{mem}. To ensure that every thread sees a value as
+soon as it is written there is a synchronised write function:
 
 \begin{haskellcode}
 atomicWriteCRef :: MonadConc m => CRef m a -> a -> m ()
@@ -187,9 +187,9 @@ was seen then.
 casCRef :: MonadConc m => CRef m a -> Ticket m a -> a -> m (Bool, Ticket m a)
 \end{haskellcode}
 
-The \verb|casCRef| function is synchronised, is strict in the value
-written, and will replace the value within a \verb|CRef| if it hasn't
-been modified since the \verb|Ticket| was produced. It returns an
+The \verb|casCRef| function is synchronised, and strict in the value
+written. It replaces the value within a \verb|CRef| if it hasn't been
+modified since the \verb|Ticket| was produced. It returns an
 indication of success and a \verb|Ticket| to use in future
 operations. This operation is often used in the implementation of
 lock-free synchronisation primitives.
@@ -229,9 +229,9 @@ complain if it does), and so can \dejafu{} in a more informative way.
 
 \begin{departure}
   \dejafu{} can only detect deadlock to the same extent as GHC if
-  every thread is annotated with which \verb|CVar|s it knows
-  about. This is because GHC uses the garbage collector to solve this
-  problem, which is out of the reach of \dejafu{}.
+  every thread is annotated with a declaration of the \verb|CVar|s it
+  knows about. This is because GHC can detect deadlocks during garbage
+  collection, which is out of the reach of \dejafu{}.
 \end{departure}
 
 There are also additional functions provided in the
@@ -251,8 +251,8 @@ catch :: (Exception e, MonadConc m) => m a -> (e -> m a) -> m a
 throw :: (Exception e, MonadConc m) => e -> m a
 \end{haskellcode}
 
-Where \verb|throw| causes the computation to jump back to the nearest
-enclosing \verb|catch| capable of handling the particular
+Calling \verb|throw| causes the computation to jump back to the
+nearest enclosing \verb|catch| capable of handling the particular
 exception. As exceptions belong to a typeclass, rather than being a
 concrete type, different \verb|catch| functions can be nested, to
 handle different types of exceptions.
@@ -328,19 +328,21 @@ If the programmer needs to make use of \verb|IO| actions, rather than
 \verb|MonadConc| actions, then this can be achieved by adding a
 \verb|MonadIO| context and using \verb|liftIO|. However, this can
 easily compromise the results of testing, as the test runner cannot
-peek inside \verb|IO| actions (that's why the typeclass exists in the
-first place!). Thus, it is only safe if:
+peek inside \verb|IO| actions. Thus, it is only safe to life an
+\verb|IO| action in this way if:
 
 \begin{itemize}
 \item \emph{The action is atomic and synchronised.}
 
   Otherwise the test framework will possibly miss schedules which lead
   to a bug.
-\item \emph{The action is deterministic} (when executed as part of a
-  computation with a deterministic schedule).
 
-  Otherwise the fundamental assumption behind the testing methodology
+\item \emph{The action is deterministic}, when executed as part of a
+  computation with a deterministic schedule.
+
+  Otherwise a fundamental assumption behind the testing methodology
   is false, and no guarantees about completeness can be made.
+
 \item \emph{The action cannot block on the action of another thread.}
 
   Otherwise test execution may deadlock.
