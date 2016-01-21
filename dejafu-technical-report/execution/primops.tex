@@ -52,13 +52,12 @@ instance Applicative (M n r s) where
 \defineprim{AReturn}{action}{%
   Execute the given action.}
 
-It's not immediately apparent why \verb|AReturn| is necessary, and why
-\verb|\c -> c x| can't be used instead. This is because the scheduler
-in the testing implementation cannot work at a finer granularity than
-individual primitive actions, whereas in the real implementation,
-things like exceptions can pre-empt a return. In order to model this
-possibility, then, \verb|pure| and \verb|return| must have a
-corresponding primitive.
+Why is \verb|AReturn| necessary? Why not \verb|\c -> c x| instead? It
+is because the scheduler in the testing implementation cannot work at
+a finer granularity than individual primitive actions, whereas in the
+real implementation, things like exceptions can pre-empt a return. In
+order to model this possibility, then, \verb|pure| and \verb|return|
+must have a corresponding primitive.
 
 Finally, the \verb|Monad| instance allows sequencing of primitive actions.
 
@@ -106,7 +105,8 @@ As the testing implementation does not run things in parallel, the
 forkOnWithUnmask _ = forkWithUnmask
 \end{haskellcode}
 
-Similarly, the \verb|getNumCapabilities| function just lies:
+Similarly, the \verb|getNumCapabilities| function just returns a
+constant value:
 
 \begin{haskellcode}
 getNumCapabilities = return 2
@@ -207,8 +207,8 @@ casCRef   ref tick a = M (ACasRef ref tick a)
 \end{haskellcode}
 
 \defineprim{AWriteRef}{(cref a) a action}{%
-  Update the value of a \texttt{CRef}. This is visible to the current
-  thread immediately.}
+  Update the value of a \texttt{CRef}. The updated value is visible to
+  the current thread immediately.}
 
 \defineprim{ACasRef}{(cref a) (ticket a) a ((succeeded?, ticket a) \arr action}{%
   Update the value of a \texttt{CRef} if it hasn't changed since the
@@ -216,8 +216,7 @@ casCRef   ref tick a = M (ACasRef ref tick a)
 
 When testing under a relaxed memory model, the \verb|AWriteRef|
 primitive does not cause the write to be visible to threads other than
-the one which performed the write. An \verb|ACommit| action is
-performed at some point later to do that.
+the writer. A later \verb|ACommit| action is needed for that.
 
 \defineprim{ACommit}{thread\_id cref\_id}{%
   Make the last write to the given \texttt{CRef} by that thread
@@ -233,8 +232,8 @@ atomicWriteCRef ref a = modifyCRef ref (const (a, ()))
 \subsubsection{\texttt{CVar}s}
 \label{sec:execution-primops-cvar}
 
-The implementation of \verb|CVar|s is very similar to \verb|CRef|s,
-the differences are that there are no relaxed memory issues to worry
+The implementation of \verb|CVar|s is very similar to \verb|CRef|s.
+The differences are that there are no relaxed memory issues to worry
 about, and that a \verb|CVar| may be empty.
 
 \begin{haskellcode}
@@ -281,8 +280,8 @@ one) cause all uncommitted \verb|CRef| writes to be committed.
 
 Exceptions can be used to terminate a computation, either in the
 current thread or a different one. They can also be caught. The
-presentation in terms of primitive actions is deceptively simple, the
-discussion in \sect{execution}{stepwise} will elaborate.
+presentation in terms of primitive actions is deceptively simple, see
+\sect{execution}{stepwise} for the more complex execution details.
 
 \begin{haskellcode}
 throw       e = M (\_ -> AThrow e)
@@ -301,7 +300,7 @@ possible thing that the execution can do is to terminate the thread.
   Raises an exception in the other thread, blocking if the other
   thread has exceptions masked.}
 
-When an exception is raised, the thread it is raised within terminates
+When an exception is raised, the thread it is raised within stops
 whatever it is currently doing, and backtracks to the closest
 exception handler capable of dealing with that type of exception. If
 there is no capable handler, the thread is terminated.
@@ -314,10 +313,10 @@ catch (M ma) h = M (ACatching (runM . h) ma)
   Registers a new exception handler for the duration of the inner
   action.}
 
-Each thread has a stack of exception handlers, which is appended to
-with the \verb|ACatching| primitive, and removed from with the
-\verb|APopCatching| primitive, which is added automatically when an
-\verb|ACatching| primitive is evaluated.
+Each thread has a stack of exception handlers, where the
+\verb|ACatching| primitive pushes a new handler, and
+\verb|APopCatching| pops. \verb|APopCatching| is added automatically
+when an \verb|ACatching| primitive is evaluated.
 
 \defineprim{APopCatching}{action}{%
   Remove the exception handler from the top of the stack.}
@@ -334,11 +333,11 @@ uninterruptibleMask (M mb) = M (AMasking MaskedUninterruptible (\f -> mb f))
   Executes the inner action under a new masking state, and also gives
   it a function to reset the masking state.}
 
-Similarly to \verb|ACatching|, this also has a counterpart primitive
-to undo its effect, called \verb|AResetMask|. One might wonder why
-this is necessary, and why \verb|AMasking| can't just be used to both
-set and reset the masking state, but this is so that more informative
-execution traces can be generated for the user.
+Like \verb|ACatching|, the \verb|AMasking| action also has a
+counterpart primitive to undo its effect, called
+\verb|AResetMask|. Why is this necessary? Why \verb|AMasking| can't
+both set and reset the masking state? The separate function enabled
+more informative execution traces to be generated for the user.
 
 \defineprim{AResetMask}{set? inner? masking\_state action}{%
   Sets the masking state.}
@@ -356,7 +355,7 @@ masking state had been changed.
 STM is implemented with its own set of primitive actions which operate
 in much the same way as the concurrency primitives. The major
 difference is that a transaction is executed atomically, whereas the
-concurrency actions are executed one action at a time, allowing for
+concurrency actions are executed one action at a time, allowing
 threads to interfere with each other.
 
 \begin{haskellcode}
@@ -366,15 +365,22 @@ atomically stm = M (AAtom stm)
 \defineprim{AAtom}{transaction continuation}{%
   Execute an STM transaction atomically.}
 
-When a transaction is executed by \verb|AAtom|, one of three possible
-conditions are differentiated between: the transaction completed
-successfully, and returned a value; the transaction aborted due to an
-uncaught exception; and the transaction aborted due to a call to
-\verb|retry|. In this third case, the thread is blocked until any of
-the \verb|CTVar|s referenced in the transaction are mutated, after
-which it can be tried again. There are far fewer \verb|MonadSTM|
-operations than \verb|MonadConc| ones, so the entirety of the STM
-implementation is presented here.
+When a transaction is executed by \verb|AAtom|, there are three
+possible outcomes:
+
+\begin{enumerate}
+\item the transaction completed successfully, and returned a value;
+
+\item the transaction aborted due to an uncaught exception; and
+
+\item the transaction aborted due to a call to \verb|retry|. In this
+  third case, the thread is blocked until any of the \verb|CTVar|s
+  referenced in the transaction are mutated, after which it can be
+  tried again.
+\end{enumerate}
+
+There are far fewer \verb|MonadSTM| operations than \verb|MonadConc|
+ones, so the entirety of the STM implementation is presented here.
 
 \begin{haskellcode}
 retry = S (\_ -> SRetry)
@@ -383,17 +389,16 @@ retry = S (\_ -> SRetry)
 \defineprim{SRetry}{}{%
   Abort the current transaction.}
 
-the \verb|check| function is provided as a simple wrapper around
+The \verb|check| function is provided as a simple wrapper around
 \verb|retry|:
 
 \begin{haskellcode}
 check b = if b then return () else retry
 \end{haskellcode}
 
-Transactions can be composed into larger atomic transactions, and so
-it is necessary to be able to handle an aborting transaction without
-needing to break atomicity. The \verb|orElse| function allows
-combining transactions in this way:
+Transactions can be composed into larger atomic transactions. Aborting
+a component transaction must not break atomicity. The \verb|orElse|
+function combines transactions appropriately:
 
 \begin{haskellcode}
 orElse a b = S (SOrElse (runSTM a) (runSTM b))
@@ -416,11 +421,10 @@ catchSTM stm handler = S (SCatch (runSTM stm) (runSTM . handler))
   Registers a new exception handler for the duration of the action.}
 
 As transactions are atomic, the handling of exceptions can be vastly
-simplified, where an \verb|SCatch| action is performed by executing
-the entire inner action in one step and inspecting the result. No
-explicit stack of exception handlers needs to be maintained, the
-function call stack suffices. There are no more primitives related to
-exception handling than these.
+simplified. An \verb|SCatch| action is performed by executing the
+entire inner action in one step and inspecting the result. No explicit
+stack of exception handlers needs to be maintained, as the call stack
+suffices.
 
 \begin{haskellcode}
 newCTVar a = toSTM (SNew a)
@@ -443,11 +447,10 @@ writeCTVar ctvar a = S (\c -> SWrite ctvar a (c ()))
 \defineprim{SWrite}{(ctvar a) a action}{%
   Update a \texttt{CTVar}.}
 
-Remember that the effects of a transaction only take place when it
-completes successfully, so \verb|SWrite| will not have any
-externally-visible effects until the whole thing
-finishes. Furthermore, executing a transaction with \verb|AAtom|
-enforces a write barrier.
+The effects of a transaction only take place when it completes
+successfully, so \verb|SWrite| has no externally-visible effects until
+the whole thing finishes. Furthermore, executing a transaction with
+\verb|AAtom| enforces a write barrier.
 
 \subsubsection{Testing Annotations}
 \label{sec:execution-primops-annotations}
@@ -472,11 +475,11 @@ _concAllKnown       = M (\c -> AAllKnown       (c ()))
   Record that all variables the thread knows about have been
   reported.}
 
-The deadlock detection process works like so: if a thread is blocked
-on a \verb|CVar| or \verb|CTVar| (an STM transaction referencing it
-has aborted), \emph{and} it is known what variables all threads have
-access to, \emph{and} all other threads with a reference to that
-variable are also blocked on it, \emph{then} the thread is
+Here is how the deadlock detection process works. If a thread is
+blocked on a \verb|CVar| or \verb|CTVar| (an STM transaction
+referencing it has aborted), \emph{and} it is known what variables all
+threads have access to, \emph{and} all other threads with a reference
+to that variable are also blocked on it, \emph{then} the thread is
 deadlocked. This can easily be extended to collections of threads
 which are all blocked on the same variable.
 
@@ -491,5 +494,5 @@ from the underlying monad. This is used in the implementation of
 liftIO = M (\c -> ALift (fmap c ma))
 \end{haskellcode}
 
-\defineprim{ALift}{(n action)}{%
+\defineprim{ALift}{monadic\_action}{%
   Execute an action from the underlying monad.}

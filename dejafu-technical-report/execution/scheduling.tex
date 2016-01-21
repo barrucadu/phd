@@ -1,12 +1,12 @@
-When there are multiple, non-blocked, threads available, the choice of
+When there are multiple non-blocked threads available, the choice of
 which one to execute next is made by the scheduler.
 
 A scheduler is represented as a pure function, and is supplied as a
-parameter when testing. This allows for deterministic results and,
-just as importantly, allows for computing a list of scheduling
-decisions in advance, designed to try to provoke the system into a new
-state. This is the basis for the systematic concurrency testing
-implementation.
+parameter when testing. Doing things this way allows for deterministic
+results and, just as importantly, allows for computing a list of
+scheduling decisions in advance, designed to try to provoke the system
+into a new state. This explicit computation of schedules is the basis
+for the systematic concurrency testing implementation.
 
 \begin{haskellcode}
 type Scheduler s = s
@@ -36,7 +36,6 @@ roundRobinSched _ Nothing _ = (0, ())
 roundRobinSched _ (Just (prior, _)) threads
   | prior >= maximum threads' = (minimum threads', ())
   | otherwise = (minimum (filter (>prior) threads'), ())
-
   where threads' = map fst (toList threads)
 \end{haskellcode}
 
@@ -50,8 +49,8 @@ guarantee that there \emph{are} threads to run: if there are no
 runnable threads, the execution terminates, signalling a deadlock
 condition.
 
-The \verb|ThreadAction| type is a record of what has been done, and
-the \verb|Lookahead| type is a slightly simpler view of what will
+The \verb|ThreadAction| type is a record of what has happened. The
+\verb|Lookahead| type is a slightly simpler view of what will
 happen. The two types cannot be the same, because in general the
 effect of performing a primitive action at some point in the future
 cannot be determined, due to interactions between threads.
@@ -64,13 +63,12 @@ is exactly the set of threads created by \verb|AFork| which are not
 blocked.
 
 Under relaxed memory, however, this is not the case. In order to model
-the nondeterministic committing of \verb|CRef| writes, for every
-buffer with an uncommitted write (threads, under TSO; \verb|CRef|s,
-under PSO), a \emph{phantom thread} is created, and added to the
-runnable set. A phantom thread is a thread with only one action:
-\verb|ACommit|. These threads do not exist in the same way that other
-threads do, they are never added to the thread map, they only exist in
-order for the scheduler to determine when commits happen.
+the nondeterminism of \verb|CRef| writes, for every buffer with an
+uncommitted write (threads, under TSO; \verb|CRef|s, under PSO), a
+\emph{phantom thread} is created, and added to the runnable set. A
+phantom thread is a thread with only one action: \verb|ACommit|. These
+threads are never added to the thread map, they only exist in order
+for the scheduler to determine when commits happen.
 
 This may seem like an odd approach: why create new not-quite-threads
 in order to model relaxed memory? The advantage is that systematic
@@ -78,8 +76,5 @@ concurrency testing techniques assume there is only one source of
 nondeterminism: the scheduler. If a second source is added, such as
 when writes are committed, it is difficult to integrate this with
 existing algorithms. By using phantom threads, the two sources of
-nondeterminism are unified, and existing algorithms just work. This
-approach was suggested by \citep{rdpor}.
-
-This approach also ensures that \verb|ACommit| actions are never
-introduced under a sequentially-consistent memory model.
+nondeterminism are unified, and existing algorithms just work. The
+phantom thread approach was suggested by \citep{rdpor}.

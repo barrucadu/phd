@@ -6,17 +6,13 @@ Execution of an entire computation proceeds in a stepwise manner: a
 thread is chosen by the scheduler, its primitive action is executed,
 and a new action is returned to be executed by that thread in the next
 step. In order to model all the possible effects, this step function
-returns a completely new set of threads and identifier source.
+returns a completely new set of threads and identifier source. The
+identifier source is used to produce fresh thread, \verb|CRef|,
+\verb|CVar|, and \verb|CTVar| identifiers.
 
-Normally only the chosen thread will be modified, but this allows, for
-example, \verb|AFork| to create new threads, and \verb|AThrowTo| to
-terminate other threads. The identifier source is used to produce
-fresh thread, \verb|CRef|, \verb|CVar|, and \verb|CTVar| identifiers.
-
-After the scheduler is consulted to choose a thread, a function is
+After the scheduler chooses a thread for evaluation, a function is
 called to evaluate the next step of that thread. The simplest thing
-that a thread can do is to stop, which will serve as a useful
-example:
+that a thread can do is to stop, which will serve as a useful example:
 
 \begin{haskellcode}
 stepStop = simple (kill tid threads) Stop
@@ -28,12 +24,12 @@ The \verb|simple| function is defined as follows:
 simple threads' act = return (Right (threads', idSource, act, wb))
 \end{haskellcode}
 
-The effect of \verb|stepStop| can be read as: remove the current
-thread from the map of live threads (the \verb|kill tid threads| bit);
-and then return the new thread map and the name of the action to
-appear in the trace (\verb|Stop|, here). \verb|simple| is a helper
-function for actions which don't modify the identifier source or have
-any relaxed-memory effects.
+The effect of \verb|stepStop| is to: remove the current thread from
+the map of live threads (the \verb|kill tid threads| bit), and then
+return the new thread map and the name of the action to appear in the
+trace (\verb|Stop|, here). The \verb|simple| helper function is for
+actions which don't modify the identifier source or have any
+relaxed-memory effects.
 
 The \verb|Right|\footnote{The type \texttt{Either a b} type is
   commonly used to represent computations that might fail with an
@@ -42,8 +38,8 @@ The \verb|Right|\footnote{The type \texttt{Either a b} type is
   means that the computation succeeded, producing \texttt{x}.}
 indicates that the action completed successfully. There are a few
 different possible failures, such as an uncaught exception, which will
-terminate the current thread. If the main thread is terminated like
-so, the entire computation terminates with that failure.
+terminate the current thread. If the main thread is terminated, the
+entire computation terminates.
 
 Another simple action that a thread can perform is \verb|AReturn|:
 
@@ -51,9 +47,8 @@ Another simple action that a thread can perform is \verb|AReturn|:
 stepReturn c = simple (goto c tid threads) Return
 \end{haskellcode}
 
-The effect of \verb|stepReturn| can be read as: extract the
-continuation of the action and replace the continuation of the current
-thread with it.
+The effect of \verb|stepReturn| is to: extract the continuation of the
+action and replace the continuation of the current thread with it.
 
 \subsubsection{Threading}
 \label{sec:execution-stepwise-threading}
@@ -72,25 +67,24 @@ data Thread n r s = Thread
 \end{haskellcode}
 
 The \verb|continuation| field contains the action to execute in the
-next step. \verb|blocking| records whether the thread is blocked and,
-if so, what it is waiting for. \verb|handlers| is the stack of
-exception handlers. \verb|masking| is the masking state. \verb|known|
+next step; \verb|blocking| records whether the thread is blocked and,
+if so, what it is waiting for; \verb|handlers| is the stack of
+exception handlers; \verb|masking| is the masking state; \verb|known|
 is the collection of \verb|CVar|s and \verb|CTVar|s the thread is
-known to have access to. \verb|allknown| indicates whether
+known to have access to; \verb|allknown| indicates whether
 \verb|_concAllKnown| has been called in this thread. If
 \verb|allknown| is \verb|True| for all threads, then detection of
 deadlocks only involving a subset of the threads is possible.
 
-Furthermore, a simple map is used to keep track of all the threads
-currently extant:
+A map is used to keep track of all current threads:
 
 \begin{haskellcode}
 type Threads n r s = Map ThreadId (Thread n r s)
 \end{haskellcode}
 
-There are a number of functions to ease manipulating this structure,
-\verb|kill| and \verb|goto| are two. Another is \verb|launch|, used to
-create a new thread:
+There are helper functions to manipulate this map: \verb|kill| and
+\verb|goto| are two; another is \verb|launch|, used to create a new
+thread:
 
 \begin{haskellcode}
 stepFork a b = return (Right (threads', idSource', Fork newtid, wb)) where
@@ -98,11 +92,11 @@ stepFork a b = return (Right (threads', idSource', Fork newtid, wb)) where
   (idSource', newtid) = nextTId idSource
 \end{haskellcode}
 
-This is somewhat more complex than the two examples seen before, as it
-involves two modifications to the thread map: firstly, a new thread is
-created (and inherits the masking state of its parent), secondly the
-continuation of the current thread is updated. Here \verb|simple|
-cannot be used, as the identifier source is being modified.
+The \verb|stepFork| function involves two modifications to the thread
+map: firstly, a new thread is created (and inherits the masking state
+of its parent); secondly the continuation of the current thread is
+updated. Here \verb|simple| cannot be used, as the identifier source
+is being modified.
 
 Both \verb|AMyTId| and \verb|AYield| follow the \verb|simple| pattern:
 
@@ -111,10 +105,9 @@ stepMyTId c = simple (goto (c tid) tid threads) MyThreadId
 stepYield c = simple (goto c tid threads) Yield
 \end{haskellcode}
 
-Note that \verb|AYield| does not have any special implementation
-here. Its effect is purely a scheduling concern; from the point of
-view of updating the state of the system, it is no different to
-\verb|AReturn|.
+Note that \verb|AYield| needs no special implementation. Its effect is
+purely a scheduling concern; from the point of view of updating the
+state of the system, it is no different to \verb|AReturn|.
 
 \subsubsection{\texttt{CRef}s and Relaxed Memory}
 \label{sec:execution-stepwise-cref}
@@ -126,10 +119,7 @@ newtype CRef r a = CRef (CRefId, r (Map ThreadId a, Integer, a))
 A \verb|CRef| is implemented as a mutable reference containing a
 \emph{globally visible} value, a counter of how many write commits
 there have been, and a number of \emph{thread-specific} values. These
-thread-specific values correspond to uncommitted writes, and so only
-show up when using relaxed memory.\footnote{The
-  \texttt{name@(pattern)} syntax is called an \emph{as-pattern}. The
-  name before the \texttt{@} can refers to the entire value.}
+thread-specific values correspond to uncommitted writes.
 
 \begin{haskellcode}
 newtype Ticket a = Ticket (CRefId, Integer, a)
@@ -140,17 +130,21 @@ for, what the write count was when it was produced, and the
 thread-specific value seen by its creating thread. Checking if a
 \verb|CRef| has been modified since the creation of a \verb|Ticket|
 becomes very simple with this implementation: the write counts are
-compared.
+compared.\footnote{The \texttt{name@(pattern)} syntax is called an
+  \emph{as-pattern}. The name before the \texttt{@} can refers to the
+  entire value.}
 
 \begin{haskellcode}
 stepWriteRef cref@(CRef (crid, _)) a c = case memtype of
 \end{haskellcode}
 
-There are three memory models supported by \dejafu{}, each of which
-has a different implementation for writing to a \verb|CRef|. Firstly,
-sequential consistency. This does not have any relaxed memory
-effects:\footnote{This is an emple of \emph{do notation}, which is a
-  convenient synctatic sugar for composition of monadic functions.}
+There are three memory models supported by \dejafu{}. Each has a
+different implementation for writing to a \verb|CRef|.
+
+The first model assumes sequential consistency. There are no relaxed
+memory effects:\footnote{This is an emple of \emph{do notation}, which
+  is a convenient synctatic sugar for composition of monadic
+  functions.}
 
 \begin{haskellcode}
   SequentialConsistency -> do
@@ -161,9 +155,11 @@ effects:\footnote{This is an emple of \emph{do notation}, which is a
 The \verb|writeImmediate| function writes to the globally visible
 value, and clears the thread-specific values.
 
-Total store order (TSO) corresponds to an architecture where each
-thread has its own cache: writes made by a thread will be cached, but
-they will be committed in that same order to main memory:
+The second model, total store order (TSO) corresponds to an
+architecture where each thread has its own cache. Total store order
+corresponds to modern x86 and x86\_64 processors. Writes made by a
+thread will be cached, but they will be committed in that same order
+to main memory:
 
 \begin{haskellcode}
   TotalStoreOrder -> do
@@ -172,8 +168,7 @@ they will be committed in that same order to main memory:
 \end{haskellcode}
 
 The \verb|bufferWrite| function appends a write to the relevant write
-buffer, in this case the one corresponding to that thread. Total store
-order corresponds to modern x86 and x86\_64 processors.
+buffer, in this case the one corresponding to that thread.
 
 Partial store order (PSO) is a more relaxed version of total store order,
 where the writes a thread makes may not necessarily be committed in
@@ -189,14 +184,14 @@ rather than each thread:
 Both the TSO and PSO cases update the thread-specific map. A thread
 will always see the writes it has made, but other threads may not.
 
-The compare-and-swap write is a little different, as this has the
-effect of being a memory barrier: any uncommitted writes to any
-\verb|CRef| are committed before the CAS is done, and the result is
-immediately globally visible. There is a \verb|synchronised| function
-for actions which have this barrier property:\footnote{The \texttt{\$}
-  operator is function application, but with a very low
-  precedence. This makes it convenient for avoiding parentheses, which
-  can be more readable when multi-line expressions are involved.}
+The compare-and-swap write is a little different. It has the effect of
+a memory barrier: any uncommitted writes to any \verb|CRef| are
+committed before the CAS is done, and the result is immediately
+globally visible. There is a \verb|synchronised| function for actions
+with this barrier property:\footnote{The \texttt{\$} operator is
+  function application, but with a very low precedence. This makes it
+  convenient for avoiding parentheses, which can be more readable when
+  multi-line expressions are involved.}
 
 \begin{haskellcode}
 stepCasRef cref@(CRef (crid, _)) tick a c = synchronised $ do
@@ -216,7 +211,6 @@ The implementation of \verb|synchronised| is as follows:
 synchronised ma = do
   writeBarrier wb
   res <- ma
-
   case res of
     Right (threads', idSource', act', _) -> return
       (Right (threads', idSource', act', emptyBuffer))
@@ -224,9 +218,9 @@ synchronised ma = do
 \end{haskellcode}
 
 Here \verb|writeBarrier| commits all cached writes. The action is then
-executed, and an empty write buffer returned. This is why
-\verb|simple| can be used in the implementation of \verb|stepModRef|
-despite the write buffer being changed.
+executed, and an empty write buffer returned. So \verb|simple| can be
+used in the implementation of \verb|stepModRef| despite the write
+buffer being changed.
 
 Cached writes can be committed to the globally visible value (at which
 point the thread-specific values disappear) by executing an
@@ -237,18 +231,16 @@ stepCommit t c = do
   wb' <- case memtype of
     TotalStoreOrder   -> commitWrite wb t
     PartialStoreOrder -> commitWrite wb c
-
   return (Right (threads, idSource, CommitRef t c, wb'))
 \end{haskellcode}
 
-The \verb|commitWrite| function is used here. Note how the invocation
-differs between the cases: under TSO, the cache corresponding to the
-thread is used; whereas under PSO, the cache corresponding to the
-\verb|CRef| is used. There is no case for sequential consistency here,
-as commit actions are not explicitly introduced by the program under
-test; they are introduced by the test runner when executing under a
-relaxed memory model. This is expanded upon in
-\sect{execution}{scheduling}.
+Note how the invocation of \verb|commitWrite| differs between the
+cases: under TSO, the cache corresponding to the thread is used;
+whereas under PSO, the cache corresponding to the \verb|CRef| is
+used. There is no case for sequential consistency here, as commit
+actions are not explicitly introduced by the program under test; they
+are introduced by the test runner when executing under a relaxed
+memory model. See \sect{execution}{scheduling}.
 
 \begin{haskellcode}
 stepModRef cref@(CRef (crid, _)) f c = synchronised $ do
@@ -266,8 +258,8 @@ stepModRefCas cref@(CRef (crid, _)) f c = synchronised $ do
 
 The modification is made globally visible by the use of
 \verb|writeImmediate|. Here \verb|casCRef| is used in the
-implementation \verb|stepModRefCas|, because it is strict in the value
-written, which \verb|writeImmediate| is not.
+implementation of \verb|stepModRefCas|, making it strict in the value
+written.
 
 Reading a reference is quite simple:
 
@@ -284,24 +276,22 @@ stepReadRefCas cref@(CRef (crid, _)) c = do
   simple (goto (c tick) tid threads) (ReadRefCas crid)
 \end{haskellcode}
 
-The \verb|readCRef| function checks if there is a cached value for
-that thread and, if so, returns it. Otherwise it returns the globally
-visible value. The \verb|readForTicket| function behaves similarly,
-but returns a \verb|Ticket| rather than the current value.
+The \verb|readCRef| function checks if there is a cached value for the
+current thread and, if so, returns it. Otherwise it returns the
+globally visible value. The \verb|readForTicket| function behaves
+similarly, but returns a \verb|Ticket| rather than the current value.
 
 Creating a new \verb|CRef| looks a little more involved, but it is
-really quite simple. Firstly, a new mutable reference containing the
-given value and no thread-specific values is created; then this is
+really quite simple. Firstly, a new mutable reference is created
+containing the given value and no thread-specific values; then this is
 packaged up into a \verb|CRef| by giving it a unique identifier;
 finally the thread is given it:
 
 \begin{haskellcode}
 stepNewRef a c = do
   ref <- newRef (empty, 0, a)
-
   let (idSource', newcrid) = nextCRId idSource
   let threads' = goto (c (CRef (newcrid, ref))) tid threads
-
   return (Right (threads', idSource', NewRef newcrid, wb))
 \end{haskellcode}
 
@@ -321,20 +311,15 @@ new \verb|CRef|:
 \begin{haskellcode}
 stepNewVar c = do
   ref <- newRef Nothing
-
   let (idSource', newcvid) = nextCVId idSource
   let threads' = knows [Left newcvid] tid
                  (goto (c (CVar (newcvid, ref))) tid threads)
-
   return (Right (threads', idSource', New newcvid, wb))
 \end{haskellcode}
 
 There is a difference, however. The \verb|knows| function is used to
 record that a thread has a reference to a \verb|CVar| or \verb|CTVar|,
-which can be used to improve deadlock detection.
-
-Fortunately there is a lot of similarity between the \verb|CVar|
-functions, which makes them easy to follow.
+which may improve deadlock detection.
 
 \begin{haskellcode}
 stepPutVar cvar@(CVar (cvid, _)) a c = synchronised $ do
@@ -366,16 +351,13 @@ stepTryTakeVar cvar@(CVar (cvid, _)) c = synchronised $ do
 \end{haskellcode}
 %$
 
-The \verb|putInto|/\verb|readFrom|/\verb|takeFromCVar| functions, and
-their \verb|try| variants, handle waking threads which are blocked in
-the appropriate way on that \verb|CVar|. All such threads get woken at
-once, and a list of them is returned to be included in the execution
-trace. This is somewhat different to how GHC does things, where
-threads blocked on an \verb|MVar| are woken up in a FIFO order to
-guarantee fairness. The current behaviour was chosen because there is
-no standard for Haskell concurrency, and so that ordering is only an
-implementation detail which could, conceivably, be changed in the
-future if another were judged more desirable.
+The functions \verb|putInto|, \verb|readFrom|, and
+\verb|takeFromCVar|, and their \verb|try| variants, handle waking
+threads which. All such threads get woken at once, and a list of them
+is returned to be included in the execution trace. GHC does things
+differently: threads blocked on an \verb|MVar| are woken up in a FIFO
+order to guarantee fairness. That ordering is only an implementation
+detail which could change in the future.
 
 \subsubsection{Exceptions}
 \label{sec:execution-stepwise-exception}
@@ -389,15 +371,14 @@ whereas the masking state only affects exceptions raised by
 stepCatching h ma c = simple threads' Catching where
   a     = runCont ma      (APopCatching . c)
   e exc = runCont (h exc) (APopCatching . c)
-
   threads' = goto a tid (catching e tid threads)
 \end{haskellcode}
 
-This introduces the \verb|APopCatching| action, at the end of both the
-enclosed action, and at the end of the handler. This is necessary
-because actions are executed one at a time, and so we cannot just run
-the entire inner computation in one go and then check the result for
-an uncaught exception.
+Note the \verb|APopCatching| action, at the ends of the enclosed
+action and the handler. This action is necessary because actions are
+executed one at a time. We cannot just run the entire inner
+computation in one go and then check the result for an uncaught
+exception.
 
 \begin{haskellcode}
 stepPopCatching a = simple threads' PopCatching where
@@ -439,18 +420,16 @@ stepThrowTo t e c = synchronised $
 \end{haskellcode}
 %$
 
-Firstly, whether the thread is interruptible is checked. If it's not,
-the current thread is blocked. If it is interruptible, then the
-exception is propagated through its handler stack. If a handler is
-found, the thread jumps to it, throwing away whatever it was going to
-do next. If a handler is not found, the thread is killed. If the
-thread is killed and is the main thread, the entire computation
-terminates.
+Firstly, whether the thread is interruptible is checked. If not, the
+current thread is blocked. If it is interruptible, then the exception
+is propagated through its handler stack. If a handler is found, the
+thread jumps to it, throwing away whatever it was going to do next. If
+a handler is not found, the thread is killed. If the main thread is
+killed, the entire computation terminates.
 
 \begin{haskellcode}
 stepMasking m ma c = simple threads' (SetMasking False m) where
   a = runCont (ma umask) (AResetMask False False m' . c)
-
   m' = masking (lookup tid threads)
   umask mb = do
     resetMask True m'
@@ -458,11 +437,10 @@ stepMasking m ma c = simple threads' (SetMasking False m) where
     resetMask False m
     return b
   resetMask typ ms = cont (\k -> AResetMask typ True ms (k ()))
-
   threads' = goto a tid (mask m tid threads)
 \end{haskellcode}
 
-Similarly to \verb|ACatching|, \verb|AMasking| introduces an
+Like \verb|ACatching|, the \verb|AMasking| action introduces an
 additional action into its continuation: \verb|AResetMask|, which
 returns the masking state to what it originally was. It also
 constructs a function to execute an action with the original masking
@@ -477,9 +455,9 @@ stepResetMask b1 b2 m c = simple threads' action where
 \subsubsection{Software Transactional Memory}
 \label{sec:execution-stepwise-stm}
 
-As STM transactions are atomic, the implementation is vastly
-simplified. They are still implemented in terms of a step function,
-but it is just iterated until termination.
+As STM transactions are atomic, the implementation is comparatively
+simple. They are still implemented in terms of a step function, but it
+is just iterated until termination.
 
 Firstly, the transaction is executed:
 
@@ -491,12 +469,11 @@ stepAtom stm c = synchronised $ do
 \end{haskellcode}
 %$
 
-There are now three possible results: the transaction succeeded; the
-transaction aborted due to calling \verb|retry|; or the transaction
-aborted due to an uncaught exception.
+There are now three possible results as follows.
 
-If the transaction succeeds, all threads blocked on \verb|CTVar|s
-which were modified are woken:
+\begin{enumerate}
+\item The transaction succeeds. All threads blocked on \verb|CTVar|s
+  which were modified are woken:
 
 \begin{haskellcode}
     Success readen written val
@@ -504,8 +481,8 @@ which were modified are woken:
       in return (Right (goto (c val) tid threads', idSource', STM woken, wb))
 \end{haskellcode}
 
-If the transaction aborts due to \verb|retry|, the thread is blocked
-until any of the read \verb|CTVar|s are modified:
+\item The transaction aborts due to \verb|retry|. The thread is
+  blocked until any of the read \verb|CTVar|s are modified:
 
 \begin{haskellcode}
     Retry touched ->
@@ -513,16 +490,18 @@ until any of the read \verb|CTVar|s are modified:
       in return (Right (threads', idSource, BlockedSTM, wb))
 \end{haskellcode}
 
-If the transaction aborts due to an uncaught exception, the exception
-is thrown in the thread:
+\item The transaction aborts due to an uncaught exception. The
+  exception is thrown in the thread:
 
 \begin{haskellcode}
     Exception e -> stepThrow e
 \end{haskellcode}
 
-There are 9 primitive actions used to implement STM transactions,
-discussed in \sect{execution}{primops}. The implementation of two of
-them, \verb|SNew| and \verb|SLift|, are virtually identical to similar
+\end{enumerate}
+
+There are 9 primitive actions used to implement STM transactions, see
+\sect{execution}{primops}. The implementations of two of them,
+\verb|SNew| and \verb|SLift|, are virtually identical to similar
 primitives discussed elsewhere, and so will not be discussed here. The
 remaining primitives are \verb|SRead|, \verb|SWrite|, \verb|SCatch|,
 \verb|SOrElse|, \verb|SRetry|, \verb|SThrow|, and \verb|SStop|.
@@ -533,14 +512,13 @@ stepRead (CTVar (ctvid, ref)) c = do
   return (c val, nothing, [ctvid], [])
 \end{haskellcode}
 
-The most obvious difference is that there is only one thread of
-control. Moreover, a new transaction is built up to \emph{undo} what
-has already been done (\verb|nothing| in this case), so that a
-transaction can be reverted. Furthermore, lists of the \verb|CTVar|s
-read from and written to are constructed.
+A new transaction is built up to \emph{undo} what has already been
+done (\verb|nothing| in this case), so that a transaction can be
+reverted. Furthermore, lists of the \verb|CTVar|s read from and
+written to are constructed.
 
 There are no relaxed memory effects in STM transactions, so reading
-and writing is incredibly simple.
+and writing is simple.
 
 \begin{haskellcode}
 stepWrite (CTVar (ctvid, ref)) a c = do
@@ -552,8 +530,8 @@ stepWrite (CTVar (ctvid, ref)) a c = do
 Here we see the inverse transaction being built up: to undo a write,
 write the old value.
 
-The handling of exceptions is vastly simplified, as \verb|SCatch| can
-just execute the entire inner transaction and examine the result:
+The handling of exceptions is also simple, as \verb|SCatch| can just
+execute the entire inner transaction and examine the result:
 
 \begin{haskellcode}
 stepCatch h stm c = onFailure stm c
@@ -576,16 +554,15 @@ onFailure stm onSuccess onRetry onException = do
   (res, undo) <- doTransaction stm
   case res of
     Success readen written val -> return (onSuccess val, undo, readen, written)
-
     Retry readen  -> onRetry readen
     Exception exc -> onException exc
 \end{haskellcode}
 
 The effect of \verb|stepCatch|, then, is to run the entire inner
 transaction. If it throws an exception, and the exception is of the
-right type for the handler, the handler is executed. If the handler
-throws an exception, it is not dealt with. If the exception is not of
-the right type for the handler, it propagates upwards.
+right type for the handler, the handler is executed. If the exception
+is not of the right type for the handler, or the handler throws an
+exception, it propagates upwards.
 
 The implementation of \verb|SOrElse| is actually quite similar to
 \verb|SCatch|: it runs the entire first transaction and, if it aborts
@@ -612,15 +589,15 @@ perform is one of these three.
 \label{sec:execution-stepwise-annotations}
 
 Normally \dejafu{} can only detect a deadlock when \emph{every} thread
-is blocked. However, it may be the case that a smaller collection of
-threads are deadlocked, if they are all blocked on a \verb|CVar| which
-no thread outside the collection has a reference to, for example. GHC
-can do this sort of deadlock detection using its garbage collector,
-and can signal to threads when they are blocked.
+is blocked. However, a smaller collection of threads may be
+deadlocked.  For example, they may all be blocked on a \verb|CVar| to
+which no thread outside the collection has a reference.
 
-\dejafu{} does not have access to the garbage collector, and so relies
-on programmer-provided hints about which \verb|CVar|s and
-\verb|CTVar|s are known about by which threads.
+GHC can do this sort of deadlock detection using its garbage
+collector, and can signal to threads when they are blocked. \dejafu{}
+does not have access to the garbage collector, and so relies on
+programmer-provided hints about which \verb|CVar|s and \verb|CTVar|s
+are known about by which threads.
 
 \begin{haskellcode}
 stepKnowsAbout v c = simple (knows   [v] tid (goto c tid threads)) KnowsAbout
@@ -629,20 +606,20 @@ stepAllKnown     c = simple (fullknown   tid (goto c tid threads)) AllKnown
 \end{haskellcode}
 
 The \verb|knows| and \verb|forgets| functions are used to modify the
-set of variables that a thread is known to have a reference to. The
+set of variables to which a thread is known to have a reference. The
 \verb|fullknown| function indicates that this set is complete.
 
 If every thread is in a fully-known state, then the deadlock detection
-algorithm is enhanced to: for a given thread blocked on a \verb|CVar|
-or \verb|CTVar|, if no other thread \emph{which is not also blocked on
+algorithm is enhanced: for a given thread blocked on a \verb|CVar| or
+\verb|CTVar|, if no other thread \emph{which is not also blocked on
   the same thing} has a reference to that variable, then the thread is
 deadlocked.
 
 \subsubsection{Lifting from the Underlying Monad}
 \label{sec:execution-stepwise-lift}
 
-Because all of the step functions are defined in terms of the
-underlying monad, lifting an action is incredibly simple:
+Because all step functions are defined in terms of the underlying
+monad, lifting an action is easy:
 
 \begin{haskellcode}
 stepLift na = do
