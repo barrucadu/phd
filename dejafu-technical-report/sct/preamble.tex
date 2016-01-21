@@ -1,22 +1,23 @@
 Once the scheduling behaviour of a program can be directed at will,
-there is the ability to implement \emph{systematic}
-testing. Systematic concurrency testing (SCT) comprises a family of
-techniques, all with the same general aim: to try to find bugs in
-concurrent programs, more reliably than running a program several
-times. Within this scope, there are techniques which are
+the next step is \emph{systematic} testing of programs for a carefully
+chosen variety of schedules. Systematic concurrency testing (SCT)
+comprises a family of techniques, all with the same general aim: to
+try to find bugs in concurrent programs, more reliably than running a
+program several times. Within this scope, some techniques are
 \emph{complete}, in that they find all possible results a program
-could produce; and \emph{incomplete}, which do not make such a
+could produce; others are \emph{incomplete}, as there is no such
 guarantee.
 
 SCT works by providing an initial sequence of scheduling decisions
-intended to put the program into a new state. After this point some
-deterministic scheduler is used, and the final trace examined to
-produce new initial sequences. Typically the assumption is made that
-all executions are \emph{terminating}: all possible sequences of
-scheduling decisions will lead to a termination by deadlock or
-otherwise. Another common assumption is that there is a \emph{finite}
-number of possible schedules: this forbids finite but arbitrarily long
-executions, as can be created with constructs such as spinlocks.
+intended to put the program into a new internal state. After this
+point some deterministic scheduler is used, and the final trace is
+examined to produce new initial sequences. Typically the assumption is
+made that all executions are \emph{terminating}: all possible
+sequences of scheduling decisions will lead to a termination by
+deadlock or otherwise. Another common assumption is that there is a
+\emph{finite} number of possible schedules: this forbids finite but
+arbitrarily long executions, as can be created with constructs such as
+spinlocks.
 
-Systematic testing terminates when there are no more unique initial
-sequences possible.
+Systematic testing terminates when there are no further distinct
+initial sequences possible.

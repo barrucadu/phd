@@ -9,8 +9,8 @@ performed could affect the result of the program:
   binary, reflexive, and symmetric relation $\mathcal D \subseteq
   \mathcal T \times \mathcal T$ is a valid \emph{dependency relation}
   iff, for all $t_{1}, t_{2} \in \mathcal T$, $(t_{1}, t_{2}) \notin
-  \mathcal D$ ($t_{1}$ and $t_{2}$ are \emph{independent}) implies
-  that the following properties hold for all program states $s$:
+  \mathcal D$ ($t_{1}$ and $t_{2}$ are \emph{independent})
+  following properties hold for all program states $s$:
 
   \begin{enumerate}
   \item if $t_{1}$ is enabled in $s$ and $s \xrightarrow{t_{1}} s'$,
@@ -23,14 +23,14 @@ performed could affect the result of the program:
 
 In other words, independent transitions cannot enable or disable each
 other, and enabled independent transitions commute. Rather than use
-this relational definition directly, typically instead a collection of
-conditions sufficient for dependency are identified. These conditions
-are determined by what sorts of things the concurrent system under
-test can express.
+this relational definition directly, typically some sufficient
+conditions for dependency are identified. These conditions are
+determined by what sorts of things the concurrent system under test
+can express.
 
-Typically for the presentation of algorithms, a very simple core
-concurrent language of just reads and writes is shown. This gives rise
-to the following dependency condition:
+Typically, the presentation of algorithms assumes a very simple core
+concurrent language of just reads and writes. This gives rise to the
+following dependency condition:
 
 \begin{align*}
   x \dependent y \iff& \mathrm{thread\_id}(x) = \mathrm{thread\_id}(y) \lor\\
@@ -43,7 +43,7 @@ choice of notation would suggest a symbol $\leftrightarrow$ meaning
 independence, but that doesn't seem to be used.
 
 The dependency relation for \dejafu{} is rather more complex than
-this, as there are more actions than just reads and writes, however it
+this, as there are more actions than just reads and writes. However it
 can be simplified to a few quite general conditions over different
 sorts of reads and writes, with some remaining special cases.
 
@@ -59,7 +59,7 @@ dependent (t1, a1) (t2, a2) = case (a1, a2) of
 
 \begin{itemize}
 \item Two lifts from the underlying monad are always dependent, as in
-  general this allows arbitrary I/O to be performed. The only
+  general a monad may allow arbitrary I/O to be performed. The only
   restriction over I/O is that, given a fixed schedule, the I/O is
   deterministic.
 
@@ -78,18 +78,15 @@ terminates, there is a dependency between the last action in a trace
 
 The general cases are defined in terms of synchronised and
 unsynchronised actions. Synchronised actions commit all pending
-\verb|CRef| writes, and do not have any relaxed memory
-properties. Unsynchronised actions do not have this property.
+\verb|CRef| writes.
 
 \begin{haskellcode}
 dependentActions memtype buf a1 a2 = case (a1, a2) of
   (UnsynchronisedRead  r1, UnsynchronisedWrite r2) -> r1 == r2
   (UnsynchronisedWrite r1, UnsynchronisedRead  r2) -> r1 == r2
   (UnsynchronisedWrite r1, UnsynchronisedWrite r2) -> r1 == r2
-
   (UnsynchronisedRead r1, _) | isBarrier a2 -> isBuffered buf r1
   (_, UnsynchronisedRead r2) | isBarrier a1 -> isBuffered buf r2
-
   _ -> same crefOf && (isSynchronised a1 || isSynchronised a2) || same cvarOf
 \end{haskellcode}
 
@@ -99,9 +96,9 @@ dependentActions memtype buf a1 a2 = case (a1, a2) of
   memory model is because writes give rise to commits, which \emph{do}
   synchronise.
 
-\item An unsynchronised read is dependent with an action that imposes
-  a memory barrier if there are buffered writes to the variable being
-  read from.
+\item An unsynchronised read from a variable is dependent with an
+  action that imposes a memory barrier if there are buffered writes to
+  the same variable.
 
 \item Any two actions on the same \verb|CRef| where at least one of
   them will cause a commit are dependent.
@@ -136,10 +133,10 @@ later calls when a backtracking point is identified. As \dejafu{} is a
 Haskell library, this is not a very natural way to formulate anything,
 and so a different approach was taken.
 
-\dejafu{} explicitly constructs a graph structure in memory, where
-each path from the root to a leaf corresponds to one complete
-execution. Forks in the tree correspond to places where multiple
-decisions have been tried. The operation proceeds like so:
+\dejafu{} explicitly constructs a tree in memory, where each path from
+the root to a leaf corresponds to one complete execution. Forks in the
+tree correspond to places where multiple decisions have been
+tried. The operation proceeds as follows:
 
 \begin{haskellcode}
 sctBounded memtype bf run = go initialState where
@@ -148,9 +145,7 @@ sctBounded memtype bf run = go initialState where
       (result, s, trace) <- run decisions
       let bpoints = findBacktrack memtype s trace
       let newBPOR = todo bf bpoints (grow memtype trace state)
-
       ((result, trace) :) <$> go newState
-
     Nothing -> return []
 \end{haskellcode}
 %$
@@ -168,7 +163,7 @@ be generated; the \verb|bf| function is the bound function, expressed
 as a predicate.
 
 The entire process terminates when \verb|next| returns \verb|Nothing|,
-which means that there are no unexplored backtracking points left.
+as there are no unexplored backtracking points left.
 
 \subsubsection{Integration with Schedule Bounding}
 \label{sec:sct-por-bounding}
@@ -201,9 +196,9 @@ Due to the use of phantom threads, explained in
 \sect{execution}{scheduling}, almost nothing needs to be done to
 support relaxed memory!
 
-The \verb|dependentActions| function has some knowledge of it in order
-to make less pessimistic decisions, as otherwise the assumption would
-have to be made that there are always uncommitted writes. The only
-other change is related to the integration with schedule bounding: a
-pre-emption immediately before (or immediately after) a phantom thread
-is free.
+The \verb|dependentActions| function has some knowledge of relaxed
+memory in order to make less pessimistic decisions, as otherwise the
+assumption would have to be made that there are always uncommitted
+writes. The only other change is related to the integration with
+schedule bounding: a pre-emption immediately before (or immediately
+after) a phantom thread is free.
