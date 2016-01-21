@@ -24,8 +24,9 @@ data BPOR = BPOR
 The \verb|runnable| field is the set of all threads runnable at that
 point; \verb|todo| is the decisions still to try making; \verb|done|
 is the decisions already made; and \verb|action| is what was done at
-this step. \verb|action| is a \verb|Maybe| value, because initially no
-action has been performed, as the computation hasn't yet started.
+this step. The \verb|action| field has a \verb|Maybe| type, because
+initially no action has been performed, as the computation hasn't yet
+started.
 
 There is a unique initial state, where only the initial thread is
 runnable and nothing has been done:
@@ -72,7 +73,7 @@ things to be proved are:
   tree, making no other changes.
 \end{itemize}
 
-Data structure invariants are an important property to verify, as if
+Data structure invariants are important properties to verify, as if
 they are broken any assumptions made in the rest of the code cannot be
 trusted.
 
@@ -84,8 +85,7 @@ results possible by executing a given program for real, the
 partial-order reduction framework can give that result.
 
 However, as schedule bounding is involved, this is clearly not the
-case. Therefore, there are two different notions of completeness which
-are of interest:
+case. Here are two different notions of completeness:
 
 \begin{itemize}
 \item If the bounds are all set to $\infty$, all results possible
@@ -102,9 +102,9 @@ former, and is the more interesting property. The latter is what we
 really want of our testing framework.
 
 The proof would need to proceed by first showing that the dependency
-relation is correct: that only actions related by the dependency
-relation can influence each others results. It's not clear how to
-approach this, as it relies on the implementation of the actions. Once
-the correctness of the dependency relation is established, it must be
+relation is correct: only actions related by the dependency relation
+can influence each others results. It's not clear how to approach
+this, as it relies on the implementation of the actions. Once the
+correctness of the dependency relation is established, it must be
 shown that the partial-order reduction only prunes schedules where
 there is no dependency.

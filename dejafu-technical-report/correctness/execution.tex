@@ -1,7 +1,7 @@
 Correctness of execution asks whether the result of an arbitrary
-execution of \dejafu{}'s testing implementation happen in reality.
-Furthermore, do all real-world executions correspond to a possible
-execution under \dejafu{}? To put it more simply:
+execution of \dejafu{}'s testing implementation can be obtained in
+reality.  Furthermore, do all real-world executions correspond to a
+possible execution under \dejafu{}? To put it more simply:
 
 \begin{itemize}
 \item Is the behaviour of the primitive functions the same?
@@ -24,13 +24,13 @@ correspondence between the \dejafu{} primitives and the GHC
 primitives, and the higher-level \verb|MonadConc| functions and the
 higher-level functions in Control.\-Concurrent.
 
-This approach was not taken, however. Firstly, it ties the
+This approach was not taken, however. Firstly, it would tie the
 implementation and correctness of \dejafu{} very closely to the
 implementation of GHC; in principle the implementation of GHC's
 concurrency primitives could be completely changed but the behaviour
-preserved. Secondly, this restricts \dejafu{} to a very specific type
-of concurrency, supporting low-level operations, which may not map to
-all interesting implementations of concurrency.
+preserved. Secondly, it would restrict \dejafu{} to a very specific
+type of concurrency, supporting low-level operations, which may not
+map to all interesting implementations of concurrency.
 
 Instead, a reimplementation of GHC's concurrency based on the
 documented and observable behaviour of the various functions was
@@ -42,16 +42,16 @@ standard for concurrent Haskell, there is only what GHC provides.
 The correctness of operations using \verb|CRef|s is complicated even
 further, as the behaviour of these depends on the underlying memory
 model. Total store order was chosen to be the default, as it is what
-x86 processors do with unsynchronised memory accesses, but a
+x86 processors do with unsynchronised memory accesses. But a
 \verb|CRef| is more complicated than a simple memory cell: it is a
 pointer to a cell, which can be moved around in garbage collection,
 and it is accessed through primitive operations more complicated than
 simple loads and stores. The lack of a standard, or even comprehensive
-documentation, means that in order to formally establish the memory
-model for \verb|CRef|s, the compilation of \verb|IORef| functions must
-be traced through GHC from Haskell source to machine code. As GHC uses
-C{-}{-} as an intermediary language, this may also require determining
-a memory model for C{-}{-}.
+documentation, means that to discover the memory model for
+\verb|CRef|s, the compilation of \verb|IORef| functions must be traced
+through GHC from Haskell source to machine code. As GHC uses C{-}{-}
+as an intermediary language, this may also require determining a
+memory model for C{-}{-}.
 
 Finally, there are some intended departures from the behaviour of
 GHC's behaviour documented in \sect{abstraction}{typeclass}:
@@ -84,7 +84,8 @@ how GHC handles scheduling:
   benchmark-style code, however).}{controlConcurrent}
 
 That is, GHC allows for pre-emptions to occur whilst evaluating pure
-code, which the stepwise executor does not. There are executions
+code, which the stepwise executor does not. So there are executions
 involving the pre-emption of the evaluation of non-terminating
-expressions which are possible under GHC but not under \dejafu{}, but
-whether this can be used to produce different outputs is less clear.
+expressions which are possible under GHC but not under
+\dejafu{}. Whether this can be used to produce different outputs is
+less clear.
