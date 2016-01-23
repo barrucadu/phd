@@ -1,9 +1,16 @@
 A tool is effectively useless if it is too difficult to use. The main
 obstacle to the use of \dejafu{} is existing libraries which use
 \verb|IO|; one cannot simply use \verb|liftIO| everywhere, without
-almost certainly sacrificing completeness in all but trivial examples.
+almost certainly sacrificing completeness in all but trivial
+examples. Ideally, existing libraries would be modified to support the
+\verb|MonadConc| abstraction. However, this does not seem a likely
+short-term goal, and so a more promising way to approach the problem
+is to provide feature-complete alternatives to existing libraries. As
+adapting code to \verb|MonadConc| is not very difficult given the
+ability to also modify the dependencies, as seen in the Par monad case
+study, this is a viable short-term solution.
 
-A second, more tractable, problem, is integration with existing
-testing frameworks; using \dejafu{} for little stand-alone programs is
-all well and good, but in order to take off, it must be easy to use in
-the testing context people are already familiar with.
+A second, more tractable, problem is integration with existing testing
+frameworks; using \dejafu{} for little stand-alone programs is all
+well and good, but in order to take off, it must be easy to use in the
+testing context people are already familiar with.
