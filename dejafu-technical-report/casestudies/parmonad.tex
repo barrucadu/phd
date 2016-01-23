@@ -55,8 +55,9 @@ Some simplifications were made in the conversion process:
 \begin{itemize}
 \item \verb|Par| normally uses the
   \emph{mwc-random}\footnote{\hackage{mwc-random}} package when
-  performing its internal scheduling. This was initially replaced with
-  a constant function, and then a \verb|StdGen|.
+  performing its internal scheduling. This was replaced with a
+  \verb|StdGen|, as \emph{mwc-random} does not allow the user to
+  provide a seed.
 
 \item Behaviour of the \verb|Par| scheduler can be configured using
   cpp, but only the default configuration was tested.
@@ -66,6 +67,24 @@ Figure \ref{fig:example-parmonad-sched} shows the original and
 converted scheduler initialisation code. As can be seen, they are very
 similar, even though this is a core component of a rather
 sophisticated library, where the types have been changed.
+
+In total, there were 127 changed lines across the two modules of
+interest, out of 647 total. 47 of these were type signatures, 10 were
+type and data declarations, and 4 were typeclass instance
+declarations. Of the 66 remaining lines, over half were renaming
+\verb|*MVar| and \verb|*IORef| functions to their \verb|*CVar| and
+\verb|*CRef| equivalents. The remaining lines were a combination of
+import declarations, calls to \verb|getNumCapabilities| (\dejafu{}
+does not provide the \verb|numCapabilities| binding, which was used in
+several places), and replacing \verb|liftIO| with \verb|lift| from the
+\emph{mtl}\footnote{\hackage{mtl}} package.
+
+The refactoring was driven entirely by resolving type errors, after
+first parameterising the basic types on the underlying monad, rather
+than assuming \verb|IO|. The more general types could even be hidden
+from the user by providing type synonyms to supply \verb|IO| as the
+monad, making the new functionality purely an internal concern, but
+one which allows testing.
 
 Converting the \emph{abstract-deque} package proved a little more
 challenging, as the typeclass interface requires knowledge of both the
@@ -84,6 +103,13 @@ This solution is not ideal as it adds explicit knowledge of
 \verb|MonadConc| to the \verb|DequeClass| typeclass, but it suffices
 for testing purposes.
 
+Only 47 lines out of 342 across three modules needed change. 20 of
+these were in type signatures, 8 in type and data declarations, and 6
+in typeclass instances. The remaining lines were, again, renaming
+\verb|*IORef| functions to \verb|*CRef| equivalents, import
+statements, and the addition of a type family as displayed in the code
+sample above.
+
 With the constant value `PRNG', a deadlock was discovered. It only
 arises after 200 queries. Given that the range of values is from 0 to
 the number of capabilities, and the probability is uniformly
@@ -93,75 +119,9 @@ using the \verb|StdGen| generator, with a variety of initial seeds
 tried. If there is still a deadlock, it may require more than 2
 capabilities to manifest.
 
-\begin{landscape}
-\begin{figure*}[t]
-  \captionsetup{format=fnoline}
-  \centering
-  \begin{minipage}[t]{0.49\linewidth}
-    \begin{minted}{haskell}
-makeScheds :: Int -> IO [Sched]
-makeScheds main = do
-  caps <- getNumCapabilities
-  workpools <- replicateM caps R.newQ
-  rngs <- replicateM caps
-            (Random.create >>= newHotVar)
-  idle <- newHotVar []
+\input{casestudies/example-parmonad.tex}
 
-  sessionFinished <- newHotVar False
-  let sess = [Session baseSessionID sessionFinished]
-  sessionStacks <- mapM newHotVar
-                     (replicate caps sess)
-  activeSessions <- newHotVar S.empty
-  sessionCounter <- newHotVar (baseSessionID + 1)
-  let allscheds =
-       [ Sched { no=x, idle, isMain=(x==main),
-                 workpool=wp, scheds=allscheds,
-                 rng=rng, sessions=stck,
-                 activeSessions=activeSessions,
-                 sessionCounter=sessionCounter
-               }
-         | x    <- [0 .. caps-1]
-         | wp   <- workpools
-         | rng  <- rngs
-         | stck <- sessionStacks
-       ]
-  return allscheds
-    \end{minted}
-    \caption*{Original}
-  \end{minipage}
-  \begin{minipage}[t]{0.49\linewidth}
-    \begin{minted}{haskell}
-makeScheds :: MonadConc m => Int -> m [Sched m]
-makeScheds main = do
-  caps <- getNumCapabilities
-  workpools <- replicateM caps R.newQ
-  rngs <- replicateM caps
-            (newHotVar (mkStdGen 0))
-  idle <- newHotVar []
-
-  sessionFinished <- newHotVar False
-  let sess = [Session baseSessionID sessionFinished]
-  sessionStacks <- mapM newHotVar
-                     (replicate caps sess)
-  activeSessions <- newHotVar S.empty
-  sessionCounter <- newHotVar (baseSessionID + 1)
-  let allscheds =
-       [ Sched { no=x, idle, isMain=(x==main),
-                 workpool=wp, scheds=allscheds,
-                 rng=rng, sessions=stck,
-                 activeSessions=activeSessions,
-                 sessionCounter=sessionCounter
-               }
-         | x    <- [0 .. caps-1]
-         | wp   <- workpools
-         | rng  <- rngs
-         | stck <- sessionStacks
-       ]
-  return allscheds
-    \end{minted}
-    \caption*{\dejafu{}}
-  \end{minipage}
-  \caption{Par ``direct'' scheduler initialisation}
-  \label{fig:example-parmonad-sched}
-\end{figure*}
-\end{landscape}
+Due to the very contrived nature of the one deadlock found, and the
+length of the trace, it is not displayed here. If there is anything
+that can be taken away from this experiment with the Par monad, it is
+that it is very reliable.

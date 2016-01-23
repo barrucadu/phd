@@ -1,0 +1,52 @@
+\begin{figure}[h!]
+  \captionsetup{format=fnoline}
+  \centering
+  \begin{minted}{haskell}
+data UpdateSettings a = UpdateSettings
+    { updateFreq           :: Int
+    , updateSpawnThreshold :: Int
+    , updateAction         :: IO a
+    }
+
+defaultUpdateSettings :: UpdateSettings ()
+defaultUpdateSettings = UpdateSettings
+    { updateFreq           = 1000000
+    , updateSpawnThreshold = 3
+    , updateAction         = return ()
+    }
+
+mkAutoUpdate :: UpdateSettings a -> IO (IO a)
+mkAutoUpdate us = do
+    currRef      <- newIORef Nothing
+    needsRunning <- newEmptyMVar
+    lastValue    <- newEmptyMVar
+
+    void $ forkIO $ forever $ do
+        takeMVar needsRunning
+
+        a <- catchSome $ updateAction us
+
+        writeIORef currRef $ Just a
+        void $ tryTakeMVar lastValue
+        putMVar lastValue a
+
+        threadDelay $ updateFreq us
+
+        writeIORef currRef Nothing
+        void $ takeMVar lastValue
+
+    return $ do
+        mval <- readIORef currRef
+        case mval of
+            Just val -> return val
+            Nothing -> do
+                void $ tryPutMVar needsRunning ()
+                readMVar lastValue
+
+catchSome :: IO a -> IO a
+catchSome act = catch act $
+  \e -> return $ throw (e :: SomeException)
+  \end{minted}
+  \caption{\emph{auto-update} implementation}
+  \label{fig:example-autoupdate}
+\end{figure}

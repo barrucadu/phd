@@ -6,66 +6,17 @@ independently \citep{autoupdate}. Despite the core functionality being
 very simple, two race conditions were noticed by users inspecting the
 code in October 2014.
 
-\begin{figure}[t]
-  \captionsetup{format=fnoline}
-  \centering
-  \begin{minted}{haskell}
-data UpdateSettings a = UpdateSettings
-    { updateFreq           :: Int
-    , updateSpawnThreshold :: Int
-    , updateAction         :: IO a
-    }
-
-defaultUpdateSettings :: UpdateSettings ()
-defaultUpdateSettings = UpdateSettings
-    { updateFreq           = 1000000
-    , updateSpawnThreshold = 3
-    , updateAction         = return ()
-    }
-
-mkAutoUpdate :: UpdateSettings a -> IO (IO a)
-mkAutoUpdate us = do
-    currRef      <- newIORef Nothing
-    needsRunning <- newEmptyMVar
-    lastValue    <- newEmptyMVar
-
-    void $ forkIO $ forever $ do
-        takeMVar needsRunning
-
-        a <- catchSome $ updateAction us
-
-        writeIORef currRef $ Just a
-        void $ tryTakeMVar lastValue
-        putMVar lastValue a
-
-        threadDelay $ updateFreq us
-
-        writeIORef currRef Nothing
-        void $ takeMVar lastValue
-
-    return $ do
-        mval <- readIORef currRef
-        case mval of
-            Just val -> return val
-            Nothing -> do
-                void $ tryPutMVar needsRunning ()
-                readMVar lastValue
-
-catchSome :: IO a -> IO a
-catchSome act = catch act $
-  \e -> return $ throw (e :: SomeException)
-  \end{minted}
-  \caption{\emph{auto-update} implementation}
-  \label{fig:example-autoupdate}
-\end{figure}
+\input{casestudies/example-autoupdate.tex}
 
 The entire implementation, excluding comments and imports, is
 reproduced in Figure \ref{fig:example-autoupdate}. The
 \verb|mkAutoUpdate| function spawns a worker thread, which performs
 the update action at the given frequency, only if the
 \verb|needsRunning| flag has been set. It returns an action to attempt
-to read the current result, demanding one be computed and blocking
-until it has been done if there isn't one.
+to read the current result, if necessary blocking until there is
+one. The transformation to the \verb|MonadConc| typeclass is mostly
+simple, however the \verb|threadDelay| must be wrapped inside a call
+to \verb|liftIO|.
 
 The simpler race condition occurs if the reading thread is pre-empted
 by the worker thread after putting into \verb|needsRunning|, and does
@@ -73,10 +24,8 @@ not run again until after the delay has passed. In this case the
 worker thread can become blocked on taking for a second time from
 \verb|needsRunning|. The reader thread will be unable to read from
 \verb|lastValue| as the worker thread emptied it as the last action it
-performed. The transformation to the \verb|MonadConc| typeclass is
-mostly simple, however the \verb|threadDelay| must be wrapped inside a
-call to \verb|liftIO|. The first race condition can be exhibited with
-the following test:
+performed. The race condition can be exhibited with the following
+test:
 
 \begin{minted}{haskell}
 test :: (MonadConc m, MonadIO m) => m ()
@@ -85,7 +34,10 @@ test = do
   auto
 \end{minted}
 
-The output is as we would expect, knowing the bug is present:
+This test was chosen as it is one of the simplest things a user may
+wish to do with the library: to create the worker, and to then read
+the computed value. The output of testing shows the different results
+that were found, with a sample trace leading to each one:
 
 \begin{verbatim}
 > autocheckIO test
@@ -98,39 +50,72 @@ The output is as we would expect, knowing the bug is present:
 False
 \end{verbatim}
 
+The \verb|autocheckIO| function is used to search for deadlocks,
+uncaught exceptions in the main thread, and nondeterminism in
+results. It allows the use of \verb|liftIO|, there is an
+\verb|autocheck| function which does not.
+
+``S$n$'' indicates that thread $n$ began executing after the prior one
+blocked, ``P$n$'' indicates that thread $n$ pre-empted the prior
+one. It is also possible to obtain a richer data structure with a
+clearer account of what happened.
+
+To read this trace, it is helpful to look at the ``S'' points, rather
+than to count the steps. Using this tactic, we can see that a deadlock
+occurs if the initial thread runs until it blocks (which is the
+\verb|readMVar lastValue| call), then thread 1 runs until it blocks
+(the second time \verb|takeMVar needsRunning| is reached). At this
+point the initial thread is runnable, as it was unblocked by the write
+to \verb|lastValue|. This is scheduled, and immediately blocks because
+thread 1 took the value. Both threads are now blocked, and so the
+computation is deadlocked.
+
 This deadlock may arise in any use of the library, as it depends only
-on the timing of the delay, and not on the computation performed.
+on the timing of the delay, and not on the computation performed. If
+the call to \verb|threadDelay| completes before the reading thread has
+resumed execution, this situation will arise.
 
 The more complex race condition arises if \verb|readMVar| isn't
-atomic, as in GHC versions before 7.8. In this case an old value can
-be returned if the read of \verb|lastValue| is pre-empted between the
-internal take and put operations, as shown in this test:
+atomic, as in GHC versions before 7.8. The \verb|readMVar| function
+used to be a combination of a take and a put. In this case an old
+value can be returned if the read of \verb|lastValue| is pre-empted
+between these two operations, as shown in this test:
 
 \begin{minted}{haskell}
 test :: (MonadConc m, MonadIO m) => m Int
 test = do
   var  <- newCRef 0
-  auto <- mkAutoUpdate $ defaultUpdateSettings
-    { updateAction = modifyCRef var (\x -> (x+1, x)) }
-
+  let action = modifyCRef var $ \x -> (x+1, x)
+  auto <- mkAutoUpdate $ defaultUpdateSettings { updateAction = action }
   auto
   auto
 \end{minted}
-%$
 
 Here \verb|auto| is called twice to update the counter variable
 twice. Actually reproducing this bug requires a new \verb|readCVar|
-function be written, as the library does not currently provide an
-option for non-atomic reads. Exhibiting this bug requires three
-pre-emptions:
+function be written, which has the same behaviour as the old
+\verb|readMVar| function. Exhibiting this bug requires three
+pre-emptions. As we need to supply our own bounds, we cannot use
+\verb|autocheckIO|. The more \verb|dejafuIO'| function allows for the
+memory model and bounds to be specified:
 
 \begin{verbatim}
-> dejafuIO' TotalStoreOrder 3 5 test ("Consistent Result", alwaysSame)
+> let bounds = defaultBounds { preEmptionBound = Just 3 }
+> dejafuIO' TotalStoreOrder bounds test ("Consistent Result", alwaysSame)
 [fail] Consistent Result (checked: 23)
         [deadlock] S0------P1-S0---S1-----------S0-
         0 S0---------S1--------P0-----
         1 S0---------S1---------P0---P1--------P0---
 \end{verbatim}
+
+Here we see two different (non-deadlocking) results. The issue is the
+\verb|readMVar| in the main thread and the \verb|tryTakeMVar| followed
+by \verb|putMVar| in the other. If the main thread takes from the
+\verb|MVar| before the \verb|tryTake|, it will retrieve the prior
+value. This in itself is not a problem. However, if the main thread
+then puts that value back between the \verb|tryTake| and the
+\verb|put|, the \verb|put| will block, and not be able to store the
+updated value.
 
 Despite the bugs being rather simple, one not requiring any
 pre-emptions at all to trigger, they both arose in practice. How easy

@@ -1,0 +1,72 @@
+\begin{landscape}
+\begin{figure*}[t]
+  \captionsetup{format=fnoline}
+  \centering
+  \begin{minipage}[t]{0.49\linewidth}
+    \begin{minted}{haskell}
+makeScheds :: Int -> IO [Sched]
+makeScheds main = do
+  caps <- getNumCapabilities
+  workpools <- replicateM caps R.newQ
+  rngs <- replicateM caps
+            (Random.create >>= newHotVar)
+  idle <- newHotVar []
+
+  sessionFinished <- newHotVar False
+  let sess = [Session baseSessionID sessionFinished]
+  sessionStacks <- mapM newHotVar
+                     (replicate caps sess)
+  activeSessions <- newHotVar S.empty
+  sessionCounter <- newHotVar (baseSessionID + 1)
+  let allscheds =
+       [ Sched { no=x, idle, isMain=(x==main),
+                 workpool=wp, scheds=allscheds,
+                 rng=rng, sessions=stck,
+                 activeSessions=activeSessions,
+                 sessionCounter=sessionCounter
+               }
+         | x    <- [0 .. caps-1]
+         | wp   <- workpools
+         | rng  <- rngs
+         | stck <- sessionStacks
+       ]
+  return allscheds
+    \end{minted}
+    \caption*{Original}
+  \end{minipage}
+  \begin{minipage}[t]{0.49\linewidth}
+    \begin{minted}{haskell}
+makeScheds :: MonadConc m => Int -> m [Sched m]
+makeScheds main = do
+  caps <- getNumCapabilities
+  workpools <- replicateM caps R.newQ
+  rngs <- replicateM caps
+            (newHotVar (mkStdGen 0))
+  idle <- newHotVar []
+
+  sessionFinished <- newHotVar False
+  let sess = [Session baseSessionID sessionFinished]
+  sessionStacks <- mapM newHotVar
+                     (replicate caps sess)
+  activeSessions <- newHotVar S.empty
+  sessionCounter <- newHotVar (baseSessionID + 1)
+  let allscheds =
+       [ Sched { no=x, idle, isMain=(x==main),
+                 workpool=wp, scheds=allscheds,
+                 rng=rng, sessions=stck,
+                 activeSessions=activeSessions,
+                 sessionCounter=sessionCounter
+               }
+         | x    <- [0 .. caps-1]
+         | wp   <- workpools
+         | rng  <- rngs
+         | stck <- sessionStacks
+       ]
+  return allscheds
+    \end{minted}
+    \caption*{\dejafu{}}
+  \end{minipage}
+  \caption{Par ``direct'' scheduler initialisation}
+  \label{fig:example-parmonad-sched}
+\end{figure*}
+\end{landscape}

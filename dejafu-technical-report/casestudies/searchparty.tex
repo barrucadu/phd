@@ -1,10 +1,16 @@
 The \emph{Search Party}\footnote{\github{barrucadu}{search-party}}
 library supports speculative parallelism in generate-and-test search
-problems. It is motivated by the consideration that: if multiple
+problems. It is motivated by the consideration that if multiple
 acceptable solutions exist, it may not matter which one is
-returned. Initially, only single results could be returned, but
-support for returning all results was later added, incorrectly,
-introducing a bug.
+returned. In early versions of the library, only single results could
+be returned, but support for returning all results was later added,
+incorrectly, introducing a bug.
+
+The library provides a collection of combinators used to express a
+generate-and-test problem, which are executed in using a concurrent
+producer/consumer pattern. One worker thread is created for each
+capability, which share a list of work items and communicate results
+back to the main thread.
 
 The key piece of code causing the problem was this part of the worker
 loop:
@@ -29,12 +35,13 @@ computation is successful, its result is added to the list in the
 the user of the library, as it is blocked upon when the final result
 of the search is requested.
 
-There are some small tests in \emph{Search Party}, verifying that
-deadlocks and exceptions don't arise, and that results are as
-expected. Upon introducing this new functionality, tests began to fail
-with differing result lists returned for different schedules,
-prompting the test:\footnote{The \texttt{representative} function
-  picks only one trace for each unique result.}
+There are some tests in \emph{Search Party}, checking that deadlocks
+and exceptions don't arise, and that results which should be
+deterministic really are. Upon introducing this new functionality,
+these tests began to fail with differing result lists returned for
+different schedules, prompting a new test:\footnote{The
+  \texttt{representative} function picks only one trace for each
+  unique result.}
 
 \begin{minted}{haskell}
 checkResultLists :: Eq a => Predicate [a]
@@ -56,10 +63,12 @@ Given this predicate, we can very clearly see the problem:
 False
 \end{verbatim}
 
-The problem was a lack of any indication that a list-producing
-computation had finished. As results were written directly to the
-\verb|CTMVar|, partial result lists could be read depending on how the
-worker threads and the main thread were interleaved.
+The \verb|@!| operator is a concurrent filter, with the order of
+results nondeterministic. The problem was a lack of any indication
+that a list-producing computation had finished. As results were
+written directly to the \verb|CTMVar|, partial result lists could be
+read depending on how the worker threads and the main thread were
+interleaved.
 
 In this case, fixing the failure did not require any interactive
 debugging. Only one place had been modified in introducing the new
