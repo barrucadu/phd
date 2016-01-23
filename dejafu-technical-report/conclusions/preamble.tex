@@ -1,14 +1,17 @@
-This work was inspired by attending a talk on systematic concurrency
-testing, the talk mentioned tools for languages like Java and C, but
-functional languages were not mentioned at all. The questions to be
-answered, then, were:
+This work was inspired by attending a talk at INVEST
+2014\footnote{\url{http://wp.doc.ic.ac.uk/verificationgroup/event/workshop-introduction-to-verification-and-testing-invest-2014/}}
+by Paul Thompson, then a Ph.D student at Imperial College London, on
+systematic concurrency testing, the talk mentioned tools for languages
+like Java and C, but functional languages were not mentioned at
+all. The questions to be answered, then, were:
 
 \begin{itemize}
 \item \textbf{Can concurrency testing techniques from the imperative
-    and object-oriented worlds be applied in the functional?} \hfill
+    and object-oriented worlds be applied in the functional world?}
+  \hfill
 
   The answer to this would seem to be a resounding ``yes''. There was
-  some difficulty in implementing these techniques to a purely
+  some difficulty in implementing these techniques in a purely
   functional setting, as the algorithms are typically expressed in
   terms of mutable state, but this was overcome.
 
@@ -25,10 +28,10 @@ answered, then, were:
 
 In \citep{dejafu}, we asked if the cost of a programmer needing to
 write their code in terms of \verb|MonadConc| rather than \verb|IO|
-was too high, and would discourage people. This is still definitely a
-concern, but with the development of libraries to integrate with or
-replace entirely others, we hope that the use of \dejafu{} will appear
-attractive enough to overcome this.
+was too high, and would discourage people. This is still a concern,
+but with the development of libraries to integrate with or replace
+others, we hope that the use of \dejafu{} will appear attractive
+enough to overcome this.
 
 The contributions of this work are:
 

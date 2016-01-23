@@ -5,12 +5,12 @@
 % used in dejafu.
 
 There is a tension in testing concurrent programs between
-\emph{verification} and \emph{bug-finding}. For the former,
-completeness is desirable, whereas for the latter completeness can be
+\emph{verification} and \emph{bug-finding}. For verification,
+completeness is desirable, whereas for testing completeness can be
 sacrificed if the number of defects found in non-contrived examples is
 not affected much. Furthermore, by sacrificing completeness, speed can
 be gained, which is of great importance for developers running a test
-suite as they develop.
+suite repeatedly as development proceeds.
 
 % DPOR
 
@@ -18,52 +18,52 @@ Partial-order methods were first introduced in \citep{por}, which also
 introduced the insight that a concurrent execution can be thought of
 as a \emph{partial-order} of the dependent actions in the
 system. Initially, these methods were based on a static analysis of
-the program under test. Further developments in \citep{dpor} discuss
-how the information needed for partial-order methods can be obtained
-at run-time system, and shows that this often leads to a reduction in
-the amount of work done. This is because the static analysis is
-necessarily \emph{conservative}, whereas the dynamic analysis has much
-more complete information available to it.
+the program under test. Further developments in \citep{dpor} enabled
+the information needed for partial-order methods to be obtained at
+run-time system, often leading to a reduction in the amount of work
+done. The static analysis is necessarily \emph{conservative}, whereas
+the dynamic analysis has much more complete information available to
+it.
 
-Meanwhile, a different approach to testing concurrent programs was
-being explored in \citep{pbound}, where executions exceeding some
-pre-determined \emph{bound} were simply not done. Completeness was
-sacrificed in return for more rapid results of testing, on the
-assumption that (later to be validated by empirical studies such as
-\citep{empirical}) that test cases could be written in such a way that
-this wasn't a problem.
+A different approach to testing concurrent programs was explored in
+\citep{pbound}, where executions exceeding some pre-determined
+\emph{bound} are simply not done. Completeness is sacrificed in return
+for more rapid results of testing, on the assumption (later validated
+by empirical studies such as \citep{empirical}) that realistic test
+cases could find bugs within a small bound.
 
 It was later shown in \citep{bpor} that these two approaches,
 partial-order reduction and schedule bounding, can be unified. The
-result is necessarily incomplete, however it can reduce the number of
+result is necessarily incomplete. However it can reduce the number of
 executions tried to a far greater extent than either of the two
 component methods alone. With the evidence that schedule bounding
-isn't a problem in practice for testing, this became an enticing
+isn't a problem in practice for testing, this became a widely-adopted
 method.
 
 An assumption of key importance in concurrency testing is that all
 nondeterminism arises from the scheduler. Most other sources, such as
-random number generators, can be controlled for by (for example) using
-a fixed seed. However, in the quest for ever more performance,
-hardware manufacturers imposed \emph{relaxed memory} architectures on
+random number generators, can be handled by (for example) using a
+fixed seed. However, in the quest for ever more performance, hardware
+manufacturers imposed \emph{relaxed memory} architectures on
 programmers, where reads and writes done in parallel can give results
-impossible under sequential consistency. \citep{rdpor} showed how this
-additional source of nondeterminism can be handled, by modelling a
-single level of cache (which corresponds to total-store order or
-partial-store order) as simply a separate thread, committing writes to
-memory.
+impossible under sequential consistency.
+
+\citep{rdpor} showed how this additional source of nondeterminism can
+be handled, by modelling a single level of cache (which corresponds to
+total-store order or partial-store order) as simply a separate thread,
+committing writes to memory.
 
 % Probabilistic DPOR
 
-A different approach to reducing the work done under a pure
-partial-order reduction approach was taken in \citep{rapos}, which
-uses random scheduling. Partial-order reduction is used to prune the
-search space, but random decisions are made where there are still
+A different approach to reducing the work done as a refinement of a
+pure partial-order reduction approach was taken in \citep{rapos},
+which uses random scheduling. Partial-order reduction is used to prune
+the search space, but random decisions are made where there are still
 multiple choices available. Random scheduling itself does not
-necessarily work very well, as some partial orders have more
-corresponding total orders than others, hence pruning the search space
-like this is an effective way to increase the bug-finding ability of
-random scheduling.
+necessarily work very well, as some partial orders have more total
+order refinements than others, hence pruning the search space in
+partial-order reduction was reported to be an effective way to
+increase the bug-finding ability of random scheduling.
 
 This work was furthered in \citep{racefuzzer}, which does away with
 the partial-order reduction entirely in favour of a simpler race
@@ -75,42 +75,40 @@ executed, that thread is instead postponed until another thread is
 about to execute the other statement, the race is then randomly
 resolved and execution continues. Rather than exploring all partial
 orders, this approach is a probabilistic one, but is guaranteed to
-only explore \emph{racing} partial orders. This approach has an
+explore only \emph{racing} partial orders. This approach has an
 advantage in programs which have many non-racy partial orders, where
 randomly choosing between them does not reliably produce a bug.
 
 % PULSE
 
 \textsc{Pulse} \citep{pulse} is a user-level scheduler for Erlang
-programs implementing co-operative multi-tasking and an
-instrumentation process which automatically modifies existing programs
-to call out to this scheduler. \textsc{Pulse} works by only allowing
-one of its threads to operate at a time, and to make scheduling
-decisions around actions with side-effects: such as a process
-receiving a message. It also allows interaction with uninstrumented
-functions, which are treated as atomic, allowing tested subsystems to
-be composed without needing to test the entire thing again. This is
-not possible in general in \dejafu{} due to the support for relaxed
-memory, which Erlang does not have. Scheduling decisions are made
-randomly, using a provided seed, and a complete execution trace is
-returned, which can be rendered into a graphical form showing the
-interactions between threads to aid debugging.
-
-Although \textsc{Pulse} is not a concurrency testing tool as such, it
-is a core component of one, and testing can be done by simply trying
-different random seeds. The authors report that the graphical traces
-can often suggest potential race conditions which have not been
-directly produced to a human reader.
+programs implementing co-operative multi-tasking. An instrumentation
+process automatically modifies existing programs to call out to this
+scheduler. \textsc{Pulse} works by only allowing one of the threads to
+operate at a time, and makes scheduling decisions around actions with
+side-effects: such as a process receiving a message. It also allows
+interaction with uninstrumented functions, which are treated as
+atomic, allowing tested subsystems to be composed without exploring
+interleavings within the subsystem. This is not possible in general in
+\dejafu{} due to the support for relaxed memory, which Erlang does not
+have. \textsc{Pulse} scheduling decisions are made randomly, using a
+provided seed, and a complete execution trace is returned, which can
+be rendered into a graphical form showing the interactions between
+threads to aid debugging. Although \textsc{Pulse} is not a concurrency
+testing tool as such, it is a core component of one, and testing can
+be done by simply trying different random seeds. The authors report
+that the graphical traces can often suggest potential race conditions
+which have not been evident to a human reader.
 
 Sen's 2008 work was then used in \citep{procrastination} to improve
 race condition detection in Erlang. \textsc{Pulse} is used to generate
 an execution trace, which is then examined for possible race
 conditions, which are delayed and randomly resolved as in Sen's
-work. The authors reported that this results in new bugs being found,
-although in the cases where the procrastination was not necessary to
-find the bug, performance degrades. This is because one test with
-procrastination is actually several program executions with different
-schedules.
+work. The authors reported that improvements can result in new bugs
+being found, although in the cases where the procrastination was not
+necessary to find the bug, performance degrades. This is because one
+test with procrastination is actually several program executions with
+different schedules.
 
 % Empirical Studies
 
@@ -125,8 +123,8 @@ schedules.
 
 % Typeclass Approach
 
-Whilst the \verb|MonadConc| typeclass was structured to be similar to
-the standard concurrency primitives, the inspiration for this
+Although the \verb|MonadConc| typeclass was structured to be similar
+to the standard concurrency primitives, the inspiration for this
 approach, and the basic idea behind how to do SCT in Haskell, was
 provided by \citep{typeclass}. However, both the family of primitives
 and the approach to testing have been significantly advanced.

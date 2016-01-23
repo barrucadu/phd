@@ -1,68 +1,48 @@
 There are a number of areas available for further exploration. 
 
-\begin{itemize}
-\item \textbf{Verification of \dejafu{}} \hfill
+\textbf{Verification of \dejafu{}}\hspace{0.3cm} Work has already
+begun on the formalisation in Isabelle/HOL of prefix validity in the
+SCT implementation. The other open issues of verification were
+discussed in \chap{correctness}, but to summarise, these are:
+correctness of primitive actions; granularity of scheduling decisions;
+generated schedule prefix validity; and result completeness.
 
-  Work has already begun on one aspect of this, the formalisation in
-  Isabelle/HOL of prefix validity in the SCT implementation. The other
-  open issues of verification are discussed further in
-  \chap{correctness}, but to summarise, these are: correctness of
-  primitive actions; granularity of scheduling decisions; generated
-  schedule prefix validity; and result completeness.
+\textbf{Memory model for GHC Haskell / C{-}{-}}\hspace{0.3cm} In order
+to fully validate the testing stepwise executor, a formulation of the
+memory model is necessary. One way to approach this would be a
+formulation for all of the GHC Haskell primitives. As these are
+written in C{-}{-}, which has no memory model, a formulation of that
+would also be necessary. Work on formalising the C++11 memory model in
+\citep{c++11} may be of use here.
 
-\item \textbf{Memory model for GHC Haskell / C{-}{-}} \hfill
+\textbf{Generating test cases for concurrent APIs}\hspace{0.3cm} The
+QuickSpec tool, introduced in \citep{quickspec}, can generate laws
+that a collection of functions appear to hold based on random
+testing. It can be used as a way to obtain suitable test cases, if the
+user selects the generated laws that \emph{should} hold, rather than
+those which merely \emph{accidentally} hold. A QuickSpec-like tool
+which can generate laws about a concurrency-using API would be
+interesting and useful.
 
-  In order to fully validate the testing stepwise executor, a
-  formalism of the memory model of the primitives used is
-  necessary. One way to approach this would be a formalism for all of
-  the GHC Haskell primitives. As these are written in C{-}{-}, which
-  has no memory model, a formalism of that would also be necessary.
+\textbf{Multi-level memory caching}\hspace{0.3cm} The current approach
+taken for modelling relaxed memory assumes only a single level of
+cache. This works well for x86 processors. Other devices, such as
+GPUs, group cores together where each core has a cache, and each group
+also has a cache. This means writes can be visible to some but not all
+threads. A simple way to model this would be to make group assignment
+static, and to have more types of commit. This would require some
+implementation change, but is not a large difference in algorithm. The
+situation becomes much more complex if group assignment is \emph{not}
+static, introducing yes another source of nondeterminism.
 
-  Work on formalising the C++11 memory model in \citep{c++11} may be
-  of use here.
-
-\item \textbf{Generating test cases for concurrent APIs} \hfill
-
-  The QuickSpec tool, introduced in \citep{quickspec}, can generate
-  laws that a collection of functions appear to hold based on random
-  testing. It can be used as a way to easily generate test cases, if
-  the user filters the output to laws that \emph{should} hold, rather
-  than those which merely \emph{accidentally} hold.
-
-  Given that concurrent programs are now easily testable, some
-  QuickSpec-like tool which can generate laws about a
-  concurrency-using API would be interesting and useful.
-
-\item \textbf{Multi-level memory caching} \hfill
-
-  The current approach taken for modelling relaxed memory assumes only
-  a single level of cache. This works well for x86 processors, but not
-  for other devices, such as GPUs. GPUs group cores together where
-  each core has a cache, and each group also has a cache. This means
-  writes can be visible to some but not all threads.
-
-  A simple way to model this would be to make group assignment static,
-  and to have more types of commit. This would require some
-  implementation change, but is not a large difference in
-  algorithm. The situation becomes much more complex if group
-  assignment is \emph{not} static however, as this then introduces
-  another source of nondeterminism.
-
-\item \textbf{Application to distributed systems} \hfill
-
-  There is no reason why different threads in a concurrent program
-  need to operate on the same physical machine, as long as the
-  programmer cannot detect this.
-
-  The major difficulty is the possibility of communication
-  \emph{failure}, which cannot happen when operating on a single
-  machine. Another is the memory model. A single level of cache
-  corresponds roughly to a central server with all communication going
-  through it, rather than between nodes directly. This can be
-  alleviated with multiple levels of caching, but still results in
-  undesirable centralisation.
-
-  Work on modelling concurrent data stores as replicated
-  eventually-consistent data types in \citep{replicated} may be
-  relevant.
-\end{itemize}
+\textbf{Application to distributed systems}\hspace{0.3cm} Different
+threads in a concurrent program need not operate on the same machine,
+as long as the programmer cannot detect this. The major difficulty is
+the possibility of \emph{communication failure}, which cannot happen
+when operating on a single machine. Another is the memory model. A
+single level of cache corresponds roughly to a central server with all
+communication going through it, rather than between nodes
+directly. This can be alleviated with multiple levels of caching, but
+still results in undesirable centralisation. Work on modelling
+concurrent data stores as replicated eventually-consistent data types
+in \citep{replicated} may be relevant.
