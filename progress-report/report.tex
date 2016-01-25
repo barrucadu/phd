@@ -1,0 +1,227 @@
+\documentclass[10pt,a4paper,twoside,openany]{report}
+
+% Smaller chapter headings
+\usepackage{titlesec}
+\titleformat{\chapter}[block]{\normalfont\Huge\bfseries}{\thechapter. }{0cm}{}[]
+\titlespacing{\chapter}{0cm}{0cm}{0.5cm}
+
+% Nicer fonts
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+
+% Graphics support
+\usepackage{graphicx}
+
+% Hyperlinks, URLs etc.
+\usepackage{hyperref}
+\usepackage{url}
+\hypersetup{
+    colorlinks=true,
+    citecolor=black,
+    urlcolor=black,
+    linkcolor=black,
+    pagecolor=black,
+    anchorcolor=black
+}
+
+% Figures
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{caption}
+\usepackage{placeins}
+\usepackage{pgfgantt}
+
+\DeclareCaptionFormat{underlined}{#1#2#3\hrulefill}
+\captionsetup[figure]{format=underlined}
+
+\DeclareCaptionFormat{normal}{#1#2#3}
+\captionsetup[subfigure]{format=normal}
+
+% Tables
+\usepackage{tabularx}
+\usepackage{array}
+\newcommand{\cen}{\centering\arraybackslash}
+
+% Listings
+\usepackage{minted}
+%TC:group minted [ignore] xall
+
+% Stuff at the end
+\usepackage[toc,page]{appendix}
+
+% Footnotes
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+\usepackage{perpage}
+\MakePerPage{footnote}
+
+% Citations & Quotes
+\usepackage{attrib}
+\usepackage[square]{natbib}
+
+% Advanced maths features
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+
+% Conditional macros
+\usepackage{xifthen}
+
+% "departures" in dejafu
+\usepackage{framed}
+\usepackage{amsthm}
+
+\newenvironment{justspacing}{%
+\def\FrameCommand{\hspace{0pt}}%
+\MakeFramed {\advance\hsize-\width \FrameRestore}}%
+{\endMakeFramed}
+
+\newenvironment{departure}%
+{\begin{justspacing}%
+\noindent%
+\paragraph{Departure}}%
+{\hfill $\qed$ \end{justspacing}}
+
+% Definitions and theorems
+\usepackage{amsthm}
+\usepackage{etoolbox}
+\newtheorem{definition}{Definition}[section]
+\newtheorem{lemma}{Lemma}[section]
+\newtheorem{theorem}{Theorem}[section]
+
+\makeatletter
+\newtheoremstyle{example}% name
+{10pt}% space before
+{10pt}% space after
+{}% body font
+{}% indent
+{}% header font
+{}% header punctuation
+{.5em}% gap after header
+{\textbf{\thmname{#1}\thmnumber{ #2}:}\textit{\thmnote{ #3}}\\}% header
+\makeatother
+
+\AtEndEnvironment{example}{\hfill\ensuremath{\square}}
+
+\theoremstyle{example}
+\newtheorem{example}{Example}[section]
+
+\renewenvironment{proof}{{\noindent \bfseries Proof.}}{\qed}
+
+% Page layout jiggery pokery
+\usepackage[parfill]{parskip}
+\usepackage{pdflscape}
+\usepackage{multicol}
+
+\usepackage[inner=2cm,outer=4cm]{geometry}
+
+\newenvironment{wide}{%
+  \begin{list}{}{%
+      \setlength{\topsep}{0pt}%
+      \addtolength{\leftmargin}{-1.5cm}%
+      \addtolength{\rightmargin}{-1.5cm}%
+      \setlength{\listparindent}{\parindent}%
+      \setlength{\itemindent}{\parindent}%
+      \setlength{\parsep}{\parskip}}%
+  \item[]%
+}{%
+  \end{list}%
+}
+
+\newenvironment{lscape}{\begin{landscape}\begin{wide}}{\end{wide}\end{landscape}}
+
+\newenvironment{lscape2col}{%
+  \begin{landscape}%
+    \setlength{\topsep}{0pt}%
+    \addtolength{\leftmargin}{-1cm}%
+    \addtolength{\rightmargin}{-1cm}%
+    \setlength{\listparindent}{\parindent}%
+    \setlength{\itemindent}{\parindent}%
+    \setlength{\parsep}{\parskip}%
+    \setlength{\columnsep}{1.5cm}%
+    \begin{multicols}{2}%
+}{%
+    \end{multicols}%
+  \end{landscape}%
+}
+
+% Logic & Maths
+\usepackage{savesym}
+\savesymbol{listof}
+\usepackage{bussproofs}
+
+% Misc
+\newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
+\newcommand{\sect}[1]{\S\ref{sec:#1}}
+\newcommand{\chap}[1]{Chapter \ref{chp:#1}}
+\newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
+\newcommand{\dejafu}{D\'{e}j\`{a} Fu}
+
+\title{%
+\includegraphics{university-of-york.eps}\\
+\vspace{2em}
+\hrule
+\vspace{1em}
+{\huge\bfseries Nondeterministic Concurrency in Pure Functional Languages}\\
+\vspace{1em}
+\hrule
+\vspace{1em}
+{\normalsize Progress Report for Ph.D Computer Science}
+\vfill%
+{\normalsize Number of words: \todo{count} as counted by ``texcount -inc'',\\
+excluding code listings.}
+}
+
+\author{%
+Author: Michael Walker\\
+Supervisor: Colin Runciman
+}
+
+\date{}
+
+\begin{document}
+
+\pagestyle{empty}
+
+\maketitle
+
+\begin{abstract}
+\input{abstract}
+\end{abstract}
+
+% Table of contents, roman numeral page numbers
+\pagestyle{plain}
+\pagenumbering{roman}
+\setcounter{page}{1}
+\tableofcontents
+\clearpage
+
+%\listoffigures
+%\listoftables
+%\lstlistoflistings
+
+% Reset page numbering for content
+\pagenumbering{arabic}
+
+\chapter{Introduction}
+\label{chp:intro}
+\input{introduction/preamble.tex}
+
+\chapter{Progress Review}
+\label{chp:progress}
+\input{progress/preamble.tex}
+
+\chapter{Research Plan}
+\label{chp:plan}
+\input{plan/preamble.tex}
+
+\chapter{Publications}
+\label{chp:publications}
+\input{publications/preamble.tex}
+
+\clearpage
+
+\bibliography{references}
+\bibliographystyle{plainnat}
+
+\end{document}
