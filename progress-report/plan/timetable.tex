@@ -1,0 +1,72 @@
+\begin{figure}[h!]
+  \centering
+  \begin{ganttchart}[hgrid, vgrid, x unit=0.8cm,
+    bar label font=\footnotesize,
+    milestone label font=\footnotesize\bfseries,
+    bar/.append style={fill=lightgray!50},
+    group/.append style={draw=black, fill=gray!50}]{1}{11}
+    \gantttitle{2016}{11} \\
+    \gantttitlelist[title list options={var=\y, evaluate=\y as \x
+      using "\pgfcalendarmonthshortname{\y}"}]{2,...,12}{1} \\
+
+    \setganttlinklabel{f-s}{}
+    \setganttlinklabel{s-s}{}
+
+% dejafu technical report
+
+    \ganttbar[name=dftr]{Finish \dejafu{} technical report}{1}{1}
+    \ganttnewline
+    \ganttmilestone[name=dftrm]{Technical Report}{1}{1}
+    \ganttnewline
+    \ganttbar[name=dfja]{Finish \dejafu{} journal article}{2}{2}
+    \ganttnewline
+    \ganttmilestone[name=dfjam]{Journal Article}{2}{2}
+    \ganttnewline
+
+    \ganttlink{dftr}{dftrm}
+    \ganttlink{dftrm}{dfja}
+    \ganttlink{dfja}{dfjam}
+
+% live property monitoring
+
+    \ganttbar[name=ltl]{Write LTL property checking tool}{3}{3}
+    \ganttnewline
+    \ganttbar[name=ltlp]{Write RV'2016 paper}{4}{4}
+    \ganttnewline
+    \ganttmilestone[name=ltlm]{RV'2016 Paper Submission}{4}{4}
+    \ganttnewline
+    \ganttmilestone[name=ltlcon]{RV'2016}{8}{8}
+    \ganttnewline
+
+    \ganttlink[link type=f-s]{ltl}{ltlp}
+    \ganttlink{ltlp}{ltlm}
+    \ganttlink{ltlm}{ltlcon}
+
+% test case generation
+
+    \ganttbar[name=gen]{Write monadic expression generator}{4}{4}
+    \ganttnewline
+    \ganttbar[name=cgen]{Integrate with \dejafu{}}{5}{6}
+    \ganttnewline
+
+    \ganttlink[link type=f-s]{gen}{cgen}
+
+% concurrency introduction
+
+    \ganttbar[name=th]{Implement ``search comprehensions''}{7}{7}
+    \ganttnewline
+    \ganttbar[name=heur]{Develop heuristics for parallelisation}{8}{8}
+    \ganttnewline
+
+    \ganttlink[link type=f-s]{th}{heur}
+
+% thesis outline
+
+    \ganttbar[name=to]{Write thesis outline}{5}{5}
+    \ganttnewline
+    \ganttmilestone[name=tom]{Thesis Outline}{5}{5}
+
+    \ganttlink{to}{tom}
+
+  \end{ganttchart}
+\end{figure}

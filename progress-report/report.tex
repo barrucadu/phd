@@ -4,6 +4,7 @@
 \usepackage{titlesec}
 \titleformat{\chapter}[block]{\normalfont\Huge\bfseries}{\thechapter. }{0cm}{}[]
 \titlespacing{\chapter}{0cm}{0cm}{0.5cm}
+\titlespacing{\paragraph}{0pt}{0.3\baselineskip}{1em}
 
 % Nicer fonts
 \usepackage[T1]{fontenc}
@@ -14,14 +15,13 @@
 
 % Hyperlinks, URLs etc.
 \usepackage{hyperref}
+\usepackage{color}
 \usepackage{url}
 \hypersetup{
-    colorlinks=true,
-    citecolor=black,
-    urlcolor=black,
-    linkcolor=black,
-    pagecolor=black,
-    anchorcolor=black
+ colorlinks,
+ citecolor=red,
+ linkcolor=black,
+ urlcolor=blue
 }
 
 % Figures
@@ -45,10 +45,9 @@
 
 % Listings
 \usepackage{minted}
+\usemintedstyle{trac}
+\newminted{haskell}{}
 %TC:group minted [ignore] xall
-
-% Stuff at the end
-\usepackage[toc,page]{appendix}
 
 % Footnotes
 \renewcommand{\thefootnote}{\fnsymbol{footnote}}
@@ -108,6 +107,22 @@
 
 \renewenvironment{proof}{{\noindent \bfseries Proof.}}{\qed}
 
+% Definitions
+
+\newcommand{\defineword}[2]{%
+\begin{description}%
+    \item{\textbf{#1}} \hfill \\%
+        {#2}%
+\end{description}%
+}
+
+\newcommand{\definewordc}[3]{%
+\begin{description}%
+    \item{\textbf{#1}} \citep{#2}\hfill \\%
+        {#3}%
+\end{description}%
+}
+
 % Page layout jiggery pokery
 \usepackage[parfill]{parskip}
 \usepackage{pdflscape}
@@ -150,6 +165,9 @@
 \savesymbol{listof}
 \usepackage{bussproofs}
 
+% Appendices
+\usepackage{pdfpages}
+
 % Misc
 \newcommand{\quot}[2]{``\textit{#1}''\cite{#2}}
 \newcommand{\sect}[1]{\S\ref{sec:#1}}
@@ -168,7 +186,7 @@
 \vspace{1em}
 {\normalsize Progress Report for Ph.D Computer Science}
 \vfill%
-{\normalsize Number of words: \todo{count} as counted by ``texcount -inc'',\\
+{\normalsize Number of words: 4024 as counted by ``texcount -inc'',\\
 excluding code listings.}
 }
 
@@ -207,13 +225,46 @@ Supervisor: Colin Runciman
 \label{chp:intro}
 \input{introduction/preamble.tex}
 
+  \section{Scope}
+  \label{sec:intro-scope}
+  \input{introduction/scope.tex}
+
 \chapter{Progress Review}
 \label{chp:progress}
 \input{progress/preamble.tex}
 
+  \section{\dejafu{}: A Concurrency Testing Library for Haskell}
+  \label{sec:progress-dejafu}
+  \input{progress/dejafu.tex}
+
+  \section{Evaluation of Results}
+  \label{sec:progress-evaluation}
+  \input{progress/evaluation.tex}
+
 \chapter{Research Plan}
 \label{chp:plan}
 \input{plan/preamble.tex}
+
+  \section{\dejafu{} Journal Article}
+  \label{sec:plan-journal}
+  \input{plan/journal.tex}
+
+  \section{Live Property Monitoring}
+  \label{sec:plan-ltl}
+  \input{plan/ltl.tex}
+
+  \section{Test Case Generation}
+  \label{sec:plan-quickspec}
+  \input{plan/quickspec.tex}
+
+  \section{Concurrency Introduction}
+  \label{sec:plan-searchparty}
+  \input{plan/searchparty.tex}
+
+  \clearpage
+  \section{Timetable of Work}
+  \label{sec:plan-timetable}
+  \input{plan/timetable.tex}
 
 \chapter{Publications}
 \label{chp:publications}
@@ -223,5 +274,10 @@ Supervisor: Colin Runciman
 
 \bibliography{references}
 \bibliographystyle{plainnat}
+
+\appendix
+
+\addcontentsline{toc}{chapter}{Appendix: \dejafu{} Technical Report}
+\includepdf[pages={-}]{../dejafu-technical-report/techreport.pdf}
 
 \end{document}

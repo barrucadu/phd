@@ -1,5 +1,3 @@
-\todo{Taken from QD, update once content written.}
-
 Writing correct concurrent programs is very difficult, even for
 experienced programmers. Traditional testing methodologies fail to
 produce reliable results due to the nondeterminism inherent in the
@@ -7,19 +5,11 @@ scheduling of multiple threads. Therefore, different testing and
 verification techniques are needed to explicitly account for this new
 source of nondeterminism.
 
-This report introduces nondeterministic concurrency in a particular
-setting: that of pure functional programming languages, which we shall
-see has received little attention so far.
-
-We survey literature on concurrency in a pure functional language, and
-consider multiple solutions to the problem of writing reliable
-programs. We then discuss initial results on a library implementing
-systematic concurrency testing (SCT) for Haskell, and a library for
-deterministically parallelising generate-and-test computations.
-
-We form a research proposal, based on the literature review and the
-preliminary results. The proposal outlines the goals and aims, and
-presents a strategy for reaching them.
+This report discusses a tool for testing concurrent Haskell programs,
+called \dejafu{}. Research made possible by the existence of this tool
+is discussed, and a plan for the next several months
+formulated. Further research directions that are likely to arise from
+this work are speculated upon.
 
 \vfill
 

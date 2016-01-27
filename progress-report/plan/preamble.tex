@@ -1,9 +1,20 @@
-\todo{\dejafu{} departmental tech report / journal article}
+The goal of my research is to implement libraries and tools to enable
+programmers to make use of potentially nondeterministic concurrency
+whilst being confident of the correctness of their pro- grams. An
+important aspect of this is that anything developed scales to
+real-world programs, not just small examples. Furthermore, whilst much
+of the work is being done in the context of Haskell, results should
+also apply to other pure functional languages.
 
-\todo{QuickSpec for concurrent APIs}
+There are a number of open directions for further work:
 
-\todo{Parallel list comprehensions (Search Party)}
+\begin{itemize}
+\item Submitting a new and fuller account of \dejafu{} to a journal.
 
-\todo{LTL property checking}
+\item Automated generation of test cases for concurrent APIs.
 
-\todo{(on new page) Gantt chart including publications}
+\item Monitoring properties during execution of a concurrent program,
+  rather than just examining the return value after termination.
+
+\item Automated introduction of safe concurrency for simple cases.
+\end{itemize}

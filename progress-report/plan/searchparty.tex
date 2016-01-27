@@ -1,0 +1,43 @@
+The Search Party library supports speculative parallelism in
+generate-and-test search problems. It is motivated by the
+consideration that if multiple acceptable solutions exist, it may not
+matter which one is returned. It was originally developed as a case
+study for \dejafu{}, but was also presented as a poster at the 2015
+Haskell Symposium.
+
+The library provides a collection of combinators used to express a
+generate-and-test problem, which are executed in using a concurrent
+producer/consumer pattern. Unfortunately, efficiently parallelising a
+list comprehension is less than obvious to a new user of the library.
+
+Whilst the efficient and automatic parallelisation of functional
+programs based purely on static analysis is not feasible
+\citep{autopar}, it may be possible to construct a ``good enough''
+analysis for list comprehensions. This would be realised in the form
+of Template Haskell ``search comprehensions'', which would look like
+list comprehensions but expand to some appropriate Search Party
+formulation of the computation. If reasonably-successful heuristics
+could be developed to determine how to break up the problem, then this
+could be a cheap way for a programmer to speed up their code.
+
+\paragraph{Timeline:}
+
+\begin{description}
+\item[Mid Aug 2016] Learn Template Haskell.
+
+\item[End of Sep 2016] Develop heuristics for splitting up list
+  comprehensions into Search Party-using parallel computations.
+\end{description}
+
+\paragraph{Success Criteria:}
+
+The tool produces as-good-as-human results in some nontrivial
+cases. As the programmer will need to manually introduce a search
+comprehension, occasionally producing worse results is not such a
+problem, as bad comprehensions can be disabled.
+
+\paragraph{Publications:}
+
+This would significantly expand the current Search Party paper, which
+was rejected from the 2015 Haskell Symposium, and make it worth
+resubmitting.

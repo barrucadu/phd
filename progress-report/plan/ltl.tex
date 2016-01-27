@@ -1,0 +1,81 @@
+Runtime Verification (RV) is a broad field concerned with integrating
+techniques from program verification with analysis of data gathered
+from real-world executions of programs. The advantage of runtime
+verification is that many static analyses are necessarily
+\emph{undecidable} or \emph{inefficient} in general, however
+restricting interest to a particular execution often allows further
+optimisation and analysis to be done.
+
+An example of this is DPOR. Partial-order reduction is a purely
+static-analysis based method. DPOR is considered to be an
+\emph{optimisation} as it can often use the data gathered at run-time
+about dependencies between actions to do less overall work
+\citep{dpor}.
+
+\emph{Linear Temporal Logic} (LTL) is a popular logic in the field of
+runtime verification for formulating and checking properties of
+programs \citep{ltl}. There has been prior work on checking LTL
+properties of concurrent Haskell programs \citep{hsrv}, but this work
+appears not to have been developed further. In particular, the authors
+do not integrate their work with any sort of systematic testing
+framework. This allows violations of properties to be detected in
+individual real-world executions, but does not allow for searching for
+violations.
+
+LTL is an extension of propositional logic with the ability to reason
+about \emph{time}. For checking properties of programs, this means
+that the formula-verifier has access to an execution trace. There are
+four additional operators:
+
+\begin{description}
+\item[$p~\mathbf{U}~q$ (``$p$ until $q$'')] $p$ must hold (at least)
+  until $q$ does. $q$ must become true eventually.
+
+\item[$\mathbf{X}~p$ (``next $p$'')] $p$ holds in the next time step.
+
+\item[$\mathbf{F}~p$ (``in the future $p$'')] $p$ holds at some future
+  point.
+
+\item[$\mathbf{G}~p$ (``globally $p$'')] $p$ always holds.
+\end{description}
+
+Writing a tool which uses \dejafu{} to check LTL properties of
+concurrent programs would allow the systematic search for violations
+of complex run-time invariants. An example given in \citep{hsrv} is
+detecting the presence of lock reversal (acquiring a pair of locks in
+one order and then using them in the other order), which \emph{can}
+cause deadlock. It is nice to be able to detect that an invariant
+violation occurs at run-time, it would be nicer to be able to detect
+it during testing.
+
+There are two ways to approach this. Either this property checking
+could be performed as the computation is executed, aborting execution
+when a violation occurs; or, the execution trace could be examined
+after-the-fact for property violations. It is not immediately obvious
+which is better.
+
+\paragraph{Timeline:}
+
+\begin{description}
+\item[End of Apr 2016] Have a tool capable of checking LTL properties
+  against all executions of a concurrent program under \dejafu{},
+  showing failing schedules.
+\end{description}
+
+\paragraph{Success Criteria:}
+
+The tool is able to, for each execution, prove or disprove a LTL
+formula where possible; to return a new formula if complete evaluation
+was not possible; and to report failing executions.
+
+\paragraph{Publications:}
+
+If successful, this should result in a paper being submitted to the
+2016 International Conference on Runtime Verification.
+
+\paragraph{Further Research:}
+
+There are other temporal logics, like computational tree logic (CTL),
+which models the future of a computation as a tree. This corresponds
+very closely with how \dejafu{} actually explores computations, and so
+it might be an interesting further development.

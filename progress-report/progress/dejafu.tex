@@ -1,0 +1,236 @@
+\dejafu{} is a library for writing and testing concurrent Haskell
+programs, using a typeclass-abstraction to overload the concurrency
+primitives. This allows differing implementations to be selected based
+on the context of use: the actual primitives as provided by the
+run-time system, or emulated versions provided by the testing
+framework. It makes use of techniques from the field of
+\emph{systematic concurrency testing} (SCT) \citep{dpor, pbound,
+  heisenbugs, empirical}, which is a way of tackling the problem of
+nondeterminism when writing tests. SCT aims to test a large number of
+schedules, whilst also making use of local knowledge of the program to
+reduce the number of schedules needed to be confident of an accurate
+result. By testing many schedules, we can be confident that any bugs
+which have not been found are unlikely to be exhibited.
+
+SCT overcomes the scheduling problem by forcing a concurrent program
+to use a scheduler implemented as part of the testing framework. With
+the scheduler under control, schedules can be recorded and replayed,
+giving reproducibility. Furthermore, by observing which scheduling
+decisions are available at each decision point, possible schedules can
+be systematically explored, making different decisions on subsequent
+executions.
+
+An earlier version of \dejafu{} is discussed in the qualifying
+dissertation and in \citep{dejafu}, but the tool has been
+significantly improved since then. This earlier version shall be
+summarised for the reader, and then the more recent developments
+emphasised. There is a technical report in preparation covering these
+changes, attached as a supporting document.
+
+\subsection{How It Works}
+\label{sec:progress-dejafu-hiw}
+
+As mentioned, \dejafu{} makes use of a typeclass, called
+\verb|MonadConc|, to change the implementation of the concurrency
+primitives depending on the context of use. To illustrate this point,
+two different implementations of the \verb|fork| function, which
+executes an action in another thread, are shown:
+
+\begin{haskellcode}
+instance MonadConc IO where
+  fork = forkIO
+
+instance MonadConc Conc where
+  fork action = Conc (AFork action)
+\end{haskellcode}
+
+The \verb|MonadConc| class has many more operations. It is important
+to note that by using a typeclass, the types of expressions do not
+change depending on the actual concrete implementation which ends up
+being used. This means that code written using the typeclass does not
+need any changes to run with ``real'' concurrency or for testing.
+
+The \verb|IO| implementation for \verb|fork| uses \verb|forkIO|, a
+function provided by GHC which creates a new green thread. These green
+threads are multiplexed onto a number of operating system threads. The
+\verb|Conc| implementation instead uses continuations, constructing a
+data structure representing the computation to be performed. This
+allows the test runner to know what each thread in a concurrent
+computation will do next, and to pause execution. It is not possible
+to pick apart and inspect \verb|IO| actions like this, but this is
+essential in implementing a deterministic scheduler.
+
+The execution of a concurrent program is considered to be the
+sequential stepwise execution of \emph{primitive actions}, the most
+basic things that a computation can do. Each thread is represented as
+a sequence of primitive actions, where the continuation of one action
+is the next action that a thread will take.
+
+Execution of an entire computation proceeds in a stepwise manner: a
+thread is chosen by the scheduler, its primitive action is executed,
+and a new action is returned to be executed by that thread in the next
+step. The scheduler is supplied by the user, and is a normal Haskell
+function which is given some information about the state of the
+system, and returns a thread to execute. The scheduler is called
+before each step. In the case of systematic testing, the ``user''
+which supplies the scheduling function is the test running function.
+
+\subsection{\dejafu{} in the Qualifying Dissertation}
+\label{sec:progress-dejafu-old}
+
+The version detailed in the qualifying dissertation covers an
+incomplete but sizeable portion of the concurrency abstraction
+provided by GHC. It uses schedule bounding for pruning the space of
+schedules to try.
+
+Schedule bounding is an \emph{incomplete} approach to SCT. Each
+sequence of scheduling decisions is associated with a \emph{bound
+  value}, limiting the results of some \emph{bound function}. Such a
+function could be the number of pre-emptive context switches, for
+example. Schedules with a computed value greater than the limit are
+simply not executed. Schedule bounding was introduced in
+\citep{pbound}, and came from work in the model checking field.
+
+Here are two common bound functions in use today:
+
+\definewordc{Pre-emption Bounding}{pbound}{%
+  The number of pre-emptive context switches is bounded.}
+
+\definewordc{Delay Bounding}{dbound}{%
+  The number of deviations from a deterministic scheduler is bounded.}
+
+Both have empirical evidence, in \citep{empirical}, showing that small
+bounds are good for finding bugs in many real-world
+programs. \dejafu{} used pre-emption bounding with a bound of 2. This
+eliminates many potential executions, but can still be greatly
+improved upon, as we noted in the further work section of
+\citep{dejafu}.
+
+An extreme example is the Par monad \citep{parmonad}, which is an
+abstraction for deterministic parallelism in Haskell. Using only
+schedule bounding to limit the search space, \dejafu{} found over
+12,000 unique executions for the following parallel map over a list:
+
+\begin{minted}{haskell}
+runPar (parMap id [1..5])
+\end{minted}
+
+The Par monad is a fairly complicated library, doing some non-trivial
+set-up and scheduling regardless of the size of the computation being
+performed. Schedule bounding did not scale.
+
+\subsection{\dejafu{} Now}
+\label{sec:progress-dejafu-now}
+
+Since \citep{dejafu}, there have been significant improvements to the
+library.
+
+There is now support for \emph{relaxed memory}, memory architectures
+where the writes done by one thread are not necessarily immediately
+visible to another. This was originally omitted, on the assumption
+that Haskell programmers typically did not use this functionality, but
+discussions after presenting the paper firmly falsified this
+assumption. Relaxed memory is implemented using a variant of an
+algorithm in \citep{rdpor}. Operations are divided into two groups:
+synchronised and unsynchronised. Unsynchronised writes are stored in a
+write buffer, and later made visible to all threads.\footnote{The
+  result of an unsynchronised write is always immediately visible to
+  the thread which performed it.} Synchronised operations flush this
+write buffer, causing every thread to have a consistent view of
+memory.
+
+There are three memory models supported, which control when writes are
+flushed:
+
+\defineword{Sequential Consistency}{This model is the most
+  intuitive. A program behaves as a simple interleaving of the actions
+  in different threads. All operations are synchronised.}
+
+\defineword{Total Store Order (TSO)}{Each thread has a write buffer. A
+  thread sees its writes immediately, but other threads will only see
+  writes when they are committed, which may happen later. Writes are
+  committed in the same order that they are created.}
+
+\defineword{Partial Store Order (PSO)}{A relaxation of TSO where each
+  thread has a write buffer for each shared variable. A thread sees
+  its writes immediately, but other threads will only see writes when
+  they are committed, which may happen later. Writes to different
+  shared variables are not necessarily committed in the same order
+  that they are created.}
+
+TSO corresponds to modern x86 and x86\_64 processors. It is the
+default memory model used.
+
+This additional functionality does cause some expansion in the number
+of schedules tried for computations which do a lot of unsynchronised
+operations. Undoubtedly this could be improved upon. However, from
+examining the implementations of many concurrent Haskell libraries, it
+appears that most uses of concurrency does not suffer from relaxed
+memory effects. So the benefits of pursuing this line of inquiry are
+unclear.
+
+Furthermore, the number of operations in \verb|MonadConc| was
+expanded. Of particular interest is the \verb|yield| function, which
+is used to return control to the scheduler. It is commonly used in
+implementing constructs such as spinlocks, and so is frequently
+accompanied by non-terminating executions. When testing a program by
+examining its result, the program must necessarily terminate. This led
+to the introduction of a combined bounding function, using pre-emption
+bounding and fair bounding:
+
+\definewordc{Fair Bounding}{fbound}{%
+  The difference between the number of times different threads call
+  \texttt{yield} is bounded.}
+
+Fair bounding is so called because if a thread executes many times
+despite yielding a lot, the schedule is ``unfair'', as other threads
+could have made progress in that time.
+
+Schedule bounding alone would not be enough to make relaxed memory and
+the new functions feasible in all but small trivial cases. The SCT
+technique was changed from purely schedule bounding to a combination
+of \emph{dynamic partial-order reduction} (DPOR) and schedule
+bounding, as first explored in \citep{bpor}.
+
+Partial-order reduction \citep{por} is a \emph{complete} approach to
+SCT. It is based on the insight that, when comparing different
+execution traces, only the relative ordering of \emph{dependent}
+actions is important. Two actions are dependent if the order in which
+they are performed could affect the result of the program.
+
+Characterising the execution of a concurrent program by the ordering
+of its dependent actions only gives us a \emph{partial} order over the
+actions in the entire program. An execution trace may be just one
+possible \emph{total} order corresponding to the same partial
+order. The goal of partial-order reduction, then, is to eliminate
+these redundant total orders by intelligently making scheduling
+decisions to permute the order of dependent actions. DPOR \citep{dpor}
+computes partial orders making use of information gathered at
+run-time, rather than being a purely static analysis.
+
+The combination of DPOR and schedule bounding explores fewer schedules
+than each approach individually would. It inherits the incompleteness
+of schedule bounding. The ability to increase bounds as desired
+compensates for this, allowing the human tester to trade time for
+confidence of correctness. To return to the Par monad example,
+\dejafu{} now finds only 2873 schedules. This is still quite a lot,
+and it would be very surprising if this could not be improved further,
+but it is an order of magnitude improvement on the same task.
+
+\subsection{Contributions}
+\label{sec:progress-dejafu-contribs}
+
+The contributions can be seen as follows:
+
+\begin{itemize}
+\item Existing results from the concurrency testing world have been
+  applied to functional programming.
+
+\item A somewhat novel partial-order reduction algorithm for
+  systematic concurrency testing based on a combination of two others:
+  bounded partial-order reduction \citep{bpor} and relaxed-memory DPOR
+  \citep{rdpor}.
+
+\item The \dejafu{} library for testing concurrent Haskell programs,
+  using this algorithm.
+\end{itemize}

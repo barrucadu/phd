@@ -1,7 +1,43 @@
-\todo{Introduction to research}
+Concurrency is notoriously difficult to get right \citep{overrated},
+sometimes even leading to death \citep{therac25}. The problem stems
+from the nondeterminism of scheduling: the same program with the same
+inputs may produce different results depending on the schedules chosen
+at execution time. This makes it difficult to use traditional testing
+techniques with concurrent programs, which rely on the result of
+executing a test to be deterministic. So-called ``Heisenbugs'' make it
+difficult to be confident of the correctness of concurrent programs:
+no bug has been observed during the testing process, but how do we
+\emph{know} that there aren't any?
 
-\todo{Motivation}
+Despite the difficulty, concurrency is important for producing many
+real-world applications. For example, applications with a lot of input
+and output can be more responsive by executing I/O asynchronously.
+Concurrency is a useful program structuring technique, and it is here
+to stay.
 
-\todo{Change of scope}
+My research is concerned with the problems of nondeterministic
+concurrency in pure functional programming languages. My goal is to
+implement libraries and tools to enable programmers to make use of
+concurrency whilst being confident of the correctness of their
+programs, without needing to formally verify everything.
 
-\todo{Bulleted list of research goals}
+The questions I want to answer are:
+
+\begin{itemize}
+\item Can existing results from concurrency testing in other languages
+  be reapplied to the pure functional setting?
+
+\item Can existing techniques like automated test-case generation be
+  applied to uses of concurrency?
+
+\item What common usages of concurrency can be abstracted away in a
+  safe and deterministic fashion?
+
+\item \textbf{Can it be made much easier to write correct concurrent
+    code?}
+\end{itemize}
+
+The first question has been answered to some degree with \dejafu{}
+\citep{dejafu}, a library and tool developed to test concurrent
+Haskell programs. The further development of this since the submission
+of the qualifying dissertation is discussed in \chap{progress}.

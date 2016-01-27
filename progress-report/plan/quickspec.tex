@@ -1,0 +1,93 @@
+\dejafu{} allows the testing of concurrent programs, but these test
+cases still need to be written. It can be hard to think of good test
+cases for concurrent systems, as bugs are typically caused by the
+pre-emption of a thread where this is not expected. As programmers are
+bad at recognising this situation, it is also difficult to
+deliberately try to provoke it.
+
+QuickSpec \citep{quickspec} is a tool for generating laws that a
+collection of functions appear to hold based on random testing. It can
+be used as a way to obtain suitable test cases, if the user selects
+the generated laws that \emph{should} hold, rather than those which
+merely \emph{accidentally} hold. Furthermore, the \emph{absence} of
+expected laws can often hint at the presence of a bug which further
+testing can reveal.
+
+A QuickSpec-like tool which can generate laws for a concurrency-using
+API would be interesting and useful. Ideally the programmer would
+supply a description of some collection of functions, and the tool
+would generate small concurrent programs and find properties of their
+results.
+
+For example, given a concurrent stack type, it would be desirable to
+be able to generate both of these properties automatically:
+
+\begin{haskellcode}
+do { s <- newStack; push s 1; push s 2; a <- pop s; b <- pop s; return (a, b) }
+  `gives` {(2,1)}
+
+do { s <- newStack; push s 1 <|> push s 2; a <- pop s; b <- pop s; return (a, b) }
+  `gives` {(2,1), (1,2)}
+\end{haskellcode}
+
+Where \verb|gives| produces the set of results of a concurrent
+computation and \verb+<|>+ is parallel composition. Such properties
+can serve as small simple test cases, and the basis of a larger test
+suite.
+
+There are a few problems with QuickSpec which make it unsuitable for
+this task currently:
+
+\begin{itemize}
+\item QuickSpec cannot generate $\lambda$-functions directly, which
+  makes it of limited use when generating properties involving monadic
+  bind, \verb|(>>=)|.
+
+\item QuickSpec generates ``small'' functions, and slows down
+  significantly as the size bound is increased. However, interesting
+  properties of concurrent data structures are likely to involve
+  several function calls monadically composed.
+\end{itemize}
+
+One possible approach may be from the angle of generating do-notation
+code one line at a time, rather than generating expressions in
+generality. As we are interested in properties of monadic things only,
+this alternative view may provide new insights, and allow restricting
+the search space.
+
+\paragraph{Timeline:}
+
+\begin{description}
+\item[End of May 2016] Have a prototype tool which can generate
+  type-correct monadic expressions in do-notation style from a
+  collection of provided functions.
+
+\item[End of Jul 2016] Support concurrency and relate generated
+  expressions to properties over sets of possible results.
+\end{description}
+
+\paragraph{Success Criteria:}
+
+The tool is capable of generating expected properties of concurrent
+implementations of stacks, queues, binary heaps, maps, and any other
+data structures of interest. Properties exhibiting race conditions and
+deadlocks should be generated where they exist.
+
+\paragraph{Publications:}
+
+I believe that this would be worthy of a paper. However, the proximity
+of the submission deadlines for the Haskell Symposium and the
+International Conference on Runtime Verification is problematic. It is
+unlikely to be possible to produce a paper in time. There are possibly
+other suitable venues, however.
+
+Unfortunately the ICFP deadline is in the middle of March, which is
+unlikely to be feasible.
+
+\paragraph{Future Research:}
+
+Most of the difficulty in implementing this tool will be the
+combinatorial explosion of possible type-correct expressions. Trying
+to cut down on this should be a rich area to explore. One possible
+avenue is attempting to find heuristics to bias the search towards
+more ``interesting'' properties, sacrificing completeness for speed.

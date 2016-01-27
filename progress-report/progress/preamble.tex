@@ -1,6 +1,23 @@
-\todo{Research approach}
+My research method is based strongly on analysis of prior work, with
+insight and refinement driven by experimental implementation. So far,
+most of the work has been understanding and applying existing results
+to the purely functional setting. This has been challenging, as
+algorithms for concurrency testing are typically formulated in terms
+of imperative languages with mutable state. Now that this has been
+realised in the \dejafu{} tool, further original work has been
+possible.
 
-\todo{\dejafu{}: outline \& how this contributes to research
-  goals. Refer to tech report.}
+As it is impossible to explore the entire state-space of a nontrivial
+concurrent program, trade-offs have to be made and justified. Some of
+these can retain completeness, whereas others sacrifice it.
 
-\todo{How eventual results will be evaluated}
+If an analysis appears to preserve completeness and avoid redundant
+work, it must first be carefully examined, to determine if this is in
+fact the case. Once I am confident of its correctness (or lack
+thereof), testing can be done with real programs to increase
+confidence further.
+
+If an analysis sacrifices completeness, then how exactly this is done
+must be documented. It must be sound to combine it with existing
+completeness-sacrificing analyses. This can also be determined with
+confidence through careful thought and experimentation.
