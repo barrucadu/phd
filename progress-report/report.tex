@@ -1,17 +1,20 @@
-\documentclass[10pt,a4paper,twoside,openany]{report}
+\documentclass[openright, dottedtoc, headinclude, footinclude=true, a4paper, numbers=noenddot, fontsize=10pt]{scrreprt}
+\usepackage[eulermath, pdfspacing]{classicthesis}
 
-% Smaller chapter headings
+\title{Nondeterministic Concurrency in Pure Functional Languages}
+\author{Michael Walker}
+\date{January 2016}
+
+% Headings
 \usepackage{titlesec}
-\titleformat{\chapter}[block]{\normalfont\Huge\bfseries}{\thechapter. }{0cm}{}[]
-\titlespacing{\chapter}{0cm}{0cm}{0.5cm}
+\titlespacing{\section}{0pt}{0.5\baselineskip}{0.5\baselineskip}
 \titlespacing{\paragraph}{0pt}{0.3\baselineskip}{1em}
+\titleformat{\paragraph}[runin]{\normalfont\normalsize}{\theparagraph}{0pt}{\textbf}
+\renewcommand{\descriptionlabel}[1]{\hspace*{\labelsep}\textbf{#1}}
 
 % Nicer fonts
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
-
-% Graphics support
-\usepackage{graphicx}
 
 % Hyperlinks, URLs etc.
 \usepackage{hyperref}
@@ -38,11 +41,6 @@
 \DeclareCaptionFormat{normal}{#1#2#3}
 \captionsetup[subfigure]{format=normal}
 
-% Tables
-\usepackage{tabularx}
-\usepackage{array}
-\newcommand{\cen}{\centering\arraybackslash}
-
 % Listings
 \usepackage{minted}
 \usemintedstyle{trac}
@@ -55,57 +53,7 @@
 \MakePerPage{footnote}
 
 % Citations & Quotes
-\usepackage{attrib}
 \usepackage[square]{natbib}
-
-% Advanced maths features
-\usepackage{amsmath}
-\usepackage{amssymb}
-\usepackage{amsfonts}
-
-% Conditional macros
-\usepackage{xifthen}
-
-% "departures" in dejafu
-\usepackage{framed}
-\usepackage{amsthm}
-
-\newenvironment{justspacing}{%
-\def\FrameCommand{\hspace{0pt}}%
-\MakeFramed {\advance\hsize-\width \FrameRestore}}%
-{\endMakeFramed}
-
-\newenvironment{departure}%
-{\begin{justspacing}%
-\noindent%
-\paragraph{Departure}}%
-{\hfill $\qed$ \end{justspacing}}
-
-% Definitions and theorems
-\usepackage{amsthm}
-\usepackage{etoolbox}
-\newtheorem{definition}{Definition}[section]
-\newtheorem{lemma}{Lemma}[section]
-\newtheorem{theorem}{Theorem}[section]
-
-\makeatletter
-\newtheoremstyle{example}% name
-{10pt}% space before
-{10pt}% space after
-{}% body font
-{}% indent
-{}% header font
-{}% header punctuation
-{.5em}% gap after header
-{\textbf{\thmname{#1}\thmnumber{ #2}:}\textit{\thmnote{ #3}}\\}% header
-\makeatother
-
-\AtEndEnvironment{example}{\hfill\ensuremath{\square}}
-
-\theoremstyle{example}
-\newtheorem{example}{Example}[section]
-
-\renewenvironment{proof}{{\noindent \bfseries Proof.}}{\qed}
 
 % Definitions
 
@@ -125,45 +73,11 @@
 
 % Page layout jiggery pokery
 \usepackage[parfill]{parskip}
-\usepackage{pdflscape}
-\usepackage{multicol}
-
 \usepackage[inner=2cm,outer=4cm]{geometry}
 
-\newenvironment{wide}{%
-  \begin{list}{}{%
-      \setlength{\topsep}{0pt}%
-      \addtolength{\leftmargin}{-1.5cm}%
-      \addtolength{\rightmargin}{-1.5cm}%
-      \setlength{\listparindent}{\parindent}%
-      \setlength{\itemindent}{\parindent}%
-      \setlength{\parsep}{\parskip}}%
-  \item[]%
-}{%
-  \end{list}%
-}
-
-\newenvironment{lscape}{\begin{landscape}\begin{wide}}{\end{wide}\end{landscape}}
-
-\newenvironment{lscape2col}{%
-  \begin{landscape}%
-    \setlength{\topsep}{0pt}%
-    \addtolength{\leftmargin}{-1cm}%
-    \addtolength{\rightmargin}{-1cm}%
-    \setlength{\listparindent}{\parindent}%
-    \setlength{\itemindent}{\parindent}%
-    \setlength{\parsep}{\parskip}%
-    \setlength{\columnsep}{1.5cm}%
-    \begin{multicols}{2}%
-}{%
-    \end{multicols}%
-  \end{landscape}%
-}
-
-% Logic & Maths
-\usepackage{savesym}
-\savesymbol{listof}
-\usepackage{bussproofs}
+% Front/main matter
+\newcommand{\frontmatter}{\cleardoublepage\pagenumbering{roman}}
+\newcommand{\mainmatter}{\cleardoublepage\pagenumbering{arabic}}
 
 % Appendices
 \usepackage{pdfpages}
@@ -175,51 +89,53 @@
 \newcommand{\todo}[1]{\textcolor{red}{TODO: #1}}
 \newcommand{\dejafu}{D\'{e}j\`{a} Fu}
 
-\title{%
-\includegraphics{university-of-york.eps}\\
-\vspace{2em}
-\hrule
-\vspace{1em}
-{\huge\bfseries Nondeterministic Concurrency in Pure Functional Languages}\\
-\vspace{1em}
-\hrule
-\vspace{1em}
-{\normalsize Progress Report for Ph.D Computer Science}
-\vfill%
-{\normalsize Number of words: 4024 as counted by ``texcount -inc'',\\
-excluding code listings.}
-}
-
-\author{%
-Author: Michael Walker\\
-Supervisor: Colin Runciman
-}
-
-\date{}
-
 \begin{document}
 
-\pagestyle{empty}
+\frontmatter
 
-\maketitle
+\begin{titlepage}
+\begin{center}
+\includegraphics{university-of-york.eps}\\[2em]
 
-\begin{abstract}
+\hrule
+\vspace{1em}
+
+{\huge\bfseries Nondeterministic Concurrency in Pure Functional Languages}\\[1em]
+
+\hrule
+\vspace{1em}
+
+{\normalsize Progress Report for Ph.D Computer Science}\\[0.5cm]
+
+{\small \textsc{Author:} Michael Walker, \textsc{Supervisor:} Colin Runciman}\\[0.5cm]
+
+\normalsize{Department of Computer Science\par
+University of York}\\[0.25cm]
+
+\small{January 2016}
+\end{center}
+
+\vspace{2cm}
+
+\centerline{\rule{40pt}{1pt} \textsc{\large Abstract} \rule{40pt}{1pt}}
+\vspace{0.1cm}
+
 \input{abstract}
-\end{abstract}
 
-% Table of contents, roman numeral page numbers
-\pagestyle{plain}
-\pagenumbering{roman}
-\setcounter{page}{1}
+\vfill
+\begin{center}
+Number of words: 4024 as counted by ``texcount -inc'',\\
+excluding code listings.  
+\end{center}
+\end{titlepage}
+
 \tableofcontents
-\clearpage
 
 %\listoffigures
 %\listoftables
 %\lstlistoflistings
 
-% Reset page numbering for content
-\pagenumbering{arabic}
+\mainmatter
 
 \chapter{Introduction}
 \label{chp:intro}
@@ -277,7 +193,7 @@ Supervisor: Colin Runciman
 
 \appendix
 
-\addcontentsline{toc}{chapter}{Appendix: \dejafu{} Technical Report}
+\addcontentsline{toc}{chapter}{\textsc{Appendix: \dejafu{} Technical Report}}
 \includepdf[pages={-}]{../dejafu-technical-report/techreport.pdf}
 
 \end{document}
