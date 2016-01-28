@@ -1,7 +1,7 @@
 \begin{figure}[h!]
   \captionsetup{format=fnoline}
   \centering
-  \begin{minted}{haskell}
+  \begin{cminted}{haskell}
 data UpdateSettings a = UpdateSettings
     { updateFreq           :: Int
     , updateSpawnThreshold :: Int
@@ -46,7 +46,7 @@ mkAutoUpdate us = do
 catchSome :: IO a -> IO a
 catchSome act = catch act $
   \e -> return $ throw (e :: SomeException)
-  \end{minted}
+  \end{cminted}
   \caption{\emph{auto-update} implementation}
   \label{fig:example-autoupdate}
 \end{figure}

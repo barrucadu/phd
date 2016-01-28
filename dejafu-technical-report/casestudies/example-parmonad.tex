@@ -1,9 +1,7 @@
-\begin{landscape}
 \begin{figure*}[t]
   \captionsetup{format=fnoline}
   \centering
-  \begin{minipage}[t]{0.49\linewidth}
-    \begin{minted}{haskell}
+  \begin{cminted}{haskell}
 makeScheds :: Int -> IO [Sched]
 makeScheds main = do
   caps <- getNumCapabilities
@@ -31,11 +29,10 @@ makeScheds main = do
          | stck <- sessionStacks
        ]
   return allscheds
-    \end{minted}
-    \caption*{Original}
-  \end{minipage}
-  \begin{minipage}[t]{0.49\linewidth}
-    \begin{minted}{haskell}
+  \end{cminted}
+  \caption*{Original}
+
+  \begin{cminted}{haskell}
 makeScheds :: MonadConc m => Int -> m [Sched m]
 makeScheds main = do
   caps <- getNumCapabilities
@@ -63,10 +60,8 @@ makeScheds main = do
          | stck <- sessionStacks
        ]
   return allscheds
-    \end{minted}
-    \caption*{\dejafu{}}
-  \end{minipage}
+  \end{cminted}
+  \caption*{\dejafu{}}
   \caption{Par ``direct'' scheduler initialisation}
   \label{fig:example-parmonad-sched}
 \end{figure*}
-\end{landscape}

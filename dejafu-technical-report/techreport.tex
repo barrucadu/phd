@@ -43,6 +43,11 @@
 \usemintedstyle{trac}
 \newminted{haskell}{}
 
+\usepackage{xpatch,letltxmacro}
+\LetLtxMacro{\cminted}{\minted}
+\let\endcminted\endminted
+\xpretocmd{\cminted}{\RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}}{}{}
+
 \usepackage{haskell}
 
 \usepackage[vlined, boxed]{algorithm2e}
@@ -123,8 +128,8 @@
 \paragraph{Departure}}%
 {\hfill $\qed$ \end{justspacing}}
 
-% Landscape pages
-\usepackage{pdflscape}
+% Floats
+\usepackage{placeins}
 
 % Misc
 \newcommand{\quot}[2]{``\textit{#1}'' \cite{#2}}
