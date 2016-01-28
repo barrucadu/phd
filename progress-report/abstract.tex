@@ -1,12 +1,15 @@
-Writing correct concurrent programs is very difficult, even for
-experienced programmers. Traditional testing methodologies fail to
-produce reliable results due to the nondeterminism inherent in the
-scheduling of multiple threads. Therefore, different testing and
-verification techniques are needed to explicitly account for this new
-source of nondeterminism.
+This interim report discusses developments and new research directions
+since the qualifying dissertation. The scope of the work is
+concurrency in functional programming languages, particularly Haskell.
 
-This report discusses a tool for testing concurrent Haskell programs,
-called \dejafu{}. Research made possible by the existence of this tool
-is discussed, and a plan for the next several months
-formulated. Further research directions that are likely to arise from
-this work are speculated upon.
+The \dejafu{} tool for testing concurrent Haskell programs has had
+significant development: support for relaxed memory models; use of
+partial-order reduction over schedule bounding; and more supported
+operations.
+
+Research directions for the near future are identified, with
+speculative suggestions for what further work will arise. These are:
+submitting a journal article detailing the updated \dejafu{} tool; LTL
+property checking; the automated generation of properties of
+concurrent programs, suitable for use as test cases; and the automated
+parallelisation of list comprehensions.
