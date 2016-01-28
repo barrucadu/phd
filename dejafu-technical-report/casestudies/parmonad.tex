@@ -110,6 +110,9 @@ in typeclass instances. The remaining lines were, again, renaming
 statements, and the addition of a type family as displayed in the code
 sample above.
 
+\input{casestudies/example-parmonad.tex}
+\FloatBarrier
+
 With the constant value `PRNG', a deadlock was discovered. It only
 arises after 200 queries. Given that the range of values is from 0 to
 the number of capabilities, and the probability is uniformly
@@ -118,9 +121,6 @@ distributed, the probability of an actual deadlock is about $4 \times
 using the \verb|StdGen| generator, with a variety of initial seeds
 tried. If there is still a deadlock, it may require more than 2
 capabilities to manifest.
-
-\input{casestudies/example-parmonad.tex}
-\FloatBarrier
 
 Due to the very contrived nature of the one deadlock found, and the
 length of the trace, it is not displayed here. If there is anything

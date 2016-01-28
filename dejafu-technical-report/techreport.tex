@@ -131,7 +131,16 @@
 % Floats
 \usepackage{placeins}
 
+% Sections
+\usepackage{titlesec}
+\titleformat{\section}{\relax}{\Large\textsc{\MakeTextLowercase{\thesection}}}{1em}{\Large\spacedlowsmallcaps}
+
+\renewcommand\spacedlowsmallcaps[1]{\textls[80]{\textsc{\MakeTextLowercase{#1}}}}
+
 % Misc
+\newcommand{\Section}[2]{\section{#2}%
+\label{chap:#1}%
+\input{#1/preamble.tex}}
 \newcommand{\quot}[2]{``\textit{#1}'' \cite{#2}}
 \newcommand{\sect}[2]{\S\ref{sec:#1-#2}}
 \newcommand{\chap}[1]{Section \ref{chap:#1}}
@@ -204,40 +213,28 @@ November 2015
 
 \mainmatter
 
-\section{Introduction}
-\label{chap:intro}
-\begin{chapquote}{Terry Pratchett, Thief of Time\nocite{pratchett2001}}
-  [\dejafu{} is] A martial art in which the user's limbs move in time
-  as well as space, [\ldots] It is best described as ``the feeling
-  that you have been kicked in the head this way before''.
-\end{chapquote}
-
-\input{introduction/preamble.tex}
-
+\Section{introduction}{Introduction}
   \subsection{Parallelism vs Concurrency}
-  \label{sec:intro-parconc}
+  \label{sec:introduction-parconc}
   \input{introduction/parconc.tex}
 
   \subsection{Testing Concurrent Programs}
-  \label{sec:intro-testing}
+  \label{sec:introduction-testing}
   \input{introduction/testing.tex}
 
   \subsection{Scope}
-  \label{sec:intro-scope}
+  \label{sec:introduction-scope}
   \input{introduction/scope.tex}
 
   \subsection{Contributions}
-  \label{sec:intro-contribs}
+  \label{sec:introduction-contribs}
   \input{introduction/contribs.tex}
 
   \subsection{Report Roadmap}
-  \label{sec:intro-roadmap}
+  \label{sec:introduction-roadmap}
   \input{introduction/roadmap.tex}
 
-\section{Concurrency Abstraction}
-\label{chap:abstraction}
-\input{abstraction/preamble.tex}
-
+\Section{abstraction}{Concurrency Abstraction}
   \subsection{The \texttt{MonadConc} Typeclass}
   \label{sec:abstraction-typeclass}
   \input{abstraction/typeclass.tex}
@@ -250,10 +247,7 @@ November 2015
   \label{sec:abstraction-mem}
   \input{abstraction/mem.tex}
 
-\section{Program Execution}
-\label{chap:execution}
-\input{execution/preamble.tex}
-
+\Section{execution}{Program Execution}
   \subsection{Primitive Actions}
   \label{sec:execution-primops}
   \input{execution/primops.tex}
@@ -266,10 +260,7 @@ November 2015
   \label{sec:execution-scheduling}
   \input{execution/scheduling.tex}
 
-\section{Systematic Concurrency Testing}
-\label{chap:sct}
-\input{sct/preamble.tex}
-
+\Section{sct}{Systematic Concurrency Testing}
   \subsection{Schedule Bounding}
   \label{sec:sct-bounding}
   \input{sct/bounding.tex}
@@ -278,10 +269,7 @@ November 2015
   \label{sec:sct-por}
   \input{sct/por.tex}
 
-\section{Correctness}
-\label{chap:correctness}
-\input{correctness/preamble.tex}
-
+\Section{correctness}{Correctness}
   \subsection{Correct Execution}
   \label{sec:correctness-execution}
   \input{correctness/execution.tex}
@@ -290,10 +278,7 @@ November 2015
   \label{sec:correctness-testing}
   \input{correctness/testing.tex}
 
-\section{Case Studies}
-\label{chap:casestudies}
-\input{casestudies/preamble.tex}
-
+\Section{casestudies}{Case Studies}
   \subsection{auto-update}
   \label{sec:casestudies-autoupdate}
   \input{casestudies/autoupdate.tex}
@@ -306,10 +291,7 @@ November 2015
   \label{sec:casestudies-parmonad}
   \input{casestudies/parmonad.tex}
 
-\section{Practical Usage}
-\label{chap:practice}
-\input{practice/preamble.tex}
-
+\Section{practice}{Practical Usage}
   \subsection{Alternatives to Existing Libraries}
   \label{sec:practice-alternatives}
   \input{practice/alternatives.tex}
@@ -318,10 +300,7 @@ November 2015
   \label{sec:practice-integration}
   \input{practice/integration.tex}
 
-\section{Conclusions, Related \& Future Work}
-\label{chap:conclusions}
-\input{conclusions/preamble.tex}
-
+\Section{conclusions}{Conclusions, Related \& Future Work}
   \subsection{Related Work}
   \label{sec:conclusions-related}
   \input{conclusions/related.tex}
