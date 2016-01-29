@@ -1,21 +1,44 @@
 Something I care about in my research is that any tools or theoretical
-work I produce be applicable to real-world problems. If a research
-artefact has beautiful properties in principle, but takes a day to run
-on anything but tiny problems, that is not good enough. This is the
-primary metric by which things will be evaluated.
+work I produce be applicable to real-world problems. If a tool has
+beautiful properties in principle, but takes a day to run on anything
+but tiny problems, that is not good enough.
 
-Furthermore, these should be tools which a programmer could reasonably
-use. No matter how good a tool is, if it gives the programmer
-significantly more work to make their code compatible with it, it will
-not be used.
+\paragraph{Is it new?}
 
-To summarise, research artefacts should:
+If a tool offers \emph{nothing} new over an existing one, nobody will
+use it. More pertinently, without novelty, it's not research. Novelty
+doesn't have to mean a completely new approach, it can equally be a
+combination of prior ideas into a form which hasn't been explored
+before. A proxy for this is publications. Direct comparison with other
+tools with the same aim can also serve.
 
-\begin{itemize}
-\item \textbf{scale to real-world problems:} there exist standard
-  concurrency benchmark programs which could be used for this.
+\paragraph{Is it sound?}
 
-\item \textbf{be convenient to use:} ultimately subjective, but
-  metrics such as amount of code change needed before use is possible
-  can provide insight.
-\end{itemize}
+Formal verification is the gold standard, but it's not the only way to
+be confident of soundness. Comparison with other tools and use of
+standard test cases can be used to seek out any discrepancies.
+
+\paragraph{is it complete?}
+
+If the tool says there is no bug, is that actually true? \dejafu{}
+already sacrifices completeness, but it should be complete within the
+chosen bounds. For concurrency testing tools, incompleteness is likely
+to manifest as false negatives, and so can be accounted for in the
+same way as soundness: use of standard test cases and comparison with
+other tools.
+
+\paragraph{Is it practical?}
+
+Does the tool finish running in a reasonable time on real-world
+examples? Can the programmer use it without large modification to
+their code? There are standard benchmarks for concurrency testing
+tools which can be used to measure performance, allowing comparison
+with similar tools for other languages. Lines of code changed, as
+shown in the Par monad example in the attached technical report, can
+serve as a proxy for the amount of work a programmer needs to do
+before using a tool.
+
+\paragraph{Does it suggest further work?}
+
+Finally, is there any potential for further development? Limitations
+can suggest where algorithmic improvements could possibly be made.
