@@ -31,7 +31,7 @@
 \usepackage{multirow}
 \usepackage{url}
 \usepackage{siunitx}
-\usepackage{appendix}
+\usepackage[toc,page]{appendix}
 \usepackage{nomencl}
 \usepackage[top=3cm,bottom=3cm]{geometry}
 
@@ -42,6 +42,9 @@
 \usepackage{minted}
 \usemintedstyle{trac}
 \newminted{haskell}{}
+
+\usepackage{longtable}
+\usepackage{pbox}
 
 \usepackage{xpatch,letltxmacro}
 \LetLtxMacro{\cminted}{\minted}
@@ -76,6 +79,12 @@
         {#3}%
 \end{description}%
 }
+
+\newcommand{\defineprim}[3]{\defineword{#1 \textit{#2}}{#3}}
+\newcommand{\defineprimT}[3]{\small{\textbf{#1 \textit{#2}}} & \small{#3}\\}
+\newenvironment{primtable}
+  {\begin{longtable}{p{.45\textwidth}|p{.55\textwidth}}}
+  {\end{longtable}}
 
 % Front-matter
 
@@ -141,11 +150,13 @@
 \newcommand{\Section}[2]{\section{#2}%
 \label{chap:#1}%
 \input{#1/preamble.tex}}
+\newcommand{\Appendix}[2]{\section{#2}%
+\label{app:#1}%
+\input{appendix/#1.tex}}
 \newcommand{\quot}[2]{``\textit{#1}'' \cite{#2}}
 \newcommand{\sect}[2]{\S\ref{sec:#1-#2}}
 \newcommand{\chap}[1]{Section \ref{chap:#1}}
 \newcommand{\dejafu}{D\'{e}j\`{a} Fu}
-\newcommand{\defineprim}[3]{\defineword{#1 \textit{#2}}{#3}}
 \newcommand{\dependent}{\nleftrightarrow}
 \newcommand{\arr}{$\rightarrow$ }
 \newcommand{\hackage}[1]{\url{https://hackage.haskell.org/package/#1}}
@@ -301,6 +312,11 @@ Symposium.
   \subsection{Future Work}
   \label{sec:conclusions-future}
   \input{conclusions/future.tex}
+
+\renewcommand{\thesection}{\Alph{section}}
+\begin{appendices}
+\Appendix{primops}{Primitive Actions}
+\end{appendices}
 
 \if@openright
   \cleardoublepage

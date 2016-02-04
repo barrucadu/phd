@@ -1,14 +1,3 @@
-There are currently 31 primitive actions used to construct the testing
-instances of \verb|MonadConc|, one of which only arises when testing
-under relaxed memory. These primitive actions contain a continuation,
-allowing individual actions to be composed into larger execution
-sequences. Each thread of execution consists of such a sequence,
-terminated by the \verb|AStop| primitive, which has no continuation
-and signals the termination of the thread.
-
-\defineprim{AStop}{}{%
-  Terminate the current thread.}
-
 Computations are composed out of a continuation monad, defined as
 follows:
 
@@ -16,62 +5,60 @@ follows:
 newtype M n r s a = M { runM :: (a -> Action n r s) -> Action n r s }
 \end{haskellcode}
 
-The \verb|Action| type is the type of primitive actions. The type
-variables \verb|n|, \verb|r|, \verb|s| and \verb|a| are the underlying
-monad (this must be something allowing mutable state, like \verb|IO|
-or \verb|ST|); the mutable reference type of that monad; the
-corresponding \verb|MonadSTM|; and the input type.
+The \verb|Action| type is the type of primitive actions. There are a
+number of primitive actions used to construct the testing instances of
+\verb|MonadConc|. Each thread of execution consists of a sequence of
+continuations, terminated by the \verb|AStop| primitive, which has no
+continuation and signals the termination of the thread.
 
-That is, the \verb|M n r s a| type is a wrapper around a function
-which, given a continuation, produces a new primitive action.
+The type variables \verb|n|, \verb|r|, \verb|s| and \verb|a| are the
+underlying monad (this must be something allowing mutable state, like
+\verb|IO| or \verb|ST|); the mutable reference type of that monad; the
+corresponding \verb|MonadSTM|; and the input type. That is, the
+\verb|M n r s a| type is a wrapper around a function which, given a
+continuation, produces a new primitive action.
 
 The \verb|Functor| instance allows applying a function to the input
 value of the continuation:
 
 \begin{haskellcode}
 instance Functor (M n r s) where
-  fmap :: (a -> b) -> M n r s a -> M n r s b
   fmap f (M m) = M (\c -> m (c . f))
 \end{haskellcode}
 
 The \verb|Applicative| instance allows injecting a pure value into the
 \verb|M| type, by constructing a continuation which consumes this
-value. \verb|AReturn| here is a primitive action, a constructor of the
-\verb|Action| data type. It also allows extracting a function from one
-computation, a value from another, and applying them.
+value. It also allows extracting a function from one computation, a
+value from another, and applying them.
 
 \begin{haskellcode}
 instance Applicative (M n r s) where
-  pure :: a -> M n r s a
   pure x = M (\c -> AReturn (c x))
 
-  (<*>) :: M n r s (a -> b) -> M n r s a -> M n r s b
   (M f) <*> (M v) = M (\c -> f (\g -> v (c . g)))
 \end{haskellcode}
 
-\defineprim{AReturn}{action}{%
-  Execute the given action.}
+\defineprim{AReturn}{action}{Execute the given action.}
 
 Why is \verb|AReturn| necessary? Why not \verb|\c -> c x| instead? It
 is because the scheduler in the testing implementation cannot work at
 a finer granularity than individual primitive actions, whereas in the
 real implementation, things like exceptions can pre-empt a return. In
-order to model this possibility, then, \verb|pure| and \verb|return|
-must have a corresponding primitive.
+order to model this possibility, then, \verb|pure| must have a
+corresponding primitive.
 
-Finally, the \verb|Monad| instance allows sequencing of primitive actions.
+Finally, the \verb|Monad| instance allows sequencing.
 
 \begin{haskellcode}
 instance Monad (M n r s) where
-  return :: a -> M n r s a
   return = pure
 
-  (>>=) :: M n r s a -> (a -> M n r s b) -> M n r s b
   (M m) >>= (M k) = M (\c -> m (\x -> k x c))
 \end{haskellcode}
 
-Each of the operations in \verb|MonadConc| will now be mapped down to
-the primitive actions which comprise them.
+The full listing of primitive actions is available in Appendix
+\ref{app:primops}. Some of the more interesting ones will be expanded
+upon in this section.
 
 \subsubsection{Threading}
 \label{sec:execution-primops-threading}
@@ -113,167 +100,6 @@ getNumCapabilities = return 2
 \end{haskellcode}
 
 In the \verb|IO| implementation, these functions behave as expected.
-
-A thread can query its own identifier, by means of the \verb|AMyTId|
-primitive:
-
-\begin{haskellcode}
-myThreadId = M AMyTId
-\end{haskellcode}
-
-\defineprim{AMyTId}{(thread\_id \arr action)}{%
-  Continue execution of the current thread by querying the thread
-  identifier.}
-
-A thread can signal that another should run with the \verb|AYield|
-primitive:
-
-\begin{haskellcode}
-yield = M (\c -> AYield (c ()))
-\end{haskellcode}
-
-\defineprim{AYield}{action}{%
-  Execute the given action, but also signify to the scheduler that it
-  may be worth running a different thread now.}
-
-\subsubsection{\texttt{CRef}s}
-\label{sec:execution-primops-cref}
-
-There are two testing implementations of \verb|MonadConc|, which
-differ in how they implement mutable state. One uses the \verb|ST|
-monad, which allows extracting a pure result at the end, but does not
-allow any interaction with \verb|IO|. The other uses \verb|IO|. This
-choice of \verb|ST| or \verb|IO| is what determines the \verb|n|,
-\verb|r|, and \verb|s| parameters of the \verb|M| type.
-
-\begin{haskellcode}
-newCRef a = M (ANewRef a)
-\end{haskellcode}
-
-\defineprim{ANewRef}{a (cref a \arr action)}{%
-  Construct a new \texttt{CRef} and give it to the continuation.}
-
-Internally, \verb|CRef|s have a unique identifier, which is used to
-determine if two operations on \verb|CRef|s could interfere with each
-other: two writes to the same \verb|CRef| can, but writes to two
-different \verb|CRef|s cannot, for example. Each \verb|CRef| also
-contains a map from thread identifiers to values, which is used for
-implementing relaxed memory, allowing different threads to see values
-more recent than the \emph{canonical} value inside the \verb|CRef|.
-
-\begin{haskellcode}
-readCRef   ref = M (AReadRef    ref)
-readForCAS ref = M (AReadRefCas ref)
-\end{haskellcode}
-
-\defineprim{AReadRef}{(cref a) (a \arr action)}{%
-  Read the currently visible value of a \texttt{CRef}.}
-
-\defineprim{AReadRefCas}{(cref a) (ticket a \arr action)}{%
-  Produce a \texttt{Ticket} from the currently visible state of a
-  \texttt{CRef}.}
-
-Note that when testing under relaxed memory, \verb|AReadRef| may not
-read the \emph{latest} value, as a write by another thread may have
-not yet been committed; similarly \verb|AReadRefCas| might not produce
-a ticket for the latest value either.
-
-\begin{haskellcode}
-peekTicket tick = M (APeekTicket tick)
-\end{haskellcode}
-
-\defineprim{APeekTicket}{(ticket a) (a \arr action)}{%
-  Get the value out of a \texttt{Ticket}.}
-
-This will always return the value seen when the \verb|Ticket| was
-produced, regardless of whether it has been updated since then.
-
-\begin{haskellcode}
-modifyCRef    ref f = M (AModRef    ref f)
-modifyCRefCAS ref f = M (AModRefCas ref f)
-\end{haskellcode}
-
-\defineprim{AModRef}{(cref a) (a \arr (a, b)) (b \arr action)}{%
-  Commit all pending writes and atomically modify the value within a
-  \texttt{CRef}.}
-
-\defineprim{AModRefCas}{(cref a) (a \arr (a, b)) (b \arr action)}{%
-  Commit all pending writes and atomically modify the value within a
-  \texttt{CRef} using a compare-and-swap.}
-
-\begin{haskellcode}
-writeCRef ref      a = M (\c -> AWriteRef ref a (c ()))
-casCRef   ref tick a = M (ACasRef ref tick a)
-\end{haskellcode}
-
-\defineprim{AWriteRef}{(cref a) a action}{%
-  Update the value of a \texttt{CRef}. The updated value is visible to
-  the current thread immediately.}
-
-\defineprim{ACasRef}{(cref a) (ticket a) a ((succeeded?, ticket a) \arr action}{%
-  Update the value of a \texttt{CRef} if it hasn't changed since the
-  ticket was produced..}
-
-When testing under a relaxed memory model, the \verb|AWriteRef|
-primitive does not cause the write to be visible to threads other than
-the writer. A later \verb|ACommit| action is needed for that.
-
-\defineprim{ACommit}{thread\_id cref\_id}{%
-  Make the last write to the given \texttt{CRef} by that thread
-  visible to all threads.}
-
-The \verb|atomicWrite| operation is implemented in terms of
-\verb|modify|, rather than being given its own primitive.
-
-\begin{haskellcode}
-atomicWriteCRef ref a = modifyCRef ref (const (a, ()))
-\end{haskellcode}
-
-\subsubsection{\texttt{CVar}s}
-\label{sec:execution-primops-cvar}
-
-The implementation of \verb|CVar|s is very similar to \verb|CRef|s.
-The differences are that there are no relaxed memory issues to worry
-about, and that a \verb|CVar| may be empty.
-
-\begin{haskellcode}
-newEmptyCVar = M ANewVar
-\end{haskellcode}
-
-\defineprim{ANewVar}{cvar a \arr action}{%
-  Construct a new \texttt{CVar} and give it to the continuation.}
-
-\begin{haskellcode}
-putCVar    cvar a = M (\c -> APutVar cvar a (c ()))
-tryPutCVar cvar a = M (ATryPutVar cvar a)
-\end{haskellcode}
-
-\defineprim{APutVar}{(cvar a) a action}{%
-  Block until the \texttt{CVar} is empty and put a value into it.}
-
-\defineprim{ATryPut}{(cvar a) a (succeeded? \arr action)}{%
-  Try to put a value into the \texttt{CVar} without blocking.}
-
-\begin{haskellcode}
-readCVar cvar = M (AReadVar cvar)
-\end{haskellcode}
-
-\defineprim{AReadVar}{(cvar a) (a \arr action)}{%
-  Block until the \texttt{CVar} is full and read its value.}
-
-\begin{haskellcode}
-takeCVar    cvar = M (ATakeVar    cvar)
-tryTakeCVar cvar = M (ATryTakeVar cvar)
-\end{haskellcode}
-
-\defineprim{ATakeVar}{(cvar a) (a \arr action)}{%
-  Block until the \texttt{CVar} is full and take its value.}
-
-\defineprim{ATryTakeVar}{(cvar a) (Maybe a \arr action)}{%
-  Try to take the value from a \texttt{CVar} without blocking.}
-
-Furthermore, all the \verb|CVar| operations (other than creating a new
-one) cause all uncommitted \verb|CRef| writes to be committed.
 
 \subsubsection{Exceptions}
 \label{sec:execution-primops-exceptions}
@@ -321,7 +147,7 @@ when an \verb|ACatching| primitive is evaluated.
 \defineprim{APopCatching}{action}{%
   Remove the exception handler from the top of the stack.}
 
-There is one primitive action when entering a new masking state:
+There is one primitive action for entering a new masking state:
 
 \begin{haskellcode}
 mask (M mb) = M (AMasking MaskedInterruptible (\f -> mb f))
@@ -335,9 +161,9 @@ uninterruptibleMask (M mb) = M (AMasking MaskedUninterruptible (\f -> mb f))
 
 Like \verb|ACatching|, the \verb|AMasking| action also has a
 counterpart primitive to undo its effect, called
-\verb|AResetMask|. Why is this necessary? Why \verb|AMasking| can't
-both set and reset the masking state? The separate function enabled
-more informative execution traces to be generated for the user.
+\verb|AResetMask|. Why is this necessary? \verb|AMasking| can both set
+and reset the masking state, but the separate function enables more
+informative execution traces to be generated for the user.
 
 \defineprim{AResetMask}{set? inner? masking\_state action}{%
   Sets the masking state.}
@@ -379,23 +205,6 @@ possible outcomes:
   tried again.
 \end{enumerate}
 
-There are far fewer \verb|MonadSTM| operations than \verb|MonadConc|
-ones, so the entirety of the STM implementation is presented here.
-
-\begin{haskellcode}
-retry = S (\_ -> SRetry)
-\end{haskellcode}
-
-\defineprim{SRetry}{}{%
-  Abort the current transaction.}
-
-The \verb|check| function is provided as a simple wrapper around
-\verb|retry|:
-
-\begin{haskellcode}
-check b = if b then return () else retry
-\end{haskellcode}
-
 Transactions can be composed into larger atomic transactions. Aborting
 a component transaction must not break atomicity. The \verb|orElse|
 function combines transactions appropriately:
@@ -408,49 +217,14 @@ orElse a b = S (SOrElse (runSTM a) (runSTM b))
   Try executing the first transaction, if it fails, execute the
   second.}
 
-\begin{haskellcode}
-throwSTM e = S (\_ -> SThrow e)
-
-catchSTM stm handler = S (SCatch (runSTM stm) (runSTM . handler))
-\end{haskellcode}
-
-\defineprim{SThrow}{exception}{%
-  Throw an exception, aborting the current execution flow.}
-
-\defineprim{SCatch}{(exception \arr handler) action continuation}{%
-  Registers a new exception handler for the duration of the action.}
-
 As transactions are atomic, the handling of exceptions can be vastly
-simplified. An \verb|SCatch| action is performed by executing the
-entire inner action in one step and inspecting the result. No explicit
-stack of exception handlers needs to be maintained, as the call stack
-suffices.
+simplified. Catching is performed by executing the entire inner action
+and inspecting the result. No explicit stack of exception handlers
+needs to be maintained, as the function call stack suffices.
 
-\begin{haskellcode}
-newCTVar a = toSTM (SNew a)
-\end{haskellcode}
-
-\defineprim{SNew}{a (ctvar a \arr action)}{%
-  Create a new \texttt{CTVar} containing the given value.}
-
-\begin{haskellcode}
-readCTVar ctvar = S (SRead ctvar)
-\end{haskellcode}
-
-\defineprim{SRead}{(ctvar a) (a \arr action)}{%
-  Read the current value of a \texttt{CTVar}.}
-
-\begin{haskellcode}
-writeCTVar ctvar a = S (\c -> SWrite ctvar a (c ()))
-\end{haskellcode}
-
-\defineprim{SWrite}{(ctvar a) a action}{%
-  Update a \texttt{CTVar}.}
-
-The effects of a transaction only take place when it completes
-successfully, so \verb|SWrite| has no externally-visible effects until
-the whole thing finishes. Furthermore, executing a transaction with
-\verb|AAtom| enforces a write barrier.
+The effects of a transaction only become visible when it completes
+successfully. Furthermore, executing a transaction enforces a write
+barrier.
 
 \subsubsection{Testing Annotations}
 \label{sec:execution-primops-annotations}
@@ -475,24 +249,9 @@ _concAllKnown       = M (\c -> AAllKnown       (c ()))
   Record that all variables the thread knows about have been
   reported.}
 
-Here is how the deadlock detection process works. If a thread is
-blocked on a \verb|CVar| or \verb|CTVar| (an STM transaction
-referencing it has aborted), \emph{and} it is known what variables all
-threads have access to, \emph{and} all other threads with a reference
-to that variable are also blocked on it, \emph{then} the thread is
-deadlocked. This can easily be extended to collections of threads
-which are all blocked on the same variable.
-
-\subsubsection{Lifting from the Underlying Monad}
-\label{sec:execution-primops-lift}
-
-Finally, there is the \verb|ALift| primitive, for lifting an action
-from the underlying monad. This is used in the implementation of
-\verb|liftIO|:
-
-\begin{haskellcode}
-liftIO = M (\c -> ALift (fmap c ma))
-\end{haskellcode}
-
-\defineprim{ALift}{monadic\_action}{%
-  Execute an action from the underlying monad.}
+If a thread is blocked on a \verb|CVar| or \verb|CTVar| (an STM
+transaction referencing it has aborted), \emph{and} it is known what
+variables all threads have access to, \emph{and} all other threads
+with a reference to that variable are also blocked on it, \emph{then}
+the thread is deadlocked. This can easily be extended to collections
+of threads which are all blocked on the same variable.

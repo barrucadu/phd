@@ -89,7 +89,12 @@ one which allows testing.
 Converting the \emph{abstract-deque} package proved a little more
 challenging, as the typeclass interface requires knowledge of both the
 queue type and the monad results are produced in. This issue was
-solved by use of type families:
+solved by use of type families. This solution is not ideal as it adds
+explicit knowledge of \verb|MonadConc| to the \verb|DequeClass|
+typeclass, but it suffices for testing purposes:
+
+\input{casestudies/example-parmonad.tex}
+\FloatBarrier
 
 \begin{minted}{haskell}
 class MonadConc (MConc d) => DequeClass d where
@@ -99,19 +104,12 @@ class MonadConc (MConc d) => DequeClass d where
   ...
 \end{minted}
 
-This solution is not ideal as it adds explicit knowledge of
-\verb|MonadConc| to the \verb|DequeClass| typeclass, but it suffices
-for testing purposes.
-
 Only 47 lines out of 342 across three modules needed change. 20 of
 these were in type signatures, 8 in type and data declarations, and 6
 in typeclass instances. The remaining lines were, again, renaming
 \verb|*IORef| functions to \verb|*CRef| equivalents, import
 statements, and the addition of a type family as displayed in the code
 sample above.
-
-\input{casestudies/example-parmonad.tex}
-\FloatBarrier
 
 With the constant value `PRNG', a deadlock was discovered. It only
 arises after 200 queries. Given that the range of values is from 0 to

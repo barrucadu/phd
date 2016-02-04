@@ -1,0 +1,134 @@
+There are currently 31 primitive actions used to construct the testing
+instances of \verb|MonadConc|, one of which only arises when testing
+under relaxed memory. These primitive actions contain a continuation,
+allowing individual actions to be composed into larger execution
+sequences. Each thread of execution consists of such a sequence,
+terminated by the \verb|AStop| primitive, which has no continuation
+and signals the termination of the thread.
+
+\vspace{0.25cm}
+\noindent \textsc{Threading} \vspace{-0.5\parskip}
+
+\begin{primtable}
+\defineprimT{AFork}{(unmask \arr action) (thread\_id \arr action)}{%
+  Create a new thread from the first action, and continue executing
+  the current thread with the second.}
+\defineprimT{AMyTId}{(thread\_id \arr action)}{%
+  Continue execution of the current thread by querying the thread
+  identifier.}
+\defineprimT{AYield}{action}{%
+  Execute the given action, but also signify to the scheduler that it
+  may be worth running a different thread now.}
+\defineprimT{AStop}{}{%
+  Terminate the current thread.}
+\end{primtable}
+
+\noindent \textsc{\texttt{CRef}s} \vspace{-0.5\parskip}
+
+\begin{primtable}
+\defineprimT{ANewRef}{a (cref a \arr action)}{%
+  Construct a new \texttt{CRef} and give it to the continuation.}
+\defineprimT{AReadRef}{(cref a) (a \arr action)}{%
+  Read the currently visible value of a \texttt{CRef}.}
+\defineprimT{AReadRefCas}{(cref a) (ticket a \arr action)}{%
+  Produce a \texttt{Ticket} from the currently visible state of a
+  \texttt{CRef}.}
+\defineprimT{APeekTicket}{(ticket a) (a \arr action)}{%
+  Get the value out of a \texttt{Ticket}.}
+\defineprimT{AModRef}{(cref a) (a \arr (a, b)) (b \arr action)}{%
+  Commit all pending writes and atomically modify the value within a
+  \texttt{CRef}.}
+\defineprimT{AModRefCas}{(cref a) (a \arr (a, b)) (b \arr action)}{%
+  Commit all pending writes and atomically modify the value within a
+  \texttt{CRef} using a compare-and-swap.}
+\defineprimT{AWriteRef}{(cref a) a action}{%
+  Update the value of a \texttt{CRef}. The updated value is visible to
+  the current thread immediately.}
+\defineprimT{ACasRef}{(cref a) (ticket a) a ((succeeded?, ticket a) \arr action)}{%
+  Update the value of a \texttt{CRef} if it hasn't changed since the
+  ticket was produced..}
+\defineprimT{ACommit}{thread\_id cref\_id}{%
+  Make the last write to the given \texttt{CRef} by that thread
+  visible to all threads.}
+\end{primtable}
+
+\noindent \textsc{\texttt{CVar}s} \vspace{-0.5\parskip}
+
+\begin{primtable}
+\defineprimT{ANewVar}{cvar a \arr action}{%
+  Construct a new \texttt{CVar} and give it to the continuation.}
+\defineprimT{APutVar}{(cvar a) a action}{%
+  Block until the \texttt{CVar} is empty and put a value into it.}
+\defineprimT{ATryPutVar}{(cvar a) a (succeeded? \arr action)}{%
+  Try to put a value into the \texttt{CVar} without blocking.}
+\defineprimT{AReadVar}{(cvar a) (a \arr action)}{%
+  Block until the \texttt{CVar} is full and read its value.}
+\defineprimT{ATakeVar}{(cvar a) (a \arr action)}{%
+  Block until the \texttt{CVar} is full and take its value.}
+\defineprimT{ATryTakeVar}{(cvar a) (Maybe a \arr action)}{%
+  Try to take the value from a \texttt{CVar} without blocking.}
+\end{primtable}
+
+\noindent \textsc{Exceptions} \vspace{-0.5\parskip}
+
+\begin{primtable}
+\defineprimT{AThrow}{exception}{%
+  Raises an exception in the current thread, terminating the current
+  execution.}
+\defineprimT{AThrowTo}{exception action}{%
+  Raises an exception in the other thread, blocking if the other
+  thread has exceptions masked.}
+\defineprimT{ACatching}{(exception \arr handler) action continuation}{%
+  Registers a new exception handler for the duration of the inner
+  action.}
+\defineprimT{APopCatching}{action}{%
+  Remove the exception handler from the top of the stack.}
+\defineprimT{AMasking}{masking\_state (unmask \arr action) continuation}{%
+  Executes the inner action under a new masking state, and also gives
+  it a function to reset the masking state.}
+\defineprimT{AResetMask}{set? inner? masking\_state action}{%
+  Sets the masking state.}
+\end{primtable}
+
+\noindent \textsc{Software Transactional Memory} \vspace{-0.5\parskip}
+
+\begin{primtable}
+\defineprimT{AAtom}{transaction continuation}{%
+  Execute an STM transaction atomically.}
+\defineprimT{SNew}{a (ctvar a \arr action)}{%
+  Create a new \texttt{CTVar} containing the given value.}
+\defineprimT{SRead}{(ctvar a) (a \arr action)}{%
+  Read the current value of a \texttt{CTVar}.}
+\defineprimT{SWrite}{(ctvar a) a action}{%
+  Update a \texttt{CTVar}.}
+\defineprimT{SThrow}{exception}{%
+  Throw an exception, aborting the current execution flow.}
+\defineprimT{SCatch}{(exception \arr handler) action continuation}{%
+  Registers a new exception handler for the duration of the action.}
+\defineprimT{SRetry}{}{%
+  Abort the current transaction.}
+\defineprimT{SOrElse}{transaction transaction continuation}{%
+  Try executing the first transaction, if it fails, execute the
+  second.}
+\end{primtable}
+
+\noindent \textsc{Testing Annotations} \vspace{-0.5\parskip}
+
+\begin{primtable}
+\defineprimT{AKnowsAbout}{(Either cvar ctvar) action}{%
+  Record that the thread has access to the given variable.}
+\defineprimT{AForgets}{(Either cvar ctvar) action}{%
+  Record that the thread no longer has access to the given variable.}
+\defineprimT{AAllKnown}{action}{%
+  Record that all variables the thread knows about have been
+  reported.}
+\end{primtable}
+
+\noindent \textsc{Miscellaneous} \vspace{-0.5\parskip}
+
+\begin{primtable}
+\defineprimT{AReturn}{action}{%
+  Execute the given action.}
+\defineprimT{ALift}{monadic\_action}{%
+  Execute an action from the underlying monad.}
+\end{primtable}

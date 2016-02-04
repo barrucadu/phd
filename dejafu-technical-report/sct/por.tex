@@ -136,7 +136,13 @@ and so a different approach was taken.
 \dejafu{} explicitly constructs a tree in memory, where each path from
 the root to a leaf corresponds to one complete execution. Forks in the
 tree correspond to places where multiple decisions have been
-tried. The operation proceeds as follows:
+tried. The operation proceeds like so: generate a list of initial
+scheduling decisions; execute the computation, using some default
+scheduler when the supplied decisions are exhausted; add the resultant
+trace to the tree; search for and add any new backtracking points to
+the tree; and continue while there is still work to do.
+
+This is implemented as follows:
 
 \begin{haskellcode}
 sctBounded memtype bf run = go initialState where
