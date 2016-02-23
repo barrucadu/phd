@@ -9,8 +9,9 @@ data structure, this seemed to have limited prospects of success,
 without significantly restructuring the implementation. The testing
 framework in \dejafu{} is built around an $n$-ary prefix
 tree. Formulations of recursive data structures in Isabelle tend to
-have a static number of branches as a part of their definition,
-whereas the \dejafu{} tree structure does not. This led to a lot of
+have a fixed number of branches as a part of their definition, whereas
+the \dejafu{} tree structure has a variable branching factor, based on
+which threads are runnable at each point. This led to a lot of
 difficulty in expressing the structure in a way amenable to automated
 reasoning, and was abandoned as being too complicated for the return.
 

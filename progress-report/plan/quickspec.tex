@@ -13,30 +13,8 @@ merely \emph{accidentally} hold. Furthermore, the \emph{absence} of
 expected laws can often hint at the presence of a bug which further
 testing can reveal.
 
-A QuickSpec-like tool which can generate laws for a concurrency-using
-API would be interesting and useful. Ideally the programmer would
-supply a description of some collection of functions, and the tool
-would generate small concurrent programs and find properties of their
-results.
-
-For example, given a concurrent stack type, it would be desirable to
-be able to generate both of these properties automatically:
-
-\begin{haskellcode}
-do { s <- newStack; push s 1; push s 2; a <- pop s; b <- pop s; return (a, b) }
-  `gives` {(2,1)}
-
-do { s <- newStack; push s 1 <|> push s 2; a <- pop s; b <- pop s; return (a, b) }
-  `gives` {(2,1), (1,2)}
-\end{haskellcode}
-
-Where \verb|gives| produces the set of results of a concurrent
-computation and \verb+<|>+ is parallel composition. Such properties
-can serve as small simple test cases, and the basis of a larger test
-suite.
-
 There are a few problems with QuickSpec which make it unsuitable for
-this task currently:
+generating properties where concurrency is involved:
 
 \begin{itemize}
 \item QuickSpec cannot generate $\lambda$-functions directly, which
@@ -48,6 +26,15 @@ this task currently:
   properties of concurrent data structures are likely to involve
   several function calls monadically composed.
 \end{itemize}
+
+Addressing these issues, either within QuickSpec itself, or by
+producing a new tool, would be interesting and useful. Ideally the
+programmer would supply a description of some collection of functions,
+and the tool would generate small concurrent programs and find
+properties of their results. Such properties could serve as a
+component in a larger test suite, or even indicate the presence of
+bugs directly (for example, by the \emph{lack} of an expected
+property).
 
 One possible approach may be from the angle of generating do-notation
 code one line at a time, rather than generating expressions in

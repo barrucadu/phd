@@ -51,8 +51,7 @@ being used. This means that code written using the typeclass does not
 need any changes to run with ``real'' concurrency or for testing.
 
 The \verb|IO| implementation for \verb|fork| uses \verb|forkIO|, a
-function provided by GHC which creates a new green thread. These green
-threads are multiplexed onto a number of operating system threads. The
+function provided by GHC which creates a new green thread. The
 \verb|Conc| implementation instead uses continuations, constructing a
 data structure representing the computation to be performed. This
 allows the test runner to know what each thread in a concurrent
@@ -60,11 +59,12 @@ computation will do next, and to pause execution. It is not possible
 to pick apart and inspect \verb|IO| actions like this, but this is
 essential in implementing a deterministic scheduler.
 
-The execution of a concurrent program is considered to be the
-sequential stepwise execution of \emph{primitive actions}, the most
-basic things that a computation can do. Each thread is represented as
-a sequence of primitive actions, where the continuation of one action
-is the next action that a thread will take.
+A single-processor model is used for testing. The execution of a
+concurrent program is considered to be the sequential stepwise
+execution of \emph{primitive actions}, the most basic things that a
+computation can do. Each thread is represented as a sequence of
+primitive actions, where the continuation of one action is the next
+action that a thread will take.
 
 Execution of an entire computation proceeds in a stepwise manner: a
 thread is chosen by the scheduler, its primitive action is executed,
@@ -85,7 +85,7 @@ schedules to try.
 
 Schedule bounding is an \emph{incomplete} approach to SCT. Each
 sequence of scheduling decisions is associated with a \emph{bound
-  value}, limiting the results of some \emph{bound function}. Such a
+  value}, defining the results of some \emph{bound function}. Such a
 function could be the number of pre-emptive context switches, for
 example. Schedules with a computed value greater than the limit are
 simply not executed. Schedule bounding was introduced in
@@ -117,7 +117,7 @@ runPar (parMap id [1..5])
 
 The Par monad is a fairly complicated library, doing some non-trivial
 set-up and scheduling regardless of the size of the computation being
-performed. Schedule bounding did not scale.
+performed. Schedule bounding did not scale to this task.
 
 \subsection{\dejafu{} Now}
 \label{sec:progress-dejafu-now}
@@ -159,7 +159,8 @@ flushed:
   that they are created.}
 
 TSO corresponds to modern x86 and x86\_64 processors. It is the
-default memory model used.
+default memory model used. Adding support for PSO required no
+additional work and so was also included.
 
 This additional functionality does cause some expansion in the number
 of schedules tried for computations which do a lot of unsynchronised
@@ -215,7 +216,10 @@ compensates for this, allowing the human tester to trade time for
 confidence of correctness. To return to the Par monad example,
 \dejafu{} now finds only 2873 schedules. This is still quite a lot,
 and it would be very surprising if this could not be improved further,
-but it is an order of magnitude improvement on the same task.
+but it is an order of magnitude improvement on the same task. I expect
+that the current dependency relation in \dejafu{} could be refined
+further, as it currently infers a lot of dependencies when exceptions
+are used, which crop up in the Par monad.
 
 \subsection{Contributions}
 \label{sec:progress-dejafu-contribs}
@@ -223,12 +227,13 @@ but it is an order of magnitude improvement on the same task.
 The contributions can be seen as follows:
 
 \begin{itemize}
-\item Existing results from the concurrency testing world have been
-  applied to functional programming.
+\item Schedule bounding and DPOR have been verified to be viable
+  techniques for applying systematic concurrency testing in a
+  functional setting.
 
-\item A somewhat novel partial-order reduction algorithm for
-  systematic concurrency testing based on a combination of two others:
-  bounded partial-order reduction \citep{bpor} and relaxed-memory DPOR
+\item A novel partial-order reduction algorithm for systematic
+  concurrency testing based on a combination of two others: bounded
+  partial-order reduction \citep{bpor} and relaxed-memory DPOR
   \citep{rdpor}.
 
 \item The \dejafu{} library for testing concurrent Haskell programs,

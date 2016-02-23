@@ -1,5 +1,5 @@
 Concurrency is notoriously difficult to get right \citep{overrated},
-sometimes even leading to death \citep{therac25}. The problem stems
+and can have dire consequences \citep{therac25}. The problem stems
 from the nondeterminism of scheduling: the same program with the same
 inputs may produce different results depending on the schedules chosen
 at execution time. This makes it difficult to use traditional testing
@@ -33,8 +33,8 @@ The questions I want to answer are:
 \item What common usages of concurrency can be abstracted away in a
   safe and deterministic fashion?
 
-\item \textbf{Can it be made much easier to write correct concurrent
-    code?}
+\item Can types be used to statically enforce interesting concurrency
+  safety properties?
 \end{itemize}
 
 The first question has been answered to some degree with \dejafu{}
