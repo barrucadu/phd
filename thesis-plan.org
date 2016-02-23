@@ -1,0 +1,93 @@
+* Thesis Outline
+** Abstract
+
+This thesis contributes new conceptual tools for concurrent functional
+programming.
+
+We make concurrency /testable/ by abstracting over the concrete
+implementation of concurrency, allowing a testing tool to be
+created. We define a library supporting both traditional unit
+test-style usage and checking linear temporal logic properties over
+the execution trace. We also provide a tool for generating test cases
+for concurrency libraries.
+
+We make concurrency /safer/ by encoding information about the effects
+of a computation into its type, allowing compile-time guarantees about
+the behaviour of concurrent programs. This information can be used to
+enforce safety properties, such as consistent lock acquisition order.
+
+We make concurrency /simpler/ by abstracting over common deterministic
+and nondeterministic search patterns. We provide heuristics to
+automatically introduce speculative concurrency based on static
+analysis, whilst not completely sacrificing laziness. We define a
+library uses Template Haskell to enable programmers to write ``search
+comprehensions'' in a very similar way to list comprehensions.
+
+We use the Haskell language and the concurrency abstraction provided
+by the Glasgow Haskell Compiler. We present a range of techniques, all
+of which have been implemented and evaluated.
+
+** Structure
+
+1. Introduction
+   1. Motivation and Aims
+      1. Making Concurrency Testable
+      2. Making Concurrency Safer
+      3. Making Concurrency Simpler
+   2. Thesis
+   3. Contributions
+   4. Chapter Outline
+
+2. Background
+   1. Parallelism vs. Concurrency
+   2. Concurrency in Haskell
+   3. Testing Concurrent Programs
+
+3. Systematic Concurrency Testing
+   1. Concurrency Abstraction
+   2. Program Execution
+   3. Program Testing
+      1. Unit Tests
+      2. Linear Temporal Logic
+   4. Implementation Details
+   5. Case Studies and Evaluation
+   6. Related Work
+
+4. Test Case Generation
+   1. Interface Specification
+   2. Expression Generation
+   3. Expression Partitioning
+   4. Equation Pruning
+   5. Implementation Details
+   6. Case Studies and Evaluation
+   7. Related Work
+
+5. Type Guarantees
+   1. Type-level Programming
+   2. Deadlock Prevention
+   3. ???
+   4. ???
+   5. Case Studies and Evaluation
+   6. Related Work
+
+6. Speculative Search
+   1. The Find Monad
+   2. Generalising to Streams
+   3. Search Comprehensions
+   4. Implementation Details
+   5. Case Studies and Evaluation
+   6. Related Work
+
+7. Conclusions
+   1. Contributions
+      1. Testable Programs
+      2. Safer Programs
+      3. Simpler Programs
+   2. Future Work
+      1. Déjà Fu
+      2. *name of test case generation tool*
+      3. *name of ??? tool*
+      4. Search Party
+   3. Concluding Remarks
+
+A. Primitive Actions
