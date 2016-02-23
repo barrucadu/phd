@@ -93,9 +93,6 @@ solved by use of type families. This solution is not ideal as it adds
 explicit knowledge of \verb|MonadConc| to the \verb|DequeClass|
 typeclass, but it suffices for testing purposes:
 
-\input{casestudies/example-parmonad.tex}
-\FloatBarrier
-
 \begin{minted}{haskell}
 class MonadConc (MConc d) => DequeClass d where
   type MConc d :: * -> *
@@ -124,3 +121,5 @@ Due to the very contrived nature of the one deadlock found, and the
 length of the trace, it is not displayed here. If there is anything
 that can be taken away from this experiment with the Par monad, it is
 that it is very reliable.
+
+% Figure is added in practice/preamble for good page breaking
