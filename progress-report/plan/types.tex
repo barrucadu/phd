@@ -1,0 +1,51 @@
+Static type systems can be thought of as a kind of lightweight formal
+method for proving properties of programs. The type system of GHC
+Haskell is significantly more powerful than that of standard Haskell,
+augmented with features such as type-level functions, generalised
+algebraic data types, and higher-ranked polymorphism. More recently,
+work has been ongoing to introduce full dependent typing. Given all of
+this functionality, and the long-standing tradition in Haskell of
+making illegal states unrepresentable in a type-correct way, it is
+natural to wonder what can be done to enforce concurrency best
+practices statically.
+
+At one extreme, types can enforce that a concurrent computation is
+totally deterministic, as in the Par monad \citep{parmonad}. However,
+surely there are less strict guarantees that can be expressed and
+statically checked.
+
+Monads are a useful abstraction to structure computations with an
+inherent notion of sequence and potential side effects in a pure
+functional language. Indexed monads allow additional information to be
+carried around at the type level. \citep{typefun} gives an example of
+using an indexed monad to ensure that a computation releases every
+lock it acquires. A similar idea can be used to, in addition, enforce
+that locks are acquired in a fixed order. This approach is desirable
+because the checking is done statically, by the type checker, rather
+than at runtime, by code the programmer has written.
+
+Another possible avenue is session types. Session types are used to
+ensure that some communication protocol is adhered to, and so applies
+to both networked systems, and programs with multiple threads sharing
+state.
+
+\paragraph{Timeline:}
+
+\begin{description}
+\item[End of Mar 2017] Discover some interesting new ways of
+  expressing (and enforcing) properties of concurrent programs at the
+  type level.
+\item[Mid May 2017] Submit a paper to the Haskell Symposium.
+\end{description}
+
+\paragraph{Success Criteria:}
+
+This is very speculative, so it's difficult to name some concrete
+success criteria. Some sort of enforcement of properties beyond a
+simple static prevention of deadlock is desirable.
+
+\paragraph{Publications:}
+
+This should lead to some new examples of using the type system to
+restrict concurrency, and so give rise to a paper to submit to the
+2017 Haskell Symposium.

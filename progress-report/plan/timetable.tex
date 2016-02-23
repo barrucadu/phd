@@ -1,72 +1,160 @@
 \begin{figure}[h!]
   \centering
-  \begin{ganttchart}[hgrid, vgrid, x unit=0.8cm,
+  \begin{ganttchart}[hgrid, vgrid,
     bar label font=\footnotesize,
-    milestone label font=\footnotesize\bfseries,
-    bar/.append style={fill=lightgray!50},
-    group/.append style={draw=black, fill=gray!50}]{1}{11}
-    \gantttitle{2016}{11} \\
+    milestone label font=\footnotesize\it,
+    vgrid={draw=none, dotted},
+    group/.append style={draw=gray!85, fill=gray!50}
+    ]{1}{22}
+
+    \gantttitle{\textbf{2016}}{22} \\
     \gantttitlelist[title list options={var=\y, evaluate=\y as \x
-      using "\pgfcalendarmonthshortname{\y}"}]{2,...,12}{1} \\
+      using "\pgfcalendarmonthshortname{\y}"}]{2,...,12}{2}\\
 
     \setganttlinklabel{f-s}{}
     \setganttlinklabel{s-s}{}
 
-% dejafu technical report
+% dejafu journal article: [Feb,Mar]
 
-    \ganttbar[name=dftr]{Finish \dejafu{} technical report}{1}{1}
+    \ganttgroup{\dejafu{} Journal Article}{1}{4}
     \ganttnewline
-    \ganttmilestone[name=dftrm]{Technical Report}{1}{1}
+
+    \ganttbar[name=dftr]{Finish \dejafu{} technical report}{1}{2}
     \ganttnewline
-    \ganttbar[name=dfja]{Finish \dejafu{} journal article}{2}{2}
+    \ganttmilestone[name=dftrm]{Technical Report Submission}{2}{2}
     \ganttnewline
-    \ganttmilestone[name=dfjam]{Journal Article}{2}{2}
+    \ganttbar[name=dfja]{Finish \dejafu{} journal article}{3}{4}
     \ganttnewline
+    \ganttmilestone[name=dfjam]{Journal Article Submission}{4}{4}
 
     \ganttlink{dftr}{dftrm}
     \ganttlink{dftrm}{dfja}
     \ganttlink{dfja}{dfjam}
 
-% live property monitoring
+% live property monitoring: [Apr,0.5May]
 
-    \ganttbar[name=ltl]{Write LTL property checking tool}{3}{3}
     \ganttnewline
-    \ganttbar[name=ltlp]{Write RV'2016 paper}{4}{4}
+    \ganttgroup{Live Property Monitoring}{5}{7}
     \ganttnewline
-    \ganttmilestone[name=ltlm]{RV'2016 Paper Submission}{4}{4}
+
+    \ganttbar[name=ltl]{Write LTL property checking tool}{5}{6}
     \ganttnewline
-    \ganttmilestone[name=ltlcon]{RV'2016}{8}{8}
+    \ganttbar[name=ltlp]{Write RV'2016 paper}{7}{7}
     \ganttnewline
+    \ganttmilestone[name=ltlm]{RV'2016 Paper Submission}{7}{7}
+    \ganttnewline
+    \ganttmilestone[name=ltlcon]{RV'2016}{16}{16}
 
     \ganttlink[link type=f-s]{ltl}{ltlp}
     \ganttlink{ltlp}{ltlm}
     \ganttlink{ltlm}{ltlcon}
 
-% test case generation
+% test case generation [0.5May,Aug]
 
-    \ganttbar[name=gen]{Write monadic expression generator}{4}{4}
     \ganttnewline
-    \ganttbar[name=cgen]{Integrate with \dejafu{}}{5}{6}
+    \ganttgroup{Test Case Generation}{8}{14}
     \ganttnewline
+
+    \ganttbar[name=gen]{Write monadic expression generator}{8}{10}
+    \ganttnewline
+    \ganttbar[name=cgen]{Write test case generator}{11}{14}
 
     \ganttlink[link type=f-s]{gen}{cgen}
 
-% concurrency introduction
+% thesis outline [Jun]
 
-    \ganttbar[name=th]{Implement ``search comprehensions''}{7}{7}
     \ganttnewline
-    \ganttbar[name=heur]{Develop heuristics for parallelisation}{8}{8}
+    \ganttgroup{Thesis Outline}{9}{10}
     \ganttnewline
 
-    \ganttlink[link type=f-s]{th}{heur}
-
-% thesis outline
-
-    \ganttbar[name=to]{Write thesis outline}{5}{5}
+    \ganttbar[name=to]{Write thesis outline}{9}{10}
     \ganttnewline
-    \ganttmilestone[name=tom]{Thesis Outline}{5}{5}
+    \ganttmilestone[name=tom]{Thesis Outline}{10}{10}
 
     \ganttlink{to}{tom}
+
+% concurrency introduction [Sep,Dec]
+
+    \ganttnewline
+    \ganttgroup{Concurrency Introduction}{15}{22}
+    \ganttnewline
+
+    \ganttbar[name=th]{Implement ``search comprehensions''}{15}{16}
+    \ganttnewline
+    \ganttbar[name=heur]{Develop heuristics for parallelisation}{17}{22}
+
+    \ganttlink[link type=f-s]{th}{heur}
+  \end{ganttchart}
+\end{figure}
+
+\begin{figure}[h!]
+  \centering
+  \begin{ganttchart}[hgrid, vgrid,
+    bar label font=\footnotesize,
+    milestone label font=\footnotesize\it,
+    vgrid={draw=none, dotted},
+    group/.append style={draw=gray!85, fill=gray!50}
+    ]{1}{20}
+
+    \gantttitle{\textbf{2017}}{20} \\
+    \gantttitlelist[title list options={var=\y, evaluate=\y as \x
+      using "\pgfcalendarmonthshortname{\y}"}]{1,...,10}{2}\\
+
+    \setganttlinklabel{f-s}{}
+    \setganttlinklabel{s-s}{}
+
+% thesis audit [Jan]
+
+    \ganttgroup{Thesis Audit}{1}{2}
+    \ganttnewline
+
+    \ganttbar[name=ta]{Write thesis audit}{1}{2}
+    \ganttnewline
+    \ganttmilestone[name=tam]{Thesis Audit}{2}{2}
+
+    \ganttlink{ta}{tam}
+
+% concurrency types [Jan,Apr]
+
+    \ganttnewline
+    \ganttgroup{Concurrency Types}{1}{9}
+    \ganttnewline
+
+    \ganttbar[name=ct]{Investigate types for concurrency}{1}{6}
+    \ganttnewline
+    \ganttbar[name=ctp]{Write HS'2017 paper}{7}{9}
+    \ganttnewline
+    \ganttmilestone[name=ctm]{HS'2017 Paper Submission}{9}{9}
+    \ganttnewline
+    \ganttmilestone[name=ctcon]{HS'2017}{18}{18}
+
+    \ganttlink[link type=f-s]{ct}{ctp}
+    \ganttlink{ctp}{ctm}
+    \ganttlink{ctm}{ctcon}
+
+% thesis [Jun,Oct]
+
+    \ganttnewline
+    \ganttgroup{Thesis}{11}{19}
+    \ganttnewline
+
+    \ganttbar[name=t]{Write thesis}{11}{19}
+    \ganttnewline
+    \ganttmilestone[name=tm]{Thesis}{19}{19}
+
+    \ganttlink{t}{tm}
+
+% thesis seminar [Jul]
+
+    \ganttnewline
+    \ganttgroup{Thesis Seminar}{13}{14}
+    \ganttnewline
+
+    \ganttbar[name=ts]{Prepare thesis seminar}{13}{14}
+    \ganttnewline
+    \ganttmilestone[name=tsm]{Thesis Seminar}{14}{14}
+
+    \ganttlink{ts}{tsm}
 
   \end{ganttchart}
 \end{figure}
