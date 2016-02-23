@@ -6,11 +6,15 @@ sequences. Each thread of execution consists of such a sequence,
 terminated by the \verb|AStop| primitive, which has no continuation
 and signals the termination of the thread.
 
+Threads, \verb|CVar|s, \verb|CRef|s, and \verb|CTVar|s may be given
+names, which are displayed in execution traces. If no name is given, a
+unique numeric identifier is used instead.
+
 \vspace{0.25cm}
 \noindent \textsc{Threading} \vspace{-0.5\parskip}
 
 \begin{primtable}
-\defineprimT{AFork}{(unmask \arr action) (thread\_id \arr action)}{%
+\defineprimT{AFork}{name (unmask \arr action) (thread\_id \arr action)}{%
   Create a new thread from the first action, and continue executing
   the current thread with the second.}
 \defineprimT{AMyTId}{(thread\_id \arr action)}{%
@@ -26,7 +30,7 @@ and signals the termination of the thread.
 \noindent \textsc{\texttt{CRef}s} \vspace{-0.5\parskip}
 
 \begin{primtable}
-\defineprimT{ANewRef}{a (cref a \arr action)}{%
+\defineprimT{ANewRef}{name a (cref a \arr action)}{%
   Construct a new \texttt{CRef} and give it to the continuation.}
 \defineprimT{AReadRef}{(cref a) (a \arr action)}{%
   Read the currently visible value of a \texttt{CRef}.}
@@ -55,7 +59,7 @@ and signals the termination of the thread.
 \noindent \textsc{\texttt{CVar}s} \vspace{-0.5\parskip}
 
 \begin{primtable}
-\defineprimT{ANewVar}{cvar a \arr action}{%
+\defineprimT{ANewVar}{name (cvar a \arr action)}{%
   Construct a new \texttt{CVar} and give it to the continuation.}
 \defineprimT{APutVar}{(cvar a) a action}{%
   Block until the \texttt{CVar} is empty and put a value into it.}
@@ -95,7 +99,7 @@ and signals the termination of the thread.
 \begin{primtable}
 \defineprimT{AAtom}{transaction continuation}{%
   Execute an STM transaction atomically.}
-\defineprimT{SNew}{a (ctvar a \arr action)}{%
+\defineprimT{SNew}{name a (ctvar a \arr action)}{%
   Create a new \texttt{CTVar} containing the given value.}
 \defineprimT{SRead}{(ctvar a) (a \arr action)}{%
   Read the current value of a \texttt{CTVar}.}

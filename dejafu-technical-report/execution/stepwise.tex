@@ -45,9 +45,9 @@ another is \verb|launch|, used to create a new thread. This can be
 seen in the implementation of \verb|AFork|:
 
 \begin{haskellcode}
-stepFork a b = return (Right (threads', idSource', Fork newtid, wb)) where
+stepFork name a b = return (Right (threads', idSource', Fork newtid, wb)) where
   threads' = goto (b newtid) tid (launch tid newtid a threads)
-  (idSource', newtid) = nextTId idSource
+  (idSource', newtid) = nextTId name idSource
 \end{haskellcode}
 
 The \verb|stepFork| function involves two modifications to the thread
@@ -79,7 +79,9 @@ A \verb|CRef| is implemented as a mutable reference containing a
 there have been, and a number of \emph{thread-specific} values. These
 thread-specific values correspond to uncommitted writes. A
 \verb|Ticket|, used in compare-and-swap operations, is a
-\emph{witness} that a specific prior value was observed.
+\emph{witness} that a specific prior value was observed. Like threads,
+a \verb|CRef| (and \verb|CVar|) can be given a name when it is
+initially created.
 
 There are three memory models supported by \dejafu{}. Each has a
 different implementation for writing to a \verb|CRef|:

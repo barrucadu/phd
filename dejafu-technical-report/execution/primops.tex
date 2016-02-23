@@ -77,11 +77,11 @@ The \verb|forkWithUnmask| function uses the \verb|AFork| primitive,
 which creates a new thread:
 
 \begin{haskellcode}
-forkWithUnmask (M ma) = M (AFork action) where
+forkWithUnmask (M ma) = M (AFork "" action) where
   action unmask = runM (ma unmask) (\_ -> AStop)
 \end{haskellcode}
 
-\defineprim{AFork}{(unmask \arr action) (thread\_id \arr action)}{%
+\defineprim{AFork}{name (unmask \arr action) (thread\_id \arr action)}{%
   Create a new thread from the first action, and continue executing
   the current thread with the second.}
 
@@ -92,14 +92,16 @@ As the testing implementation does not run things in parallel, the
 forkOnWithUnmask _ = forkWithUnmask
 \end{haskellcode}
 
-Similarly, the \verb|getNumCapabilities| function just returns a
-constant value:
+The name argument to \verb|AFork| is used, if set, to give more
+helpful execution traces. If no name is given, a unique numeric
+identifier is used. \verb|MonadConc| provides a variant of each
+forking function which takes the name as a parameter. Like the
+non-named functions, these are all implemented in terms of one:
 
 \begin{haskellcode}
-getNumCapabilities = return 2
+forkWithUnmaskN name (M ma) = M (AFork name action) where
+  action unmask = runM (ma unmask) (\_ -> AStop)
 \end{haskellcode}
-
-In the \verb|IO| implementation, these functions behave as expected.
 
 \subsubsection{Exceptions}
 \label{sec:execution-primops-exceptions}
