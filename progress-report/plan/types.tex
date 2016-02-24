@@ -9,11 +9,6 @@ making illegal states unrepresentable in a type-correct way, it is
 natural to wonder what can be done to enforce concurrency best
 practices statically.
 
-At one extreme, types can enforce that a concurrent computation is
-totally deterministic, as in the Par monad \citep{parmonad}. However,
-surely there are less strict guarantees that can be expressed and
-statically checked.
-
 Monads are a useful abstraction to structure computations with an
 inherent notion of sequence and potential side effects in a pure
 functional language. Indexed monads allow additional information to be
