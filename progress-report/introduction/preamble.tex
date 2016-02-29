@@ -1,13 +1,16 @@
 Concurrency is notoriously difficult to get right \citep{overrated},
-and can have dire consequences \citep{therac25}. The problem stems
-from the nondeterminism of scheduling: the same program with the same
-inputs may produce different results depending on the schedules chosen
-at execution time. This makes it difficult to use traditional testing
-techniques with concurrent programs, which rely on the result of
-executing a test to be deterministic. So-called ``Heisenbugs'' make it
-difficult to be confident of the correctness of concurrent programs:
-no bug has been observed during the testing process, but how do we
-\emph{know} that there aren't any?
+and programmer mistakes can have dire consequences
+\citep{therac25}. The problem stems from the nondeterminism of
+scheduling: the same program with the same inputs may produce
+different results depending on the schedules chosen at execution
+time. This makes it difficult to use traditional testing techniques
+with concurrent programs, which rely on the result of executing a test
+to be deterministic. So-called ``Heisenbugs'' make it difficult to be
+confident of the correctness of concurrent programs: no bug has been
+observed during the testing process, but how do we \emph{know} that
+there aren't any? This is a concern in any testing regime, but
+nondeterminism makes it particularly different when concurrency is
+involved.
 
 Despite the difficulty, concurrency is important for producing many
 real-world applications. For example, applications with a lot of input
