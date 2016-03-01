@@ -15,8 +15,8 @@ limit the possible actions in an STM transaction to those which can be
 safely undone and repeated, so we have another typeclass,
 \verb|MonadSTM|.
 
-\verb|CTVar|s always contain a value, as shown in the types of the
-functions:
+\verb|CTVar|s, like \verb|CRef|s, always contain a value, as shown in
+the types of the functions:
 
 \begin{haskellcode}
 newCTVar   :: MonadSTM s => a -> s (CTVar s a)
@@ -67,7 +67,3 @@ catchSTM :: (Exception e, MonadSTM s) => s a -> (e -> s a) -> s a
 
 If an exception propagates uncaught to the top of a transaction, that
 transaction is aborted and the exception is re-thrown in the thread.
-
-There are utility functions for \verb|CTVar|s provided in
-Control\-.Concurrent\-.STM\-.CTVar, and an STM equivalent of
-\verb|CVar|s in Control\-.Concurrent\-.STM\-.CTMVar.

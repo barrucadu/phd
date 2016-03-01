@@ -24,4 +24,5 @@ operations, such as \verb|readCRef|, \verb|writeCRef|, and
 The default memory model for testing is TSO, as that most accurately
 models the behaviour of modern x86 processors. The use of a relaxed
 memory model can require a much larger number of schedules to be
-tested when unsynchronised operations are used.
+tested when unsynchronised operations are used. PSO required no
+additional work to support, and so was also included.

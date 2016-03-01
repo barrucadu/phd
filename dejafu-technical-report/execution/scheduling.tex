@@ -12,16 +12,17 @@ for the systematic concurrency testing implementation.
 type Scheduler s = s
   -> Maybe (ThreadId, ThreadAction)
   -> NonEmpty (ThreadId, NonEmpty Lookahead)
-  -> (ThreadId, s)
+  -> (Maybe ThreadId, s)
 \end{haskellcode}
 
-In order to make nontrivial decisions, a scheduler maintains some
-state, of type \verb|s|. This could be, for example, a random number
-generator:
+The \verb|Maybe| return value can be used by the schedule to signal
+that the execution should be aborted. In order to make nontrivial
+decisions, a scheduler maintains some state, of type \verb|s|. This
+could be, for example, a random number generator:
 
 \begin{haskellcode}
 randomSched :: RandomGen g => Scheduler g
-randomSched g _ threads = (threads' !! choice, g') where
+randomSched g _ threads = (Just (threads' !! choice), g') where
   (choice, g') = randomR (0, length threads' - 1) g
   threads'     = map fst (toList threads)
 \end{haskellcode}
@@ -32,10 +33,10 @@ not mandatory, as a simple round-robin scheduler illustrates:
 
 \begin{haskellcode}
 roundRobinSched :: Scheduler ()
-roundRobinSched _ Nothing _ = (0, ())
+roundRobinSched _ Nothing _ = (Just 0, ())
 roundRobinSched _ (Just (prior, _)) threads
-  | prior >= maximum threads' = (minimum threads', ())
-  | otherwise = (minimum (filter (>prior) threads'), ())
+  | prior >= maximum threads' = (Just (minimum threads'), ())
+  | otherwise = (Just (minimum (filter (>prior) threads')), ())
   where threads' = map fst (toList threads)
 \end{haskellcode}
 

@@ -14,23 +14,14 @@ name of the action to appear in the trace (\verb|Stop|, here). The
 \verb|simple| helper function is for actions which don't create any
 new shared variables or threads, or have any relaxed-memory effects.
 
-Another simple action that a thread can perform is \verb|AReturn|:
+Another simple action that a thread can perform is to return a value:
 
 \begin{haskellcode}
 stepReturn c = simple (goto c tid threads) Return
 \end{haskellcode}
 
 The effect of \verb|stepReturn| is to: extract the continuation of the
-action and replace the continuation of the current thread with it. The
-\verb|Right|\footnote{The type \texttt{Either a b} type is commonly
-  used to represent computations that might fail with an error
-  value. By convention \texttt{Left err} means that the computation
-  failed with reason \texttt{err}, and \texttt{Right x} means that the
-  computation succeeded, producing \texttt{x}.}  indicates that the
-action completed successfully. There are a few different possible
-failures, such as an uncaught exception, which will terminate the
-current thread. If the main thread is terminated, the entire
-computation terminates.
+action and replace the continuation of the current thread with it.
 
 \subsubsection{Threading}
 \label{sec:execution-stepwise-threading}
@@ -42,7 +33,7 @@ type Threads n r s = Map ThreadId (Thread n r s)
 A map is used to keep track of all current threads. There are helper
 functions to manipulate this map: \verb|kill| and \verb|goto| are two;
 another is \verb|launch|, used to create a new thread. This can be
-seen in the implementation of \verb|AFork|:
+seen in the implementation of fork:
 
 \begin{haskellcode}
 stepFork name a b = return (Right (threads', idSource', Fork newtid, wb)) where
@@ -56,16 +47,14 @@ of its parent); secondly the continuation of the current thread is
 updated. Here \verb|simple| cannot be used, as the identifier source
 is being modified.
 
-In the implementation of \verb|AYield|, no special functionality is
-needed:
+In the implementation of yield, no special functionality is needed:
 
 \begin{haskellcode}
 stepYield c = simple (goto c tid threads) Yield
 \end{haskellcode}
 
 Its effect is purely a scheduling concern; from the point of view of
-updating the state of the system, it is no different to
-\verb|AReturn|.
+updating the state of the system, it is no different to return.
 
 \subsubsection{\texttt{CRef}s and Relaxed Memory}
 \label{sec:execution-stepwise-cref}
@@ -170,8 +159,8 @@ used in the implementation of \verb|stepModRef| despite the write
 buffer being changed.
 
 Cached writes can be committed to the globally visible value (at which
-point the thread-specific values disappear) by executing an
-\verb|ACommit| action:
+point the thread-specific values disappear) by executing a commit
+action:
 
 \begin{haskellcode}
 stepCommit t c = do
@@ -212,7 +201,7 @@ similarly, but returns a \verb|Ticket| rather than the current value.
 A thread has both a stack of exception handlers, and a masking
 state. The handler stack affects all exceptions raised in the thread,
 whereas the masking state only affects exceptions raised by
-\verb|AThrowTo|.
+\verb|throwTo|.
 
 \begin{haskellcode}
 stepCatching h ma c = simple threads' Catching where
@@ -264,22 +253,6 @@ thread jumps to it, throwing away whatever it was going to do next. If
 a handler is not found, the thread is killed. If the main thread is
 killed, the entire computation terminates.
 
-Like \verb|ACatching|, the \verb|AMasking| action introduces an
-additional action into its continuation:
-
-\begin{haskellcode}
-stepMasking m ma c = simple threads' (SetMasking False m) where
-  a = runCont (ma umask) (AResetMask False False m' . c)
-  m' = masking (lookup tid threads)
-  umask mb = do
-    resetMask True m'
-    b <- mb
-    resetMask False m
-    return b
-  resetMask typ ms = cont (\k -> AResetMask typ True ms (k ()))
-  threads' = goto a tid (mask m tid threads)
-\end{haskellcode}
-
 \subsubsection{Software Transactional Memory}
 \label{sec:execution-stepwise-stm}
 
@@ -291,8 +264,7 @@ Firstly, the transaction is executed:
 
 \begin{haskellcode}
 stepAtom stm c = synchronised $ do
-  (res, newctvid) <- runstm stm (nextCTVId idSource)
-  let idSource'   = idSource { nextCTVId = newctvid }
+  (res, idSource') <- runstm stm idSource
   case res of
 \end{haskellcode}
 %$
@@ -304,7 +276,7 @@ There are now three possible results:
   which were modified are woken:
 
 \begin{haskellcode}
-    Success readen written val
+    Success _ written val
       let (threads', woken) = wake (OnCTVar written) threads
       in return (Right (goto (c val) tid threads', idSource', STM woken, wb))
 \end{haskellcode}

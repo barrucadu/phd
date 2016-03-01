@@ -3,8 +3,8 @@ it can be done. In \textbf{\chap{abstraction}} we discuss our
 typeclass abstraction for concurrency and how it relates to GHC's
 standard concurrency API in terms of
 functionality. \textbf{\chap{execution}} explains how, given a monadic
-action polymorphic in the monad (as long as it belongs to our
-typeclass) we can execute it with a given scheduler, and
+action polymorphic in the monad (as long as it has an instance of to
+our typeclass) we can execute it with a given scheduler, and
 \textbf{\chap{sct}} extends this to cover a systematic exploration of
 the space of all schedules. \textbf{\chap{correctness}} discusses the
 issues of correctness: how do we know if a result reported by

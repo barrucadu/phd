@@ -59,7 +59,7 @@ dependent (t1, a1) (t2, a2) = case (a1, a2) of
 
 \begin{itemize}
 \item Two lifts from the underlying monad are always dependent, as in
-  general a monad may allow arbitrary I/O to be performed. The only
+  general this may allow arbitrary I/O to be performed. The only
   restriction over I/O is that, given a fixed schedule, the I/O is
   deterministic.
 
@@ -68,7 +68,7 @@ dependent (t1, a1) (t2, a2) = case (a1, a2) of
 
 \item STM transactions are always dependent. This final case could
   probably be refined to STM transactions which have some overlap in
-  the \verb|CTVar|s they modify, but this is an optimisation which has
+  the \verb|CTVar|s they use, but this is an optimisation which has
   not yet been tried.
 \end{itemize}
 
