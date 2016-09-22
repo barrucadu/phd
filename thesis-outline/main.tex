@@ -26,6 +26,75 @@
 
 \section{Introduction}
 
+% Motivation
+Concurrency is notoriously difficult to get right\cite{yang2013}, and
+programmer mistakes can have dire consequences\cite{leveson1993}. The
+problem stems from the nondeterminism of scheduling: the same program
+with the same inputs may produce different results depending on the
+schedules chosen at execution time. This makes it difficult to use
+traditional testing techniques with concurrent programs, which rely on
+the result of executing a test to be deterministic. So-called
+``Heisenbugs'' make it difficult to be confident of the correctness of
+concurrent programs: no bug has been observed during the testing
+process, but how do we \emph{know} that there aren't any? This is a
+concern in any testing regime, but nondeterminism makes it
+particularly different when concurrency is involved.
+
+Despite the difficulty, concurrency is important for producing many
+real-world applications. For example, applications with a lot of input
+and output can be more responsive by executing I/O asynchronously.
+Concurrency is a useful program structuring technique, and it is here
+to stay.
+
+% Explain SCT
+\emph{Systematic concurrency testing}
+(SCT)\cite{emmi2011,musuvathi2007,musuvathi2008,thomson2014} is a
+family of related techniques for avoiding the problem of
+nondeterminism when writing tests. SCT techniques aim to execute a
+large number of schedules, whilst typically also making use of local
+knowledge of the program to reduce the number of schedules needed to
+be confident of an accurate result. By trying many schedules, we can
+be confident that any bugs which have not been found are unlikely to
+be exhibited.
+
+SCT overcomes the scheduling problem by forcing a concurrent program
+to use instead a scheduler implemented as part of the testing
+framework: either by overriding the concurrency primitives of the
+language, or by modifying the program under test to call out to this
+new scheduler.
+
+Once the scheduler is under control, schedules can be recorded and
+replayed, giving reproducibility. Furthermore, by observing which
+scheduling decisions are available at each decision point, possible
+schedules can be systematically explored, making different decisions
+on subsequent executions.
+
+% State thesis
+My thesis is:
+
+\begin{quote}
+  Systematic concurrency testing can be used as a lightweight
+  alternative to formal methods to gain confidence in the correctness
+  of concurrent programs. It can be applied outside of the imperative
+  setting in which it is typically presented. It can be applied to
+  unusual models of concurrency, such as distributed systems. It can
+  \textbf{(whatever chapter 5 is about)}.
+\end{quote}
+
+% Roadmap
+This document provides an outline for my Ph.D thesis along with a plan
+of work for the rest of my programme. Section 2 details the
+provisional thesis structure. Section 3 details the plan of work.
+
+\subsection{Scope change}
+
+Due to my internship, I had the idea of applying systematic
+concurrency testing to distributed systems, and have begun
+investigating. Part of the plan in the progress report was to
+investigate the use of types to statically enforce safety properties
+of concurrent programs, this has been removed from the plan to make
+room for the new distributed systems work.
+
 \section{Thesis structure}
 
 \paragraph{Chapter 1: Introduction}
@@ -46,6 +115,7 @@
 
 \subsection{Schedule}
 
+\bibliographystyle{plain}
 \bibliography{references}
 
 \end{document}
