@@ -167,7 +167,16 @@ collections of concurrent data structures. The cases will be in the
 form of properties, similar to what a property-based testing tool such
 as QuickSpec\cite{claessen2010} produces.
 
-\paragraph{Chapter 6: Conclusions and Future Work} This chapter will
+\paragraph{Chapter 6: Concurrency Introduction} This chapter will
+develop a tool to automatically transform sequential generate-and-test
+code into concurrent code with the same semantics. As a purely static
+approach is not feasible in general\cite{calderon2015}, developing
+heuristics to determine where this transformation will be beneficial
+is necessary. It is hoped that the restricted setting of
+generate-and-test, rather than the general case of whole-program
+automated parallelisation, will make this feasible.
+
+\paragraph{Chapter 7: Conclusions and Future Work} This chapter will
 give an overview and draw conclusions from the work set out in the
 previous chapters, including a summary of results achieved and thesis
 limitations. Then, the chapter will examine some avenues for future
@@ -203,6 +212,10 @@ Doctoral Symposium.
 \paragraph{Test-case generation} I have some initial thoughts, but
 nothing has been started yet.
 
+\paragraph{Concurrency introduction} I have previously developed a
+library for expressing concurrent generate-and-test computations, but
+nothing has been started for the heuristics yet.
+
 \subsection{Schedule}
 
 \begin{figure}[h!]
@@ -225,6 +238,7 @@ nothing has been started yet.
 
     \ganttbar{Distributed systems}{1}{4}\\
     \ganttbar{Test-case generation}{5}{8}\\
+    \ganttbar{Concurrency introduction}{9}{12}\\
     \ganttbar{Thesis writing}{4}{16}\\
     \ganttmilestonewithdate{Thesis audit}{31st}{6}\\
     \ganttmilestonewithdate{Thesis seminar}{31st}{14}\\
@@ -233,11 +247,11 @@ nothing has been started yet.
   \caption{A Provisional Schedule of Work.}
 \end{figure}
 
-The different areas for exploration are listed in the first two lines.
-The writing of papers is not explicitly listed, as this will happen
-after the successful exploration of the proposed areas of research.
-The next three formally required assessments are also shown. The
-planned thesis submission date is 31st December 2017, the thesis
+The different areas for exploration are listed in the first three
+lines. The writing of papers is not explicitly listed, as this will
+happen after the successful exploration of the proposed areas of
+research. The next three formally required assessments are also shown.
+The planned thesis submission date is 31st December 2017, the thesis
 submission deadline is 31st December 2018.
 
 \bibliographystyle{plain}
