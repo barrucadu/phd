@@ -13,7 +13,7 @@
   \parfillskip \z@skip}
 \makeatother
 
-\title{Techniques for Testing Concurrent and Distributed Systems \\ \large Thesis Outline}
+\title{Systematic Techniques for Testing Concurrent and Distributed Functional Programs \\ \large Thesis Outline}
 \author{Michael Walker}
 \date{September, 2016}
 
@@ -79,12 +79,14 @@ on subsequent executions.
 My thesis is:
 
 \begin{quote}
-  Systematic concurrency testing can be used as a lightweight
-  alternative to formal methods to gain confidence in the correctness
-  of concurrent programs. It can be applied outside of the imperative
-  setting in which it is typically presented. It can be applied to
-  unusual models of concurrency, such as distributed systems. It can
-  be used to discover test cases for existing code.
+  Systematic concurrency testing can be applied to functional
+  programs. It can be applied to variants of the actor model of
+  concurrency, such as distributed systems. It can be used to discover
+  useful test cases for existing code. There are cases in idiomatic
+  code where deterministic concurrency can be safely introduced
+  automatically. Furthermore, testing is not necessary: behavioural
+  properties of concurrent programs can be encoded at the type level
+  and discharegd statically.
 \end{quote}
 
 % Roadmap
@@ -96,10 +98,7 @@ provisional thesis structure. Section 3 details the plan of work.
 
 Due to my internship this summer, I had the idea of applying
 systematic concurrency testing to distributed systems, and have begun
-investigating. Part of the plan in the progress report was to
-investigate the use of types to statically enforce safety properties
-of concurrent programs, this has been removed from the plan to make
-room for the new distributed systems work.
+investigating.
 
 \section{Thesis structure}
 
@@ -109,10 +108,10 @@ This section gives a description of each chapter in my thesis.
 systematic concurrency testing, give an overview of the thesis, and
 list publications that contributed to the thesis.
 
-\paragraph{Chapter 2: Testing Concurrent Programs} This chapter will
-describe more thoroughly what systematic concurrency testing is. It
-will present a literature review of works in the area. It will be
-divided into three sections:
+\paragraph{Chapter 2: Systematic Testing of Concurrent Programs} This
+chapter will describe more thoroughly what systematic concurrency
+testing is. It will present a literature review of works in the
+area. It will be divided into three sections:
 
 \begin{itemize}
 \item \emph{Section 2.1: Fundamentals of systematic concurrency testing}
@@ -161,22 +160,33 @@ shared state. We propose a novel model of the network, inspired by
 work on applying SCT to relaxed-memory systems\cite{zhang2015}, to
 remove that reliability requirement.
 
-\paragraph{Chapter 5: Test-case Generation} This chapter will develop
+\paragraph{Chapter 5: Types for Concurrency} This chapter will develop
+new a new type-level approach to encode behavioural properties for
+concurrent programs in the type system. Prior examples show using
+indexed monads to ensure correct usage of shared communication
+channels\cite{pucella2008} and to guarantee that locks held are
+released\cite{kiselyov2010}. Indexed monads allow extra type-level
+information to be carried through a computation, and it is possible
+there is scope for further development here.
+
+\paragraph{Chapter 6: Test-case Generation} This chapter will develop
 techniques to generate test-cases for concurrency libraries, such as
 collections of concurrent data structures. The cases will be in the
 form of properties, similar to what a property-based testing tool such
 as QuickSpec\cite{claessen2010} produces.
 
-\paragraph{Chapter 6: Concurrency Introduction} This chapter will
+\paragraph{Chapter 7: Concurrency Introduction} This chapter will
 develop a tool to automatically transform sequential generate-and-test
 code into concurrent code with the same semantics. As a purely static
 approach is not feasible in general\cite{calderon2015}, developing
 heuristics to determine where this transformation will be beneficial
 is necessary. It is hoped that the restricted setting of
 generate-and-test, rather than the general case of whole-program
-automated parallelisation, will make this feasible.
+automated parallelisation, will make this feasible. This work will
+then be examined as a large test-case for the work developed in
+Chapter 3.
 
-\paragraph{Chapter 7: Conclusions and Future Work} This chapter will
+\paragraph{Chapter 8: Conclusions and Future Work} This chapter will
 give an overview and draw conclusions from the work set out in the
 previous chapters, including a summary of results achieved and thesis
 limitations. Then, the chapter will examine some avenues for future
@@ -197,24 +207,44 @@ thesis.
 \paragraph{A Concurrency Testing Tool for Haskell} Work on this topic
 is complete. It gave rise to one publication\cite{walker2015}, and a
 later technical report\cite{YCS-2016-503} covering developments since
-the paper. An updated and revised version of the technical report will
-be included as a chapter in the thesis.
+the paper. I began writing a journal version of the technical report,
+which will be continued after the distributed systems
+work. \emph{Risks:} the journal version may be rejected, but even if
+it is the process of writing it will lead to a chapter version.
 
 \paragraph{Finding Faults in Distributed Systems} Work on this topic
-has only just begun. During August, I visited Imperial College London,
-where Alastair Donaldson and Paul Thomson, who have both done the only
-(that I am aware of) work on applying SCT to distributed
+is ongoing. During August, I visited Imperial College London, where
+Alastair Donaldson and Paul Thomson, who have both done the only (that
+I am aware of) work on applying SCT to distributed
 systems\cite{deligiannis2015,deligiannis2016} are. They thought my
 ideas promising, and I have preliminary results showing feasibility. I
-have submitted an extended abstract detailing my approach to the York
-Doctoral Symposium.
+have had an extended abstract detailing my approach accepted by the
+York Doctoral Symposium. I plan to write a fuller account and submit
+to a conference.
+
+\paragraph{Types for Concurrency} I have some initial thoughts, but
+have not done any work yet. \emph{Risks:} There may just be too much
+prior work on session typing to catch up to a point where contributing
+is possible in three months. This can be mitigated by idenfiying and
+only reading the key papers in the field; if there is just too much
+work to do, then it may be better to drop this topic entirely and
+further development of another topic, sucha s the distributed systems
+work.
 
 \paragraph{Test-case generation} I have some initial thoughts, but
-nothing has been started yet.
+nothing has been started yet. \emph{Risks:} Even in the restricted
+space of property-testing, it may not be possible to generate
+interesting test-cases without a combinatorial explosion. This could
+be resolved by exploring a restricted property generation in the form
+of instantiating templates, which may still be expressive enough to be
+interesting.
 
 \paragraph{Concurrency introduction} I have previously developed a
 library for expressing concurrent generate-and-test computations, but
-nothing has been started for the heuristics yet.
+nothing has been started for the heuristics yet. \emph{Risks:} It may
+not be possible to find heuristics that work well. This can be
+mitigated by making the concurrency transformation optional, or by
+allowing the programmer to indicate where concurrency would be useful.
 
 \subsection{Schedule}
 
@@ -236,9 +266,11 @@ nothing has been started for the heuristics yet.
     \gantttitle{Jul--Sep}{3}
     \gantttitle{Oct--Dec}{3}\\
 
-    \ganttbar{Distributed systems}{1}{4}\\
-    \ganttbar{Test-case generation}{5}{8}\\
-    \ganttbar{Concurrency introduction}{9}{12}\\
+    \ganttbar{Distributed systems}{1}{3}\\
+    \ganttbar{D\'{e}j\`{a} Fu journal article}{4}{4}\\
+    \ganttbar{Types for concurrency}{5}{7}\\
+    \ganttbar{Test-case generation}{8}{10}\\
+    \ganttbar{Concurrency introduction}{11}{13}\\
     \ganttbar{Thesis writing}{4}{16}\\
     \ganttmilestonewithdate{Thesis audit}{31st}{6}\\
     \ganttmilestonewithdate{Thesis seminar}{31st}{14}\\
@@ -247,12 +279,13 @@ nothing has been started for the heuristics yet.
   \caption{A Provisional Schedule of Work.}
 \end{figure}
 
-The different areas for exploration are listed in the first three
-lines. The writing of papers is not explicitly listed, as this will
-happen after the successful exploration of the proposed areas of
-research. The next three formally required assessments are also shown.
-The planned thesis submission date is 31st December 2017, the thesis
-submission deadline is 31st December 2018.
+The different areas for exploration are listed in the first five
+lines. The writing of papers, other than the D\'{e}j\`{a} Fu journal
+article, is not explicitly listed, as this will happen after the
+successful exploration of the proposed areas of research. The next
+three formally required assessments are also shown.  The planned
+thesis submission date is 31st December 2017, the thesis submission
+deadline is 31st December 2018.
 
 \bibliographystyle{plain}
 \bibliography{references}
