@@ -33,8 +33,8 @@
 \section{Introduction}
 
 % Motivation
-Concurrency is notoriously difficult to get right\cite{yang2013}, and
-programmer mistakes can have dire consequences\cite{leveson1993}. The
+Concurrency is notoriously difficult to get right~\cite{yang2013}, and
+programmer mistakes can have dire consequences~\cite{leveson1993}. The
 problem stems from the nondeterminism of scheduling: the same program
 with the same inputs may produce different results depending on the
 schedules chosen at execution time. This makes it difficult to use
@@ -42,209 +42,203 @@ traditional testing techniques with concurrent programs, which rely on
 the result of executing a test to be deterministic. So-called
 ``Heisenbugs'' make it difficult to be confident of the correctness of
 concurrent programs: no bug has been observed during the testing
-process, but how do we \emph{know} that there aren't any? This is a
-concern in any testing regime, but nondeterminism makes it
-particularly different when concurrency is involved.
-
-Despite the difficulty, concurrency is important for producing many
-real-world applications. For example, applications with a lot of input
-and output can be more responsive by executing I/O asynchronously.
-Concurrency is a useful program structuring technique, and it is here
-to stay.
+process, but how do we \emph{know} that there aren't any?
 
 % Explain SCT
-\emph{Systematic concurrency testing}
-(SCT)\cite{emmi2011,musuvathi2007,musuvathi2008,thomson2014} is a
-family of related techniques for avoiding the problem of
-nondeterminism when writing tests. SCT techniques aim to execute a
-large number of schedules, whilst typically also making use of local
-knowledge of the program to reduce the number of schedules needed to
-be confident of an accurate result. By trying many schedules, we can
-be confident that any bugs which have not been found are unlikely to
-be exhibited.
+\paragraph{Systematic Concurrency Testing}
+SCT~\cite{emmi2011,musuvathi2007,musuvathi2008,thomson2014} is a family
+of techniques for avoiding the problem of nondeterminism when writing
+tests. These techniques aim to execute a large number of schedules,
+whilst typically also making use of local knowledge of the program to
+reduce the number of schedules needed to be confident of an accurate
+result. By trying many schedules, we can be confident that any bugs
+which have not been found are unlikely to be exhibited.
 
 SCT overcomes the scheduling problem by forcing a concurrent program
 to use instead a scheduler implemented as part of the testing
 framework: either by overriding the concurrency primitives of the
 language, or by modifying the program under test to call out to this
-new scheduler.
-
-Once the scheduler is under control, schedules can be recorded and
-replayed, giving reproducibility. Furthermore, by observing which
-scheduling decisions are available at each decision point, possible
-schedules can be systematically explored, making different decisions
-on subsequent executions.
+new scheduler. Once the scheduler is under control, schedules can be
+recorded and replayed, giving reproducibility. Furthermore, by
+observing which scheduling decisions are available at each decision
+point, possible schedules can be systematically explored, making
+different decisions on subsequent executions.
 
 % State thesis
-My thesis is:
+\paragraph{Concurrent Functional Programs}
+I am investigating applying SCT techniques to concurrent functional
+programs, and am doing my work in Haskell. This is an interesting
+arena because concurrency testing algorithms are typically presented
+in a very minimal setting, whereas GHC Haskell has a very rich set of
+concurrency primitives which makes efficient testing difficult.
 
-\begin{quote}
-  Systematic concurrency testing can be applied to functional
-  programs. It can be applied to variants of the actor model of
-  concurrency, such as distributed systems. It can be used to discover
-  useful test cases for existing code. There are cases in idiomatic
-  code where deterministic concurrency can be safely introduced
-  automatically. Furthermore, some behavioural properties of
-  concurrent programs can be encoded at the type level and discharegd
-  statically.
-\end{quote}
+Furthermore, distributed computing is becoming more important, as
+systems need to scale beyond what a single machine can provide. Cloud
+Haskell~\cite{epstein2011} is an implementation of distributed
+computing using Erlang-style message passing. Prior work on applying
+SCT techniques to distributed systems has assumed that networks are
+perfectly reliable, which is not true in practice; other prior work on
+model checking distributed systems results in very lengthy testing
+periods as all possible cases are considered. We develop an
+\emph{incomplete} testing approach which is biassed towards exploring
+diverse network conditions.
+
+Finally, there is an important question any programmer must ask
+themselves when testing a system: \emph{what should be tested?} We
+plan to investigate applying property-based testing, and in
+particularly automated property discovery, to concurrency libraries.
 
 % Roadmap
 This document provides an outline for my Ph.D thesis along with a plan
-of work for the rest of my programme. Section 2 details the
-provisional thesis structure. Section 3 details the plan of work.
+of work for the rest of my programme. Section~\ref{sec:outline}
+details the provisional thesis structure. Section~\ref{sec:plan}
+details the plan of work.
 
 \subsection{Scope change}
 
 Due to my internship this summer, I had the idea of applying
-systematic concurrency testing to distributed systems, and have begun
-investigating.
+systematic concurrency testing to distributed systems, and have
+achieved promising results in this area. In order to give adequate
+time to explore the other topics, the ``types for concurrency''
+(statically enforcing correctness properties in concurrent programs)
+and ``concurrency introduction'' (heuristic-based automated
+transformation of sequential code into concurrent code) topics
+suggested in the qualifying dissertation have been removed.
 
 \section{Thesis structure}
+\label{sec:outline}
 
-This section gives a description of each chapter in my thesis.
+The thesis will be divided into two broad parts. The first part
+explores the testing of concurrent and distributed Haskell programs,
+and the second explores generating test cases.
 
-\paragraph{Chapter 1: Introduction} This chapter will explain
-systematic concurrency testing, give an overview of the thesis, and
-list publications that contributed to the thesis.
+\paragraph{Chapter 1: Introduction} This chapter will present
+motivating issues, explain systematic concurrency testing, give an
+overview of the thesis, and list publications that contributed to the
+thesis.
 
-\paragraph{Chapter 2: Systematic Testing of Concurrent Programs} This
-chapter will describe more thoroughly what systematic concurrency
-testing is. It will present a literature review of works in the
-area. It will be divided into three sections:
-
+\paragraph{Part I: Testing Concurrent Haskell Programs}
 \begin{itemize}
-\item \emph{Section 2.1: Fundamentals of systematic concurrency testing}
+\item \textbf{Chapter 2: Systematic Concurrency Testing} This
+  chapter will describe more thoroughly what systematic concurrency
+  testing is. It will present a literature review of works in the
+  area. It will be divided into three sections:
 
-  This section will present the fundamental concepts and techniques
-  behind systematic concurrency testing.
+  \begin{itemize}
+  \item \emph{Section 2.1: Fundamentals of Systematic Concurrency Testing}
 
-\item \emph{Section 2.2: Complete and incomplete methods}
+    This section will present the fundamental concepts and techniques
+    behind systematic concurrency testing.
 
-  There are two approaches to reducing the schedule-space explored
-  when performing SCT. Complete methods mostly focus on applying
-  partial-order techniques, common in model checking, to the testing
-  setting. This has the benefit of reducing the space greatly, but
-  without sacrificing completeness of testing. Incomplete methods do
-  make this sacrifice, to obtain even greater reductions. The
-  hypothesis behind incomplete methods is that \emph{most} program
-  errors can be found with only a small subset of the potential
-  executions.
+  \item \emph{Section 2.2: Using Incomplete Scheduling}
+
+    This section will review incomplete approaches to SCT based on
+    controlled scheduling. Incomplete methods greatly reduce the
+    number of executions tested, but are imprecise: there has
+    therefore been much work on the development of incomplete
+    approaches which tend to have good bug-finding abilities.
+
+  \item \emph{Section 2.3: Using Complete Reduction}
+
+    This section will review complete approaches to SCT based on
+    partial-order reduction. Partial-order reduction, common in model
+    checking, consists of observing the behaviour of the program under
+    test and using this information to prune needless executions
+    before executing them.
+  \end{itemize}
+
+\item \textbf{Chapter 3: Concurrent Haskell} This chapter will
+  review the rich concurrency abstraction provided by GHC Haskell. It
+  will begin with a brief review of the monadic approach to I/O used
+  in Haskell, so that reading the thesis will not require in-depth
+  Haskell knowledge. This chapter will also include an overview of
+  Cloud Haskell~\cite{epstein2011}.
+
+\item \textbf{Chapter 4: Testing Concurrent Programs} The first
+  contribution of the thesis. This chapter will describe an SCT tool
+  for GHC Haskell~\cite{walker2015}. This chapter will focus on:
+
+  \begin{itemize}
+  \item The aspects of Haskell which made SCT particularly easy or
+    difficult to implement. For example, the typeclass mechanism in
+    Haskell made abstracting over the concurrency primitives simple,
+    but the great focus on immutable data structures prevented a
+    straightforward and direct translation of a standard SCT
+    algorithm.
+  \item The structure of the tool.
+  \item A number of case studies of its use.
+  \item An evaluation of the completeness and usefulness of the tool.
+  \end{itemize}
+
+\item \textbf{Chapter 5: Testing Distributed Programs} The second
+  contribution of the thesis. This chapter will describe our algorithm
+  for incomplete, but behaviourally varied, testing of distributed
+  systems where in-order reliable message delivery cannot be
+  guaranteed. If message delivery is reliable, a distributed system
+  can be thought of as a concurrent program using message-passing and
+  no shared state. We propose a model of the network, inspired by work
+  on applying SCT to relaxed-memory systems~\cite{zhang2015}, to
+  remove that reliability requirement. The implementation in Haskell
+  will be discussed, but the technique is not Haskell-specific.
 \end{itemize}
 
-\paragraph{Chapter 3: A Concurrency Testing Tool for Haskell} This
-chapter will describe an SCT tool for GHC Haskell\cite{walker2015}.
-This was a challenging effort, as SCT algorithms are typically
-presented in a very minimal setting, whereas GHC Haskell has a very
-rich set of concurrency primitives. This chapter will focus on:
-
+\paragraph{Part II: Test Case Generation}
 \begin{itemize}
-\item Haskell concurrency and its operational behaviour, including the
-  memory model.
-\item The aspects of Haskell which made SCT particularly easy or
-  difficult to implement. For example, the typeclass mechanism in
-  Haskell made abstracting over the concurrency primitives simple, but
-  the great focus on immutable data structures prevented a
-  straightforward and direct translation of a standard SCT algorithm.
-\item The structure of the tool.
-\item A number of case studies of its use.
-\item An evaluation of the completeness and usefulness of the tool.
+\item \textbf{Chapter 6: Property-based Testing} This chapter will
+  review the literature of property-based testing and automated
+  property discovery.
+
+\item \textbf{Chapter 7: Properties for Concurrency} The third
+  contribution of the thesis. This chapter will develop techniques to
+  generate test-cases for concurrency libraries, such as collections
+  of concurrent data structures. The cases will be in the form of
+  properties, similar to what a property-based testing tool such as
+  QuickSpec~\cite{claessen2010} produces.
 \end{itemize}
 
-\paragraph{Chapter 4: Finding Faults in Distributed Systems} This
-chapter will develop techniques for the systematic testing of
-distributed systems where in-order reliable message delivery cannot be
-guaranteed. If message delivery is reliable, a distributed system can
-be thought of as a concurrent program using message-passing and no
-shared state. We propose a novel model of the network, inspired by
-work on applying SCT to relaxed-memory systems\cite{zhang2015}, to
-remove that reliability requirement.
-
-\paragraph{Chapter 5: Types for Concurrency} This chapter will develop
-new a new type-level approach to encode behavioural properties for
-concurrent programs in the type system. Prior examples show using
-indexed monads to ensure correct usage of shared communication
-channels\cite{pucella2008} and to guarantee that locks held are
-released\cite{kiselyov2010}. Indexed monads allow extra type-level
-information to be carried through a computation, and it is possible
-there is scope for further development here.
-
-\paragraph{Chapter 6: Test-case Generation} This chapter will develop
-techniques to generate test-cases for concurrency libraries, such as
-collections of concurrent data structures. The cases will be in the
-form of properties, similar to what a property-based testing tool such
-as QuickSpec\cite{claessen2010} produces.
-
-\paragraph{Chapter 7: Concurrency Introduction} This chapter will
-develop a tool to automatically transform sequential generate-and-test
-code into concurrent code with the same semantics. As a purely static
-approach is not feasible in general\cite{calderon2015}, developing
-heuristics to determine where this transformation will be beneficial
-is necessary. It is hoped that the restricted setting of
-generate-and-test, rather than the general case of whole-program
-automated parallelisation, will make this feasible. This work will
-then be examined as a large test-case for the work developed in
-Chapter 3.
-
-\paragraph{Chapter 8: Conclusions and Future Work} This chapter will
-give an overview and draw conclusions from the work set out in the
-previous chapters, including a summary of results achieved and thesis
-limitations. Then, the chapter will examine some avenues for future
-work.
+\paragraph{Part III: Conclusions and Future Directions}
+\begin{itemize}
+\item \textbf{Chapter 8: Conclusions} This chapter will give an
+  overview and draw conclusions from the work set out in the previous
+  chapters, including a summary of results achieved and thesis
+  limitations.
+\item \textbf{Chapter 9: Future Directions} This chapter will
+  examine avenues for future work.
+\end{itemize}
 
 \section{Plan}
+\label{sec:plan}
 
 This section summarises the planned work throughout the rest of my
 programme.
 
 \subsection{Current progress}
 
-\paragraph{Testing Concurrent Programs} I have written a literature
-review, which was included as a chapter in my Qualifying Dissertation.
-This will be expanded and updated, and included as a chapter in the
-thesis.
-
-\paragraph{A Concurrency Testing Tool for Haskell} Work on this topic
-is complete. It gave rise to one publication\cite{walker2015}, and a
-later technical report\cite{YCS-2016-503} covering developments since
+\paragraph{Testing Concurrent Programs} Work on this topic is
+complete. It gave rise to one publication~\cite{walker2015}, and a
+later technical report~\cite{YCS-2016-503} covering developments since
 the paper. I began writing a journal version of the technical report,
 which will be continued after the distributed systems
 work. \emph{Risks:} the journal version may be rejected, but even if
 it is the process of writing it will lead to a chapter version.
 
-\paragraph{Finding Faults in Distributed Systems} Work on this topic
-is ongoing. During August, I visited Imperial College London, where
-Alastair Donaldson and Paul Thomson, who have both done the only (that
-I am aware of) work on applying SCT to distributed
-systems\cite{deligiannis2015,deligiannis2016} are. They thought my
-ideas promising, and I have preliminary results showing feasibility. I
-have had an extended abstract detailing my approach accepted by the
-York Doctoral Symposium. I plan to write a fuller account and submit
-to a conference.
+\paragraph{Testing Distributed Programs} During August, I visited
+Imperial College London, where Alastair Donaldson and Paul Thomson,
+who have both done the only (that I am aware of) work on applying SCT
+to distributed systems~\cite{deligiannis2015,deligiannis2016} are, to
+discuss my ideas. Promising results have been found, and a paper has
+been submitted to PLDI. I am currently investigating applying a
+component of this work (a scheduling algorithm inspired by swarm
+testing~\cite{groce2012}) to normal non-distributed concurrent
+programs.
 
-\paragraph{Types for Concurrency} I have some initial thoughts, but
-have not done any work yet. \emph{Risks:} There may just be too much
-prior work on session typing to catch up to a point where contributing
-is possible in three months. This can be mitigated by idenfiying and
-only reading the key papers in the field; if there is just too much
-work to do, then it may be better to drop this topic entirely and
-further development of another topic, sucha s the distributed systems
-work.
-
-\paragraph{Test-case generation} I have some initial thoughts, but
-nothing has been started yet. \emph{Risks:} Even in the restricted
+\paragraph{Properties for Concurrency} I have some initial thoughts,
+but nothing has been started yet. \emph{Risks:} Even in the restricted
 space of property-testing, it may not be possible to generate
 interesting test-cases without a combinatorial explosion. This could
 be resolved by exploring a restricted property generation in the form
 of instantiating templates, which may still be expressive enough to be
 interesting.
-
-\paragraph{Concurrency introduction} I have previously developed a
-library for expressing concurrent generate-and-test computations, but
-nothing has been started for the heuristics yet. \emph{Risks:} It may
-not be possible to find heuristics that work well. This can be
-mitigated by making the concurrency transformation optional, or by
-allowing the programmer to indicate where concurrency would be useful.
 
 \subsection{Schedule}
 
@@ -268,10 +262,9 @@ allowing the programmer to indicate where concurrency would be useful.
 
     \ganttbar{Distributed systems}{1}{3}\\
     \ganttbar{D\'{e}j\`{a} Fu journal article}{4}{4}\\
-    \ganttbar{Types for concurrency}{5}{7}\\
-    \ganttbar{Test-case generation}{8}{10}\\
-    \ganttbar{Concurrency introduction}{11}{13}\\
-    \ganttbar{Thesis writing}{4}{16}\\
+    \ganttbar{Swarm testing}{4}{4}\\
+    \ganttbar{Test-case generation}{5}{10}\\
+    \ganttbar{Thesis writing}{5}{16}\\
     \ganttmilestonewithdate{Thesis audit}{31st}{7}\\
     \ganttmilestonewithdate{Thesis seminar}{31st}{14}\\
     \ganttmilestonewithdate{Thesis submission}{31st}{16}
@@ -279,7 +272,7 @@ allowing the programmer to indicate where concurrency would be useful.
   \caption{A Provisional Schedule of Work.}
 \end{figure}
 
-The different areas for exploration are listed in the first five
+The different areas for exploration are listed in the first four
 lines. The writing of papers, other than the D\'{e}j\`{a} Fu journal
 article, is not explicitly listed, as this will happen after the
 successful exploration of the proposed areas of research. The next
