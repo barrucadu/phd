@@ -39,20 +39,22 @@ problem stems from the nondeterminism of scheduling: the same program
 with the same inputs may produce different results depending on the
 schedules chosen at execution time. This makes it difficult to use
 traditional testing techniques with concurrent programs, which rely on
-the result of executing a test to be deterministic. So-called
-``Heisenbugs'' make it difficult to be confident of the correctness of
-concurrent programs: no bug has been observed during the testing
-process, but how do we \emph{know} that there aren't any?
+test execution to be deterministic, and to match ``real''
+execution. So-called ``Heisenbugs'' make it difficult to be confident
+of the correctness of concurrent programs: no bug has been observed
+during the testing process, but how do we \emph{know} that there
+aren't any?
 
 % Explain SCT
 \paragraph{Systematic Concurrency Testing}
-SCT~\cite{emmi2011,musuvathi2007,musuvathi2008,thomson2014} is a family
-of techniques for avoiding the problem of nondeterminism when writing
-tests. These techniques aim to execute a large number of schedules,
-whilst typically also making use of local knowledge of the program to
-reduce the number of schedules needed to be confident of an accurate
-result. By trying many schedules, we can be confident that any bugs
-which have not been found are unlikely to be exhibited.
+SCT~\cite{emmi2011,musuvathi2007,musuvathi2008,thomson2014} is a
+family of techniques for avoiding the problem of nondeterminism when
+writing tests. These techniques aim to execute a large number of
+schedules, whilst typically also making use of local knowledge of the
+program to reduce the number of schedules needed to be confident of an
+accurate result. By trying many schedules, we can be confident that
+any bugs which have not been found are unlikely to be exhibited in
+practice.
 
 SCT overcomes the scheduling problem by forcing a concurrent program
 to use instead a scheduler implemented as part of the testing
@@ -98,12 +100,14 @@ details the plan of work.
 
 Due to my internship this summer, I had the idea of applying
 systematic concurrency testing to distributed systems, and have
-achieved promising results in this area. In order to give adequate
-time to explore the other topics, the ``types for concurrency''
-(statically enforcing correctness properties in concurrent programs)
-and ``concurrency introduction'' (heuristic-based automated
-transformation of sequential code into concurrent code) topics
-suggested in the qualifying dissertation have been removed.
+achieved promising results in this area.
+
+In order to give adequate time to explore the other topics, the
+``types for concurrency'' (statically enforcing correctness properties
+in concurrent programs) and ``concurrency introduction''
+(heuristic-based automated transformation of sequential code into
+concurrent code) topics suggested in the qualifying dissertation have
+been removed.
 
 \section{Thesis structure}
 \label{sec:outline}
@@ -113,9 +117,9 @@ explores the testing of concurrent and distributed Haskell programs,
 and the second explores generating test cases.
 
 \paragraph{Chapter 1: Introduction} This chapter will present
-motivating issues, explain systematic concurrency testing, give an
-overview of the thesis, and list publications that contributed to the
-thesis.
+motivating issues, give a high-level overview of systematic
+concurrency testing, give an overview of the thesis, and list
+publications that contributed to the thesis.
 
 \paragraph{Part I: Testing Concurrent Haskell Programs}
 \begin{itemize}
@@ -162,9 +166,8 @@ thesis.
   \item The aspects of Haskell which made SCT particularly easy or
     difficult to implement. For example, the typeclass mechanism in
     Haskell made abstracting over the concurrency primitives simple,
-    but the great focus on immutable data structures prevented a
-    straightforward and direct translation of a standard SCT
-    algorithm.
+    but the focus on immutability prevented a straightforward and
+    direct translation of a standard SCT algorithm.
   \item The structure of the tool.
   \item A number of case studies of its use.
   \item An evaluation of the completeness and usefulness of the tool.
@@ -217,9 +220,9 @@ programme.
 \paragraph{Testing Concurrent Programs} Work on this topic is
 complete. It gave rise to one publication~\cite{walker2015}, and a
 later technical report~\cite{YCS-2016-503} covering developments since
-the paper. I began writing a journal version of the technical report,
-which will be continued after the distributed systems
-work. \emph{Risks:} the journal version may be rejected, but even if
+the paper. A journal version of the technical report is now being
+revised with an intent to submit by the end of the calendar
+year. \emph{Risks:} the journal version may be rejected, but even if
 it is the process of writing it will lead to a chapter version.
 
 \paragraph{Testing Distributed Programs} During August, I visited
