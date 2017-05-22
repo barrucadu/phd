@@ -1,0 +1,38 @@
+\begin{titlepage}
+  \begin{center}
+    \makeatletter
+    {\LARGE \@title}\\[1.5cm]
+    {\large \@author}
+
+    \vfill
+
+    Submitted for the degree of\par
+    Doctor of Philosophy\\[1.3cm]
+
+    University of York\par
+    Computer Science\\[1.3cm]
+
+    \@date
+    \makeatother
+  \end{center}
+\end{titlepage}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\blindtext
+
+% octavo disables the "ugly" table-of-contents dots, but I find they
+% improve readability.  The default dot separation is 4.5, but I like
+% 7:
+\makeatletter\renewcommand\@dotsep{7}\makeatother
+\tableofcontents
+%\listoffigures
+%\listoftables
+
+\chapter*{Acknowledgements}
+\addcontentsline{toc}{chapter}{Acknowledgements}
+\blindtext
+
+\chapter*{Declaration}
+\addcontentsline{toc}{chapter}{Declaration}
+\blindtext

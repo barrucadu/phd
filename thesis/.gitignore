@@ -1,5 +1,5 @@
-gen
-*.aux
-*.fdb_latexmk
-*.fls
-*.log
+*
+!*.bib
+!*.tex
+!.gitignore
+!Makefile

@@ -1,0 +1,68 @@
+\documentclass[openright,imperial,11pt]{octavo}
+
+% University thesis style guide requires: A4 paper (which octavo
+% doesn't quite do by default); table of contents (etc) in the table
+% of contents; 1.5 line spacing; and numbered chapters.
+\usepackage[BCOR=10mm,DIV=9,a4paper,pagesize]{typearea}
+\usepackage{tocbibind}
+\usepackage{setspace}
+
+\onehalfspacing
+
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{2}
+
+% Other packages
+\usepackage[english]{babel}
+\usepackage[square]{natbib}
+\usepackage{appendix}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+ colorlinks,
+ citecolor=Red,
+ linkcolor=Black,
+ urlcolor=Blue
+}
+
+% Temporary
+\newcommand{\todo}[1]{\emph{\color{red}{#1}}}
+\usepackage{blindtext}
+
+% Document metadata
+\title{Systematic Techniques for Testing Concurrent and Distributed Functional Programs}
+\author{Michael Walker}
+\date{\todo{MONTH} 2018}
+
+\begin{document}
+% Use roman numbering.
+\frontmatter
+
+% Disable page headings.
+\pagestyle{plain}
+
+% Avoid gaps between chapters.
+\makeatletter\@openrightfalse\makeatother
+
+\input{frontmatter.tex}
+
+\cleardoublepage
+
+% Use arabic numbering.
+\mainmatter
+
+% Open chapters on right-side pages.
+\makeatletter\@openrighttrue\makeatother
+
+% Enable chapter headings at the top of the page.
+\pagestyle{headings}
+
+% The thesis!
+\blinddocument
+
+\begin{appendices}
+\end{appendices}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+\end{document}
