@@ -17,6 +17,7 @@
 \usepackage[square]{natbib}
 \usepackage{appendix}
 \usepackage[dvipsnames]{xcolor}
+\usepackage{epigraph}
 \usepackage{hyperref}
 \hypersetup{
  colorlinks,
@@ -24,6 +25,16 @@
  linkcolor=Black,
  urlcolor=Blue
 }
+
+% Epigraphs with author names
+\newcommand{\epi}[4]{\epigraph{#1}{#2\nocite{#4}\\\textsc{#3}}}
+
+% Epigraphs on part pages
+\makeatletter
+\let\@epipart\@endpart
+\renewcommand{\@endpart}{\thispagestyle{epigraph}\@epipart}
+\makeatother
+\newcommand{\epigraphpart}[5][400]{\epigraphhead[#1]{\epi{#2}{#3}{#4}{#5}}\thispagestyle{plain}}
 
 % Temporary
 \newcommand{\todo}[1]{\emph{\color{red}{#1}}}
@@ -62,8 +73,13 @@
 
 % The thesis!
 \chapter{Introduction}
+\epi{I hope that no suggestion of any strange land that may be conveyed by the title will scare
+  readers away from this book}{The King of Elfland's Daughter}{Lord Dunsany}{dunsany1924}
 \blindtext
 
+\epigraphpart{[\dejafu{} is] A martial art in which the user's limbs move in time as well as space
+  [\ldots].  It is best described as ``the feeling that you have been kicked in the head this way
+  before''.}{Thief of Time}{Terry Pratchett}{pratchett2001}
 \part{Testing Concurrent Haskell Programs}
 
 \chapter{Systematic Concurrency Testing}
@@ -89,6 +105,7 @@
 \label{chp:distrib}
 \blindtext
 
+\epigraphpart{\todo{quotation}}{title}{author}{bib}
 \part{Test Case Generation}
 
 \chapter{Property-based Testing}
@@ -98,6 +115,7 @@
 \label{chp:coco}
 \blindtext
 
+\epigraphpart{\todo{quotation}}{title}{author}{bib}
 \part{Conclusions and Future Directions}
 
 \chapter{Conclusions}
