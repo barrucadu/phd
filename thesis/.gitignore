@@ -1,5 +1,6 @@
 *
 !*.bib
 !*.tex
-!.gitignore
 !Makefile
+!.dir-locals.el
+!.gitignore
