@@ -73,9 +73,10 @@
 
 % The thesis!
 \chapter{Introduction}
+\label{chp:introduction}
 \epi{I hope that no suggestion of any strange land that may be conveyed by the title will scare
   readers away from this book}{The King of Elfland's Daughter}{Lord Dunsany}{dunsany1924}
-\blindtext
+\input{introduction.tex}
 
 \epigraphpart{[\dejafu{} is] A martial art in which the user's limbs move in time as well as space
   [\ldots].  It is best described as ``the feeling that you have been kicked in the head this way
@@ -83,38 +84,32 @@
 \part{Testing Concurrent Haskell Programs}
 
 \chapter{Systematic Concurrency Testing}
-\blindtext
-
-\section{Fundamentals of Systematic Concurrency Testing}
-\blindtext
-
-\section{Using Incomplete Scheduling}
-\blindtext
-
-\section{Using Complete Reduction}
-\blindtext
+\label{chp:sct}
+\input{sct.tex}
 
 \chapter{Concurrent Haskell}
-\blindtext
+\label{chp:concurrent_haskell}
+\input{concurrent_haskell.tex}
 
 \chapter{Testing Concurrent Programs}
 \label{chp:dejafu}
-\blindtext
+\input{dejafu.tex}
 
 \chapter{Testing Distributed Programs}
-\label{chp:distrib}
-\blindtext
+\label{chp:distributed}
+\input{distributed.tex}
 
 \epigraphpart{It no longer matters who consider themselves the masters of events.  Events no longer
   obey their masters.}{Hyperion}{Dan Simmons}{simmons1989}
 \part{Test Case Generation}
 
 \chapter{Property-based Testing}
-\blindtext
+\label{chp:property_testing}
+\input{property_testing.tex}
 
 \chapter{Properties for Concurrency}
 \label{chp:coco}
-\blindtext
+\input{coco.tex}
 
 \epigraphpart{He had no longer any need for home, for he carried his Gormenghast within him.  All
   that he had sought was jostling within himself.  He had grown up.  What a boy had set out to seek
@@ -122,10 +117,12 @@
 \part{Conclusions and Future Directions}
 
 \chapter{Conclusions}
-\blindtext
+\label{chp:conclusions}
+\input{conclusions.tex}
 
 \chapter{Future Directions}
-\blindtext
+\label{chp:future_work}
+\input{future_work.tex}
 
 \begin{appendices}
 \end{appendices}
