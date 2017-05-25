@@ -34,4 +34,27 @@ discussion of \emph{relaxed memory} in Chapter~\ref{chp:dejafu}.
 
 \section{Roadmap}
 \label{sec:intro-roadmap}
-\blindtext
+
+This thesis is divided into three broad parts:
+
+\begin{itemize}
+\item Part~\ref{part:dejafu} is about \dejafu{}, our tool for testing concurrent Haskell programs.
+  Chapter~\ref{chp:concurrent_haskell} gives an introduction to concurrency in Haskell.
+  Chapter~\ref{chp:sct} discusses the theory behind \emph{testing} concurrent programs.
+  Chapter~\ref{chp:dejafu} gives an account of the \dejafu{} tool itself, covering the scope,
+  implementation, some case studies, and evaluation.  Finally, Chapter~\ref{chp:algorithms}
+  discusses an alternative scheduling algorithm when testing a concurrent program.
+
+\item Part~\ref{part:coco} is about CoCo, our tool for discovering properties of concurrent
+  functions.  Chapter~\ref{chp:property_testing} gives an introduction to property testing in
+  Haskell.  Chapter~\ref{chp:coco} gives an account of the CoCo tool itself, covering the scope,
+  implementation, some case studies, and evaluation.  Finally, Chapter~\ref{chp:coco_and_dejafu}
+  discusses using the properties discovered by CoCo as test cases in \dejafu{}.
+
+\item Lastly, in Part~\ref{part:end} we discusses our conclusions (Chapter~\ref{chp:conclusions})
+  and suggest possible future work (Chapter~\ref{chp:future_work}).
+\end{itemize}
+
+Chapters~\ref{chp:concurrent_haskell} and~\ref{chp:property_testing} should be accessible to anyone
+with the assumed knowledge detailed in \S\ref{sec:intro-assumed}\footnote{Or to the particularly
+  motivated beginner who also has an introductory Haskell tutorial open.}.
