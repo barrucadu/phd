@@ -1,8 +1,28 @@
 \blindtext
 
-\section{Parallelism vs Concurrency}
+\section{Terminology: Parallelism vs Concurrency}
 \label{sec:intro-parconc}
-\blindtext
+
+In many fields, \emph{parallel} and \emph{concurrent} are synonyms, both referring to the act of
+doing multiple things at once.  In programming, they refer to different but related concepts.
+
+A \emph{parallel} program uses a multiplicity of hardware to compute different aspects of a result
+simultaneously.  The goal is to arrive at the overall result more quickly.  For example, the x86
+assembly instruction \verb#PMULHUW# computes the element-wise multiplication of two vectors, each
+multiplication simultaneously: it (amongst others) enables parallelism.
+
+A \emph{concurrent} program uses a notion of multiple independently executing threads of control to
+structure the program.  These threads conceptually execute at the same time (their effects may be
+interleaved).  Whether threads actually do execute simultaneously is an implementation detail.  A
+concurrent program can execute on a single-core machine through interleaved sequential execution
+just as it can be executed on a multi-core machine in parallel.
+
+Concurrency is often implemented using parallelism.  Indeed a concurrency abstraction can even
+guarantee parallelism (given suitable hardware), for example by having the ability to restrict the
+execution of individual threads to given processor cores.
+
+This thesis is mostly concerned with concurrency, but parallelism does rear its head in the
+discussion of \emph{relaxed memory} in Chapter~\ref{chp:dejafu}.
 
 \section{Assumed Haskell Knowledge}
 \label{sec:intro-assumed}
