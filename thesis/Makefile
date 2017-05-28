@@ -3,7 +3,7 @@ BIBFILES := $(wildcard *.bib)
 
 .PHONY: all
 
-all: thesis.pdf
+all: main.pdf
 
-thesis.pdf: $(TEXFILES) $(BIBFILES)
+main.pdf: $(TEXFILES) $(BIBFILES)
 	latexmk -xelatex -pdf main.tex
