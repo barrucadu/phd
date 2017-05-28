@@ -13,7 +13,6 @@
 \setcounter{tocdepth}{1}
 
 % Other packages
-\usepackage{mathpazo}
 \usepackage[english]{babel}
 \usepackage[square]{natbib}
 \usepackage{appendix}
@@ -26,6 +25,22 @@
  linkcolor=Black,
  urlcolor=Blue
 }
+
+% Fonts
+\usepackage{fontspec}
+\setmainfont{equity}[
+  % Files
+  Path      = \string~/s/fonts/equity/ ,
+  Extension = .otf ,
+  % Fonts
+  UprightFont     = Equity Text A Regular ,
+  UprightFeatures = { SmallCapsFont = Equity Caps A Regular } ,
+  BoldFont        = Equity Text A Bold ,
+  BoldFeatures    = { SmallCapsFont = Equity Caps A Bold } ,
+  ItalicFont      = Equity Text A Italic ,
+  BoldItalicFont  = Equity Text A Bold Italic ,
+  % Features
+  Numbers = OldStyle ]
 
 % Epigraphs with author names
 \newcommand{\epi}[4]{\epigraph{\textit{#1}}{#2\nocite{#4}\\\textsc{#3}}}

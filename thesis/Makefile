@@ -6,4 +6,4 @@ BIBFILES := $(wildcard *.bib)
 all: thesis.pdf
 
 thesis.pdf: $(TEXFILES) $(BIBFILES)
-	latexmk -pdf main.tex
+	latexmk -xelatex -pdf main.tex
