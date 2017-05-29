@@ -1,1 +1,1 @@
-((nil . ((fill-column . 100))))
+((nil . ((fill-column . 80))))
