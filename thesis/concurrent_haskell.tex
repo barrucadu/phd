@@ -1,1 +1,53 @@
 \blindtext
+
+\section{Threads and Mutable Variables}
+\label{sec:concurrent_haskell-threads}
+
+\paragraph{Basic threading}
+\todo{fork, forkWithUnmask, myThreadId}
+
+\paragraph{Capabilities}
+\todo{forkOn, forkOnWithUnmask, getNumCapabilities, setNumCapabilities}
+
+\paragraph{Scheduling}
+\todo{yield, threadDelay}
+
+\paragraph{The \texttt{MVar} type}
+\todo{newEmptyMVar, putMVar, tryPutMVar, readMVar, tryReadMVar, takeMVar,
+tryTakeMVar}
+
+\section{Shared References and the Memory Model}
+\label{sec:concurrent_haskell-mmodel}
+
+\paragraph{The \texttt{CRef} type}
+\todo{newCRef, readCRef, writeCRef}
+
+\paragraph{Memory model}
+\todo{memory model, atomicModifyCRef, atomicWriteCRef}
+
+\paragraph{Compare-and-swap}
+\todo{readForCAS, peekTicket, casCRef, modifyCRefCAS}
+
+\section{Software Transactional Memory}
+\label{sec:concurrent_haskell-stm}
+
+\paragraph{The \texttt{TVar} type}
+\todo{newTVar, readTvar, writeTVar}
+
+\paragraph{Aborting and retrying}
+\todo{retry, orElse}
+
+\paragraph{Executing transactions}
+\todo{atomically}
+
+\section{Exceptions}
+\label{sec:concurrent_haskell-exc}
+
+\paragraph{Synchronous exceptions}
+\todo{throw, catch, mask, uninterruptibleMask}
+
+\paragraph{Asynchronous exceptions}
+\todo{throwTo, killthread}
+
+\paragraph{Software transactional memory}
+\todo{throwSTM, catchSTM}
