@@ -1,6 +1,6 @@
-\chapstart Concurrency is hard, and cannot be tested with conventional
-techniques.  In this chapter we present and evaluate \dejafu{}, our library for
-testing concurrent Haskell programs.  We discuss the scope of the
+\chapstart Tools are necessary to test concurrency, the standard approach does
+not suffice.  In this chapter we present and evaluate \dejafu{}, our library for
+testing concurrency in Haskell.  We discuss the scope of the
 tool~\sref{dejafu-scope} and present our abstraction over the GHC Haskell
 concurrency functionality~\sref{dejafu-monadconc}.  We explain how programs
 using our abstraction are executed~\sref{dejafu-execution} and
@@ -12,9 +12,6 @@ and present further work~\sref{dejafu-conclusions}.
 
 This chapter is derived from our previous work \cite{walker2015} and
 \cite{YCS-2016-503}.
-
-\todo{New first sentence, ``conventional techniques'' shows up in chapter 3
-  intro too.}
 
 \section{What We Cannot Test}
 \label{sec:dejafu-scope}
