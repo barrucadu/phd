@@ -1,4 +1,17 @@
-\blindtext
+\chapstart Concurrency is not in standard Haskell, so here we restrict our
+interest to GHC.  In this chapter we give an overview of the concurrency
+functionality we use.  These operations are available in the
+\package{concurrency} library\footnote{Available at
+\url{https://hackage.haskell.org/package/concurrency}.  It is a collection of
+functionality provided by the \package{atomic-primops}, \package{base}, and
+\package{stm} libraries.}.  We cover the basic use of
+concurrency~\sref{concurrent_haskell-threads}, the memory
+model~\sref{concurrent_haskell-mmodel}, software transactional
+memory~\sref{concurrent_haskell-stm}, and finally
+exceptions~\sref{concurrent_haskell-exc}.
+
+Readers already familiar with Haskell's concurrency functionality may wish to
+skip this chapter.
 
 \section{Threads and Mutable Variables}
 \label{sec:concurrent_haskell-threads}
