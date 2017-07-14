@@ -12,9 +12,16 @@
 \setcounter{secnumdepth}{2}
 \setcounter{tocdepth}{1}
 
+% Bibliography
+\usepackage[
+  citestyle=numeric-comp,
+  sorting=ydnt,
+  style=numeric,
+]{biblatex}
+\addbibresource{references.bib}
+
 % Other packages
 \usepackage[english]{babel}
-\usepackage[square]{natbib}
 \usepackage{appendix}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{epigraph}
@@ -165,6 +172,6 @@
 \begin{appendices}
 \end{appendices}
 
-\bibliographystyle{plainnat}
-\bibliography{references}
+\printbibliography[heading=bibintoc]
+
 \end{document}
