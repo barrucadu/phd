@@ -1,3 +1,7 @@
+% =============================================================================
+% my papers
+% =============================================================================
+
 @InProceedings{walker2015,
   author =       "Walker, Michael and Runciman, Colin",
   title =        "{D{\'e}j\`{a} Fu}: A Concurrency Testing Library for {Haskell}",
@@ -5,8 +9,10 @@
   year =         2015,
   series =       "Haskell 2015",
   pages =        "141-152",
-  publisher =    "ACM"
+  publisher =    "ACM",
+  doi =          "10.1145/2804302.2804306"
 }
+
 @TechReport{YCS-2016-503,
   author =       "Walker, Michael",
   title =        "{D{\'e}j\`{a} Fu}: A Concurrency Testing Library for {Haskell}",
@@ -15,8 +21,584 @@
   date-added =   "2016-03-07"
 }
 
+% =============================================================================
+% concurrency testing / model checking
+% =============================================================================
 
-Epigraphs
+% ----- 1996 ------------------------------------------------------------------
+
+@PhdThesis{godefroid1996,
+  author =       "Godefroid, Patrice",
+  title =        "Partial-Order Methods for the Verification of Concurrent Systems: An Approach to the State-Explosion Problem",
+  year =         1996,
+  editor =       "Leeuwen, J. van and Hartmanis, J. and Goos, G.",
+  publisher =    "Springer-Verlag New York, Inc."
+}
+
+% ----- 1997 ------------------------------------------------------------------
+
+@Article{holzmann1997,
+  author =       "Holzmann, Gerard J",
+  title =        "The Model Checker \textsc{Spin}",
+  journal =      "IEEE Transactions on Software Engineering",
+  year =         1997,
+  number =       5,
+  pages =        "279-295",
+  publisher =    "IEEE",
+  doi =          "10.1109/32.588521"
+}
+
+% ----- 2003 ------------------------------------------------------------------
+
+@InProceedings{engler2003,
+  author =       "Engler, Dawson and Ashcraft, Ken",
+  title =        "{RacerX}: effective, static detection of race conditions and deadlocks",
+  booktitle =    "ACM SIGOPS Operating Systems Review",
+  year =         2003,
+  volume =       37,
+  number =       5,
+  pages =        "237-252",
+  organization = "ACM",
+  doi =          "10.1145/945445.945468"
+}
+
+% ----- 2004 ------------------------------------------------------------------
+
+@InCollection{andrews2004,
+  author =       "Andrews, Tony and Qadeer, Shaz and Rajamani, SriramK. and Rehof, Jakob and Xie, Yichen",
+  title =        "Zing: Exploiting Program Structure for Model Checking Concurrent Software",
+  booktitle =    "CONCUR 2004 - Concurrency Theory",
+  publisher =    "Springer Berlin Heidelberg",
+  year =         2004,
+  editor =       "Gardner, Philippa and Yoshida, Nobuko",
+  volume =       3170,
+  series =       "Lecture Notes in Computer Science",
+  pages =        "1-15",
+  doi =          "10.1007/978-3-540-28644-8_1"
+}
+
+% ----- 2005 ------------------------------------------------------------------
+
+@InProceedings{flanagan2005,
+  author =       "Flanagan, Cormac and Godefroid, Patrice",
+  title =        "Dynamic partial-order reduction for model checking software",
+  booktitle =    "Proceedings of the 32nd ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages",
+  year =         2005,
+  series =       "POPL '05",
+  pages =        "110-121",
+  publisher =    "ACM",
+  doi =          "10.1145/1040305.1040315"
+}
+
+% ----- 2006 ------------------------------------------------------------------
+
+@InProceedings{musuvathi2006,
+  author =       "Musuvathi, Madan and Qadeer, Shaz",
+  title =        "{CHESS}: Systematic Stress Testing of Concurrent Software",
+  booktitle =    "Proceedings of the 16th International Conference on Logic-based Program Synthesis and Transformation",
+  year =         2007,
+  series =       "LOPSTR'06",
+  pages =        "15-16",
+  publisher =    "Springer-Verlag",
+  doi =          "10.1007/978-3-540-71410-1_2"
+}
+
+% ----- 2007 ------------------------------------------------------------------
+
+@InProceedings{musuvathi2007,
+  author =       "Musuvathi, Madanlal and Qadeer, Shaz",
+  title =        "Iterative Context Bounding for Systematic Testing of Multithreaded Programs",
+  booktitle =    "Proceedings of the 2007 ACM SIGPLAN Conference on Programming Language Design and Implementation",
+  year =         2007,
+  series =       "PLDI '07",
+  pages =        "446-455",
+  publisher =    "ACM",
+  doi =          "10.1145/1273442.1250785"
+}
+
+@InProceedings{sen2007,
+  author =       "Sen, Koushik",
+  title =        "Effective Random Testing of Concurrent Programs",
+  booktitle =    "Proceedings of the Twenty-second IEEE/ACM International Conference on Automated Software Engineering",
+  year =         2007,
+  series =       "ASE '07",
+  pages =        "323-332",
+  publisher =    "ACM",
+  doi =          "10.1145/1321631.1321679"
+}
+% ----- 2008 ------------------------------------------------------------------
+
+@InProceedings{musuvathi2008,
+  author =       "Musuvathi, Madanlal and Qadeer, Shaz",
+  title =        "Fair Stateless Model Checking",
+  booktitle =    "Proceedings of the 29th ACM SIGPLAN Conference on Programming Language Design and Implementation",
+  year =         2008,
+  series =       "PLDI '08",
+  pages =        "362-371",
+  publisher =    "ACM",
+  doi =          "10.1145/1375581.1375625"
+}
+
+@InProceedings{musuvathi2008osdi,
+  author =       "Musuvathi, Madanlal and Qadeer, Shaz and Ball, Thomas and Basler, Gerard and Nainar, Piramanayagam Arumuga and Neamtiu, Iulian",
+  title =        "Finding and Reproducing Heisenbugs in Concurrent Programs",
+  booktitle =    "Proceedings of the 8th USENIX Conference on Operating Systems Design and Implementation",
+  year =         2008,
+  series =       "OSDI'08",
+  pages =        "267-280",
+  publisher =    "USENIX Association"
+}
+
+@InProceedings{sen2008,
+  author =       "Sen, Koushik",
+  title =        "Race Directed Random Testing of Concurrent Programs",
+  booktitle =    "Proceedings of the 29th ACM SIGPLAN Conference on Programming Language Design and Implementation",
+  year =         2008,
+  series =       "PLDI '08",
+  pages =        "11-21",
+  publisher =    "ACM",
+  doi =          "10.1145/1375581.1375584"
+}
+
+% ----- 2009 ------------------------------------------------------------------
+
+@InProceedings{claessen2009,
+  author =       "Claessen, Koen and Palka, Michal and Smallbone, Nicholas and Hughes, John and Svensson, Hans and Arts, Thomas and Wiger, Ulf",
+  title =        "Finding race conditions in {Erlang} with {QuickCheck} and {PULSE}",
+  booktitle =    "Proceedings of the 14th ACM SIGPLAN International Conference on Functional Programming",
+  year =         2009,
+  series =       "ICFP '09",
+  pages =        "149-160",
+  publisher =    "ACM",
+  doi =          "10.1145/1596550.1596574"
+}
+
+% ----- 2010 ------------------------------------------------------------------
+
+@InProceedings{burckhardt2010,
+  author =       "Burckhardt, Sebastian and Kothari, Pravesh and Musuvathi, Madanlal and Nagarakatte, Santosh",
+  title =        "A Randomized Scheduler with Probabilistic Guarantees of Finding Bugs",
+  booktitle =    "Proceedings of the Fifteenth Edition of ASPLOS on Architectural Support for Programming Languages and Operating Systems",
+  year =         2010,
+  series =       "ASPLOS XV",
+  pages =        "167-178",
+  publisher =    "ACM",
+  doi =          "10.1145/1735971.1736040"
+}
+
+% ----- 2011 ------------------------------------------------------------------
+
+@InProceedings{arts2011,
+  author =       "Arts, Thomas and Hughes, John and Norell, Ulf and Smallbone, Nicholas and Svensson, Hans",
+  title =        "Accelerating Race Condition Detection Through Procrastination",
+  booktitle =    "Proceedings of the 10th ACM SIGPLAN Workshop on Erlang",
+  year =         2011,
+  series =       "Erlang '11",
+  pages =        "14-22",
+  publisher =    "ACM",
+  doi =          "10.1145/2034654.2034659"
+}
+
+@InProceedings{emmi2011,
+  author =       "Emmi, Michael and Qadeer, Shaz and Rakamari\'{c}, Zvonimir",
+  title =        "Delay-bounded Scheduling",
+  booktitle =    "Proceedings of the 38th Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages",
+  year =         2011,
+  series =       "POPL '11",
+  pages =        "411-422",
+  publisher =    "ACM",
+  doi =          "10.1145/1925844.1926432"
+}
+
+% ----- 2012 ------------------------------------------------------------------
+
+@InProceedings{yu2012,
+  author =       "Yu, Jie and Narayanasamy, Satish and Pereira, Cristiano and Pokam, Gilles",
+  title =        "Maple: A Coverage-driven Testing Tool for Multithreaded Programs",
+  booktitle =    "Proceedings of the ACM International Conference on Object Oriented Programming Systems Languages and Applications",
+  year =         2012,
+  series =       "OOPSLA '12",
+  pages =        "485-502",
+  publisher =    "ACM",
+  doi =          "10.1145/2398857.2384651"
+}
+
+% ----- 2013 ------------------------------------------------------------------
+
+@InProceedings{coons2013,
+  author =       "Coons, Katherine E. and Musuvathi, Madan and McKinley, Kathryn S.",
+  title =        "Bounded Partial-order Reduction",
+  booktitle =    "Proceedings of the 2013 ACM SIGPLAN International Conference on Object Oriented Programming Systems Languages and Applications",
+  year =         2013,
+  series =       "OOPSLA '13",
+  pages =        "833-848",
+  publisher =    "ACM",
+  doi =          "10.1145/2544173.2509556"
+}
+
+% ------ 2014 -----------------------------------------------------------------
+
+@InProceedings{tabaei2014,
+  author =       "Tabaei Befrouei, Mitra and Wang, Chao and Weissenbacher, Georg",
+  title =        "Abstraction and Mining of Traces to Explain Concurrency Bugs",
+  booktitle =    "Proceedings of the 5th International Conference on Runtime Verification",
+  year =         2014,
+  pages =        "162-177",
+  publisher =    "Springer",
+  doi =          "10.1007/s10703-015-0240-5"
+}
+
+@InProceedings{thomson2014,
+  author =       "Thomson, Paul and Donaldson, Alastair F. and Betts, Adam",
+  title =        "Concurrency Testing Using Schedule Bounding: an Empirical Study",
+  booktitle =    "Proceedings of the 19th ACM SIGPLAN Symposium on Principles and Practice of Parallel Programming",
+  year =         2014,
+  pages =        "15-28",
+  publisher =    "ACM",
+  doi =          "10.1145/2555243.2555260"
+}
+
+% ----- 2015 ------------------------------------------------------------------
+
+@InProceedings{huang2015,
+  author =       "Huang, Jeff",
+  title =        "Stateless Model Checking Concurrent Programs with Maximal Causality Reduction",
+  booktitle =    "Proceedings of the 36th ACM SIGPLAN Conference on Programming Language Design and Implementation",
+  year =         2015,
+  series =       "PLDI '15",
+  pages =        "165-174",
+  publisher =    "ACM",
+  doi =          "10.1145/2737924.2737975"
+}
+
+@InProceedings{zhang2015,
+  author =       "Zhang, Naling and Kusano, Markus and Wang, Chao",
+  title =        "Dynamic Partial Order Reduction for Relaxed Memory Models",
+  booktitle =    "Proceedings of the 36th ACM SIGPLAN Conference on Programming Language Design and Implementation",
+  year =         2015,
+  series =       "PLDI 2015",
+  pages =        "250-259",
+  publisher =    "ACM",
+  doi =          "10.1145/2737924.2737956"
+}
+
+% ----- 2016 ------------------------------------------------------------------
+
+@InProceedings{huang2016,
+  author =       "Huang, Shiyou and Huang, Jeff",
+  title =        "Maximal Causality Reduction for TSO and PSO",
+  booktitle =    "Proceedings of the 2016 ACM SIGPLAN International Conference on Object-Oriented Programming, Systems, Languages, and Applications",
+  year =         2016,
+  series =       "OOPSLA 2016",
+  pages =        "447-461",
+  publisher =    "ACM",
+  doi =          "10.1145/2983990.2984025"
+}
+
+@InCollection{godefroid2016,
+  author =       "Patrice Godefroid",
+  title =        "Between Testing and Verification: Dynamic Software Model Checking",
+  booktitle =    "Dependable Software Systems Engineering",
+  year =         2016,
+  pages =        "99-116",
+  doi =          "10.3233/978-1-61499-627-9-99"
+}
+
+@Article{thomson2016,
+  author =       "Thomson, Paul and Donaldson, Alastair F. and Betts, Adam",
+  title =        "Concurrency Testing Using Controlled Schedulers: an Empirical Study",
+  journal =      "ACM Transactions on Parallel Computing",
+  year =         2016,
+  volume =       2,
+  number =       4,
+  pages =        "23:1--23:37",
+  publisher =    "ACM",
+  doi =          "10.1145/2858651"
+}
+
+% ----- 2017 ------------------------------------------------------------------
+
+@Article{bianchi2017,
+  author =       "Bianchi, Francesco and Margara, Alessandro and Pezz\`{e}, Mauro",
+  title =        "A Survey of Recent Trends in Testing Concurrent Software Systems",
+  journal =      "IEEE Transactions on Software Engineering",
+  year =         2017,
+  volume =       "PP",
+  number =       99,
+  pages =        "1-1",
+  doi =          "10.1109/TSE.2017.2707089"
+}
+
+@InProceedings{huang2017,
+  author =       "Shiyou Huang and Jeff Huang",
+  title =        "Speeding Up Maximal Causality Reduction with Static Dependency Analysis",
+  booktitle =    "31st European Conference on Object-Oriented Programming (ECOOP 2017)",
+  year =         2017,
+  editor =       "Peter M{\"u}ller",
+  volume =       74,
+  series =       "Leibniz International Proceedings in Informatics (LIPIcs)",
+  pages =        "16:1--16:22",
+  publisher =    "Schloss Dagstuhl--Leibniz-Zentrum fuer Informatik",
+  doi =          "10.4230/LIPIcs.ECOOP.2017.16"
+}
+
+% =============================================================================
+% property testing / synthesis
+% =============================================================================
+
+@Unpublished{quickspec2,
+  author =       "Smallbone, Nicholas and Johansson, Moa and Claessen, Koen and Algehed, Maximillian",
+  title =        "Quick Specifications for the Busy Programmer",
+  note =         "Submitted for publication.  Available at \url{http://www.cse.chalmers.se/~nicsma/}."
+}
+
+@Unpublished{speculate,
+  author =       "Braquehais, Rudy and Runciman, Colin",
+  title =        "Speculate: discovering conditional equations and inequalities about black-box functions by reasoning from test results",
+  note =         "Accepted for publication at the Haskell Symposium 2017."
+}
+
+% ----- 2000 ------------------------------------------------------------------
+
+@InProceedings{claessen2000,
+  author =       "Claessen, Koen and Hughes, John",
+  title =        "{QuickCheck}: A Lightweight Tool for Random Testing of {H}askell Programs",
+  booktitle =    "ICFP'00",
+  year =         2000,
+  series =       "ICFP'00",
+  pages =        "268-279",
+  publisher =    "ACM",
+  booktitle =    "Proceedings of the Fifth ACM SIGPLAN International Conference on Functional Programming",
+  doi =          "10.1145/351240.351266"
+}
+
+% ----- 2007 ------------------------------------------------------------------
+
+@Article{ernst2007,
+  author =       "Ernst, Michael D. and Perkins, Jeff H. and Guo, Philip J. and McCamant, Stephen and Pacheco, Carlos and Tschantz, Matthew S. and Xiao, Chen",
+  title =        "The Daikon System for Dynamic Detection of Likely Invariants",
+  journal =      "Sci. Comput. Program.",
+  year =         2007,
+  volume =       69,
+  number =       "1-3",
+  pages =        "35-45",
+  doi =          "10.1016/j.scico.2007.01.015",
+  publisher =    "Elsevier North-Holland, Inc."
+}
+
+% ----- 2008 ------------------------------------------------------------------
+
+@InProceedings{runciman2008,
+  author =       "Runciman, Colin and Naylor, Matthew and Lindblad, Fredrik",
+  title =        "{SmallCheck} and {Lazy SmallCheck}: Automatic Exhaustive Testing for Small Values",
+  booktitle =    "Haskell'08",
+  year =         2008,
+  series =       "Haskell'08",
+  pages =        "37-48",
+  publisher =    "ACM",
+  booktitle =    "Proceedings of the First ACM SIGPLAN Symposium on Haskell",
+  doi =          "10.1145/1411286.1411292"
+}
+
+% ----- 2010 ------------------------------------------------------------------
+
+@InProceedings{claessen2010,
+  author =       "Claessen, Koen and Smallbone, Nicholas and Hughes, John",
+  title =        "{QuickSpec}: Guessing Formal Specifications Using Testing",
+  booktitle =    "Proceedings of the 4th International Conference on Tests and Proofs",
+  year =         2010,
+  series =       "TAP'10",
+  pages =        "6-21",
+  publisher =    "Springer-Verlag",
+  doi =          "10.1007/978-3-642-13977-2_3"}
+
+% ----- 2014 ------------------------------------------------------------------
+
+@InProceedings{sharma2014,
+  author =       "Sharma, Rahul and Aiken, Alex",
+  title =        "From Invariant Checking to Invariant Inference Using Randomized Search",
+  booktitle =    "Proceedings of the 16th International Conference on Computer Aided Verification - Volume 8559",
+  year =         2014,
+  pages =        "88-105",
+  publisher =    "Springer-Verlag New York, Inc.",
+  doi =          "10.1007/978-3-319-08867-9_6"
+}
+
+% ----- 2015 ------------------------------------------------------------------
+
+@InProceedings{kusano2015,
+  author =       "Kusano, Markus and Chattopadhyay, Arijit and Wang, Chao",
+  title =        "Dynamic Generation of Likely Invariants for Multithreaded Programs",
+  booktitle =    "Proceedings of the 37th International Conference on Software Engineering - Volume 1",
+  year =         2015,
+  series =       "ICSE '15",
+  pages =        "835-846",
+  publisher =    "IEEE Press",
+  doi =          "10.1109/ICSE.2015.95"
+}
+
+% =============================================================================
+% miscellaneous
+% =============================================================================
+
+% ----- 1972 ------------------------------------------------------------------
+
+@Article{debruijn1972,
+  author =       "de Bruijn, N. G.",
+  title =        "Lambda calculus notation with nameless dummies, a tool for automatic formula manipulation, with application to the Church-Rosser theorem",
+  journal =      "Indagationes Mathematicae (Proceedings)",
+  year =         1972,
+  volume =       75,
+  number =       5,
+  pages =        "381-392"
+}
+
+% ----- 1986 ------------------------------------------------------------------
+
+@InBook{he1986,
+  author =       "He, J. and Hoare, C. A. R. and Sanders, J. W.",
+  title =        "Data refinement refined resume",
+  publisher =    "Springer Berlin Heidelberg",
+  year =         1986,
+  pages =        "187-196",
+  booktitle =    "ESOP 86: European Symposium on Programming Saarbr{\"u}cken, Federal Republic of Germany March 17--19, 1986 Proceedings"
+}
+
+@Book{treiber1986,
+  author =       "Treiber, Kent T.",
+  title =        "Systems Programming: Coping with Parallelism",
+  publisher =    "International Business Machines Incorporated, Thomas J. Watson Research Center",
+  year =         1986
+}
+
+% ----- 1995 ------------------------------------------------------------------
+
+@Book{scholz1995,
+  author =       "Scholz, Enno",
+  title =        "A Concurrency Monad Based on Constructor Primitives, or, Being First-Class is Not Enough",
+  publisher =    "Freie Univ., Fachbereich Mathematik",
+  year =         1995
+}
+
+@InProceedings{shavit1995,
+  author =       "Shavit, Nir and Touitou, Dan",
+  title =        "Software Transactional Memory",
+  booktitle =    "Proceedings of the Fourteenth Annual ACM Symposium on Principles of Distributed Computing",
+  year =         1995,
+  series =       "PODC '95",
+  pages =        "204-213",
+  publisher =    "ACM",
+  doi =          "10.1145/224964.224987"
+}
+
+% ----- 1996 ------------------------------------------------------------------
+
+@Article{adve1996,
+  author =       "Adve, Sarita V. and Gharachorloo, Kourosh",
+  title =        "Shared Memory Consistency Models: A Tutorial",
+  journal =      "Computer",
+  year =         1996,
+  volume =       29,
+  number =       12,
+  pages =        "66-76",
+  publisher =    "IEEE Computer Society Press",
+  doi =          "10.1109/2.546611"
+}
+
+@InProceedings{peytonjones1996,
+  author =       "Peyton Jones, Simon and Gordon, Andrew and Finne, Sigbjorn",
+  title =        "Concurrent Haskell",
+  booktitle =    "Proceedings of the 23rd ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages",
+  year =         1996,
+  series =       "POPL '96",
+  pages =        "295-308",
+  publisher =    "ACM",
+  doi =          "10.1145/237721.237794"
+}
+
+@InProceedings{trinder1996,
+  author =       "Trinder, Philip W. and Hammond, Kevin and Mattson Jr., James S. and Partridge, Andrew S. and Peyton Jones, Simon L.",
+  title =        "{GUM}: a portable parallel implementation of {H}askell",
+  booktitle =    "Proceedings of Programming Language Design and Implementation",
+  year =         1996,
+  doi =          "10.1145/231379.231392"
+}
+
+% ----- 2005 ------------------------------------------------------------------
+
+@Article{stolz2005,
+  author =       "Stolz, Volker and Huch, Frank",
+  title =        "Runtime Verification of Concurrent Haskell Programs",
+  journal =      "Electron. Notes Theor. Comput. Sci.",
+  year =         2005,
+  volume =       113,
+  pages =        "201-216",
+  publisher =    "Elsevier Science Publishers B. V.",
+  doi =          "10.1016/j.entcs.2004.01.026"
+}
+
+% ----- 2010 ------------------------------------------------------------------
+
+@InProceedings{burnim2010,
+  author =       "Burnim, Jacob and Sen, Koushik",
+  title =        "{DETERMIN}: Inferring Likely Deterministic Specifications of Multithreaded Programs",
+  booktitle =    "Proceedings of the 32Nd ACM/IEEE International Conference on Software Engineering - Volume 1",
+  year =         2010,
+  series =       "ICSE '10",
+  pages =        "415-424",
+  publisher =    "ACM",
+  doi =          "10.1145/1806799.1806860"
+}
+
+% ----- 2012 ------------------------------------------------------------------
+
+@InProceedings{groce2012,
+  author =       "Groce, Alex and Zhang, Chaoqiang and Eide, Eric and Chen, Yang and Regehr, John",
+  title =        "Swarm Testing",
+  booktitle =    "Proceedings of the 2012 International Symposium on Software Testing and Analysis",
+  year =         2012,
+  series =       "ISSTA 2012",
+  pages =        "78-88",
+  publisher =    "ACM",
+  doi =          "10.1145/2338965.2336763"
+}
+
+% ----- 2013 ------------------------------------------------------------------
+
+@PhdThesis{linden2013,
+  author =       "Linden, Alexander",
+  title =        "On the Verification of Programs on Relaxed Memory Models",
+  school =       "Universit{\'e} de Li{\`e}ge,​ Li{\`e}ge,​​ Belgique",
+  year =         2013
+}
+
+% ----- 2017 ------------------------------------------------------------------
+
+@InProceedings{groce2017,
+  author =       "Groce, Alex and Holmes, Josie and Kellar, Kevin",
+  title =        "One Test to Rule Them All",
+  booktitle =    "Proceedings of the 26th ACM SIGSOFT International Symposium on Software Testing and Analysis",
+  year =         2017,
+  series =       "ISSTA 2017",
+  pages =        "1-11",
+  publisher =    "ACM",
+  doi =          "10.1145/3092703.3092704"
+}
+
+@InProceedings{vollmer2017,
+  author =       "Vollmer, Michael and Scott, Ryan G. and Musuvathi, Madanlal and Newton, Ryan R.",
+  title =        "SC-Haskell: Sequential Consistency in Languages That Minimize Mutable Shared Heap",
+  booktitle =    "Proceedings of the 22Nd ACM SIGPLAN Symposium on Principles and Practice of Parallel Programming",
+  year =         2017,
+  series =       "PPoPP '17",
+  pages =        "283-298",
+  publisher =    "ACM",
+  doi =          "10.1145/3018743.3018746"
+}
+
+% =============================================================================
+% epigraphs
+% =============================================================================
 
 @Book{pratchett2001,
   author =       "Pratchett, Terry",
@@ -24,12 +606,14 @@ Epigraphs
   publisher =    "HarperCollins",
   year =         2001
 }
+
 @Book{simmons1989,
   author =       "Simmons, Dan",
   title =        "Hyperion",
   publisher =    "Doubleday",
   year =         1989
 }
+
 @Book{peake1959,
   author =       "Peake, Mervyn",
   title =        "Titus Alone",
