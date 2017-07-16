@@ -1,5 +1,5 @@
-TEXFILES := $(wildcard *.tex)
-BIBFILES := $(wildcard *.bib)
+TEXFILES := $(shell find . -type f -name '*.tex')
+BIBFILES := $(shell find . -type f -name '*.bib')
 
 .PHONY: all clean
 

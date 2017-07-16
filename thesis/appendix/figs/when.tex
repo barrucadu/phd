@@ -1,0 +1,8 @@
+\begin{verbatim}
+when :: Bool -> IO () -> IO ()
+when cond action = if cond then action else pure ()
+
+main :: IO ()
+main = when (1 > 3) (putStrLn "hello world")
+\end{verbatim}
+\caption{A small program using conditionals.}

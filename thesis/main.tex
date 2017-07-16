@@ -22,9 +22,11 @@
 
 % Other packages
 \usepackage[english]{babel}
-\usepackage{appendix}
+\usepackage[toc]{appendix}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{epigraph}
+\usepackage{import}
+\usepackage{multicol}
 \usepackage{hyperref}
 \hypersetup{
  colorlinks,
@@ -70,6 +72,8 @@
 \newcommand{\partref}[1]{Part~\ref{part:#1}}
 \newcommand{\chpref}[1]{Chapter~\ref{chp:#1}}
 \newcommand{\secref}[1]{Section~\ref{sec:#1}}
+\newcommand{\appref}[1]{Appendix~\ref{app:#1}}
+\newcommand{\figref}[1]{Figure~\ref{fig:#1}}
 \newcommand{\sref}[1]{(\S\ref{sec:#1})}
 
 % Temporary
@@ -170,6 +174,9 @@
 \input{future_work.tex}
 
 \begin{appendices}
+\chapter{Haskell Quick Reference}
+\label{app:haskell}
+\import{appendix/}{haskell_quick_reference.tex}
 \end{appendices}
 
 \printbibliography[heading=bibintoc]

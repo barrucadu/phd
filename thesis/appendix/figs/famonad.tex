@@ -1,0 +1,12 @@
+\begin{verbatim}
+class Functor f where
+  fmap :: (a -> b) -> f a -> f b
+
+class Functor f => Applicative f where
+  (<*>) :: f (a -> b) -> f a -> f b
+  pure  :: a -> f a
+
+class Applicative f => Monad f where
+  (>>=) :: f a -> (a -> f b) -> f b
+\end{verbatim}
+\caption{The Functor, Applicative, and Monad typeclasses.}
