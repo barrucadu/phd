@@ -1,10 +1,32 @@
-\blindtext
+When writing concurrent programs, programmers tend to fall into one of two
+camps:
+
+\begin{itemize}
+\item ``If you want a reliable concurrent program, you have to model-check your
+core algorithms.''
+\item ``Model checking is too expensive, if you want a reliable real-world
+concurrent program, you have to stress test it.''
+\end{itemize}
+
+Model checking can prove the absence of bugs, but can be difficult to use, and
+requires programmers to learn yet another tool.  Stress testing, aided by
+dynamic analyses like Clang's ThreadSanitizer or Go's data race detector, often
+works but suffers from the problem of knowing when the testing is \emph{enough}.
+
+We follow a middle path: between the familiarity of writing tests and the power
+of model checking.  \emph{Systematic concurrency testing} lets us answer with
+certainty questions like:
+
+\begin{itemize}
+\item How do we ensure that we're covering a lot of different schedules?
+\item How do we know a that bug has really been fixed?
+\item \emph{How much testing is enough?}
+\end{itemize}
 
 Haskell is used in this thesis.  \appref{haskell} gives a brief introduction to
-Haskell, along with a syntax reference and list of common library functions and
-modules.
+Haskell, along with a syntax reference and list of common library functions.
 
-\section{Terminology: Parallelism vs Concurrency}
+\section{Parallelism vs Concurrency}
 \label{sec:intro-parconc}
 
 In many fields, \emph{parallel} and \emph{concurrent} are synonyms, both
@@ -15,26 +37,45 @@ A \emph{parallel} program uses a multiplicity of hardware to compute different
 aspects of a result simultaneously.  The goal is to arrive at the overall result
 more quickly.  For example, the x86 assembly instruction \verb#PMULHUW# computes
 the element-wise multiplication of two vectors, each multiplication
-simultaneously: it (amongst others) enables parallelism.
+simultaneously: it enables parallelism.
 
 A \emph{concurrent} program uses a notion of multiple independently executing
 threads of control to structure the program.  These threads conceptually execute
-at the same time (their effects may be interleaved).  Whether threads actually
-do execute simultaneously is an implementation detail.  A concurrent program can
+at the same time, their effects may be interleaved.  Whether threads actually do
+execute simultaneously is an implementation detail.  A concurrent program can
 execute on a single-core machine through interleaved sequential execution just
-as it can be executed on a multi-core machine in parallel.
+as it can execute on a multi-core machine in parallel.
 
-Concurrency is often implemented using parallelism.  Indeed a concurrency
-abstraction can even guarantee parallelism (given suitable hardware), for
-example by having the ability to restrict the execution of individual threads to
-given processor cores.
+Concurrency is often implemented using parallelism.  A concurrency abstraction
+can even guarantee parallelism (given suitable hardware), for example by having
+the ability to restrict the execution of individual threads to given processor
+cores.
 
 This thesis is mostly concerned with concurrency, but parallelism does rear its
 head in the discussion of \emph{relaxed memory} in \chpref{dejafu}.
 
 \section{Goals and Contributions of this Thesis}
 \label{sec:intro-contributions}
-\blindtext
+
+The primary contribution of this thesis is a library for testing concurrent
+Haskell programs.  This library demonstrates that concurrency testing
+techniques, typically described in the context of a very simple core language,
+can be successfully applied to a language with a very rich concurrency
+abstraction such as Haskell.
+
+Our contributions can be seen as follows:
+
+\begin{itemize}
+\item A method for the systematic testing of concurrent Haskell programs based
+on existing work from the imperative and object-oriented worlds.
+\item A new scheduling algorithm for probabilistically finding faults in concurrent
+programs based on random search.
+\item A generalisation of property discovery techniques to find properties of
+stateful, impure, operations.
+\end{itemize}
+
+The overall goal of this research has been to contribute tools which make it
+easier for programmers to write correct concurrent programs.
 
 \section{Roadmap}
 \label{sec:intro-roadmap}
