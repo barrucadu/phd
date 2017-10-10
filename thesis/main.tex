@@ -110,8 +110,8 @@
 \label{chp:introduction}
 \input{introduction.tex}
 
-\part{Testing Concurrent Haskell Programs}
-\label{part:dejafu}
+\part{Background and Review}
+\label{part:review}
 
 \chapter{Concurrent Haskell}
 \label{chp:concurrent_haskell}
@@ -121,7 +121,14 @@
 \label{chp:sct}
 \input{sct.tex}
 
-\chapter{Testing Concurrent Programs}
+\chapter{Property-based Testing}
+\label{chp:property_testing}
+\input{property_testing.tex}
+
+\part{Testing Concurrent Programs}
+\label{part:testing}
+
+\chapter{\dejafu{}: Haskell Concurrency Testing}
 \label{chp:dejafu}
 \input{dejafu.tex}
 
@@ -130,17 +137,13 @@
 \input{algorithms.tex}
 
 \part{Test Case Generation}
-\label{part:coco}
+\label{part:properties}
 
-\chapter{Property-based Testing}
-\label{chp:property_testing}
-\input{property_testing.tex}
-
-\chapter{Discovering Properties Automatically}
+\chapter{CoCo: Discovering Properties Automatically}
 \label{chp:coco}
 \input{coco.tex}
 
-\chapter{CoCo and \dejafu{}}
+\chapter{Using CoCo Properties in \dejafu{}}
 \label{chp:coco_and_dejafu}
 \input{coco_and_dejafu.tex}
 

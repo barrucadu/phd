@@ -80,27 +80,29 @@ easier for programmers to write correct concurrent programs.
 \section{Roadmap}
 \label{sec:intro-roadmap}
 
-This thesis is divided into three broad parts:
+This thesis is divided into four broad parts:
 
 \begin{itemize}
-\item \partref{dejafu} is about \dejafu{}, our tool for testing concurrent
-  Haskell programs.  \chpref{concurrent_haskell} gives an introduction to
-  concurrency in Haskell.  \chpref{sct} discusses the theory behind
-  \emph{testing} concurrent programs.  \chpref{dejafu} gives an account of the
-  \dejafu{} tool itself, covering the scope, implementation, some case studies,
-  and evaluation.  Finally, \chpref{algorithms} discusses an alternative
-  scheduling algorithm when testing a concurrent program.
+\item \partref{review} discusses the context of the work.
+  \chpref{concurrent_haskell} gives an introduction to concurrency in Haskell.
+  \chpref{sct} discusses the theory behind \emph{testing} concurrent programs.
+  Finally, \chpref{property_testing} gives an introduction to property testing
+  in Haskell.
 
-\item \partref{coco} is about CoCo, our tool for discovering properties of
-  concurrent functions.  \chpref{property_testing} gives an introduction to
-  property testing in Haskell.  \chpref{coco} gives an account of the CoCo tool
-  itself, covering the scope, implementation, some case studies, and evaluation.
+\item \partref{testing} is about \dejafu{}, our tool for testing concurrent
+  Haskell programs.  \chpref{dejafu} gives an account of the \dejafu{} tool,
+  covering the scope, implementation, some case studies, and evaluation.
+  Finally, \chpref{algorithms} discusses an alternative scheduling algorithm for
+  testing concurrent programs.
+
+\item \partref{properties} is about CoCo, our tool for discovering properties of
+  concurrent functions.  \chpref{coco} gives an account of the CoCo tool,
+  covering the scope, implementation, some case studies, and evaluation.
   Finally, \chpref{coco_and_dejafu} discusses using the properties discovered by
   CoCo as test cases in \dejafu{}.
 
-\item Lastly, in \partref{end} we discusses our conclusions
-  (\chpref{conclusions}) and suggest possible future work
-  (\chpref{future_work}).
+\item Lastly, in \partref{end} we discusses our conclusions in
+  \chpref{conclusions} and suggest possible future work in \chpref{future_work}.
 \end{itemize}
 
 Chapters~\ref{chp:concurrent_haskell} and~\ref{chp:property_testing} should be
