@@ -8,9 +8,54 @@ propose a new one based on a \emph{weighted} random selection of
 threads~\sref{algorithms-swarm}, and show that it performs favourably in a
 comparison of standard benchmark programs~\sref{algorithms-sctbench}.
 
+\section{Concurrency Testing with Randomised Scheduling}
 \label{sec:algorithms-usual}
 
-\blindtext
+Concurrency testing using randomised scheduling works by repeatedly executing a
+concurrent program, exploring a particular schedule on each execution.  Unlike
+systematic concurrency testing, little effort is made to avoid repetition of
+schedules tested, so these algorithms are incomplete in general.  In this
+section we present two approaches to randomised scheduling.
+
+\paragraph{Controlled random scheduling}
+A controlled random scheduler uses a random-number generator to choose threads
+to execute. At each scheduling point, a runnable thread is randomly chosen using
+a uniform distribution. This thread is then executed until the next scheduling
+point. Like any controlled scheduling technique, the executed schedule can be
+recorded and replayed. Additionally, a random scheduler can be used on programs
+that exhibit nondeterminism beyond scheduler nondeterminism, although in this
+case schedule replay will be unreliable\cite{thomson2016}.
+
+\paragraph{Probabilistic concurrency testing}
+The PCT algorithm\cite{burckhardt2010} uses a priority-based scheduler where the
+highest priority runnable thread is chosen at each scheduling point. A bounded
+number of \emph{priority change points} are inserted in the execution which
+change the priority of the currently executing thread to a low value. These
+change points are distributed uniformly over the length of the execution.
+
+The algorithm is described as follows\cite{burckhardt2010}: given a program with
+at most $n$ threads and at most $k$ steps, choose a bound $d$, then:
+
+\begin{enumerate}
+\item Randomly assign each of the $n$ threads a distinct initial priority value
+from $\{d, d + 1, \ldots, d+n\}$. The lower priority values $\{1, \ldots, d−1\}$
+are reserved for change points.
+\item Uniformly pick integers $c_1, \ldots, c_{d−1}$ from $\{1, \ldots,
+k\}$. These will be the priority change points.
+\item Schedule threads strictly according to their priorities: never
+schedule a thread if a higher priority thread is runnable. After executing the
+$c_i$-th step $(1 \leq i < d)$, change the priority of the thread that executed
+the step to $i$.
+\end{enumerate}
+
+PCT also introduces the idea of a ``bug depth''. The bug depth is defined as the
+minimum set of ordering constraints between actions from different threads that
+are sufficient to trigger the bug\cite{burckhardt2010}. Assuming a bug with
+depth $d$, the probability of the PCT algorithm detecting the bug on a single
+execution is $1/nk^{d−1}$.
+
+The intuition behind PCT is that many concurrency bugs typically require
+orderings between only a few actions in order to appear.
 
 \section{Weighted Random Scheduling and Swarm Testing}
 \label{sec:algorithms-swarm}
