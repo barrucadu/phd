@@ -1,13 +1,13 @@
-When we impose schedule bounds for testing, we may not find
-\emph{all} buggy executions.  However we still want to find \emph{most of them}.
-Benchmarks show that some algorithms tend to be better at this than others; not
-all algorithms are created equal.  In this chapter we discuss a number of
-algorithms~\sref{algorithms-usual}, propose a new one based on a \emph{weighted}
-random selection of threads~\sref{algorithms-swarm}, and show that it performs
-favourably in a comparison of standard benchmark
-programs~\sref{algorithms-sctbench}.
+The complete-within-a-bound approach of DPOR may not be feasible in large
+programs.  We can sacrifice completeness, and instead explore the space of
+schedules \emph{randomly}.  We may not find all bugs.  However we still want to
+find \emph{most of them}.  Benchmarks show that some scheduling algorithms tend
+to be better at this than others; not all algorithms are created equal.  In this
+chapter we discuss a number of scheduling algorithms~\sref{algorithms-usual},
+propose a new one based on a \emph{weighted} random selection of
+threads~\sref{algorithms-swarm}, and show that it performs favourably in a
+comparison of standard benchmark programs~\sref{algorithms-sctbench}.
 
-\section{The Usual Suspects}
 \label{sec:algorithms-usual}
 
 \blindtext
