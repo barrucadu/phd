@@ -1,6 +1,8 @@
 *
 !*.bib
 !*.tex
+!*.cc
+!*.h
 !*/
 !.dir-locals.el
 !.gitignore

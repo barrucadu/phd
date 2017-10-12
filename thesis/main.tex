@@ -43,6 +43,7 @@
 \titleformat*{\paragraph}{\bfseries}
 
 % Fonts
+\usepackage{inconsolata}
 \usepackage{fontspec}
 \setmainfont{equity}[
   % Files
@@ -57,6 +58,13 @@
   BoldItalicFont  = Equity Text A Bold Italic ,
   % Features
   Numbers = OldStyle ]
+
+% Code
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  showstringspaces=false
+}
 
 % Cross references
 \newcommand{\partref}[1]{Part~\ref{part:#1}}
@@ -162,6 +170,10 @@
 \chapter{Haskell Quick Reference}
 \label{app:haskell}
 \import{appendix/}{haskell_quick_reference.tex}
+
+\chapter{Swarm Scheduler Program Listing}
+\label{app:swarm}
+\import{appendix/}{swarm.tex}
 \end{appendices}
 
 \printbibliography[heading=bibintoc]
