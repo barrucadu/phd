@@ -120,7 +120,132 @@ executions.  \dejafu{} has a Haskell implementation of swarm scheduling and of
 controlled random scheduling, where the latter is implemented as a special case
 of the former where all weights are equal.
 
-\section{Benchmark Programs}
-\label{sec:algorithms-sctbench}
+\section{Comparing Bug-finding Ability}
+\label{sec:algorithms-eval}
 
-\blindtext
+We shall now see how swarm scheduling compares with PCT in terms of bug-finding
+ability.  We use a published collection of benchmark programs,
+SCTBench\cite{thomson2016,thomson2014}, and a modified version of the Maple
+tool\cite{yu2012}.  Maple is a concurrency testing tool for pthread programs.
+We use Maple because the prior work using SCTBench also does.  We want any
+difference in algorithm performance to be due to the algorithms themselves, not
+because of any difference in how the host tool works.
+
+Maple comes with a PCT implementation using Linux real-time thread priorities,
+but we use the modified version of~\cite{thomson2016} instead.  This modified
+version does differ from the standard PCT algorithm slightly.  PCT does not
+directly handle yielding threads: if the highest-priority runnable thread is in
+a busy-wait loop, it may yield until some condition holds.  Immediately
+scheduling the thread again after it yields would lead to a nonterminating
+execution.  The original PCT implementation uses heuristics to determine if a
+thread is not making progress, and to lower its
+priority\cite{burckhardt2010}. In the implementation we use, the priority of the
+current thread is changed to the lowest possible priority if it
+yields\cite{thomson2016}.
+
+\subsection{Benchmark Collection}
+\label{sec:algorithms-eval-sctbench}
+
+SCTBench\cite{thomson2016,thomson2014} is a collection of pthread programs
+amenable to systematic concurrency testing.  All the programs are deterministic,
+other than scheduler nondeterminism.  SCTBench is assembled from several other
+sets of benchmarks, so there is quite some variety in the programs:
+
+\begin{itemize}
+\item Buggy versions of aget (a file downloader) and pbzip2 (a compression
+program).
+\item A set of test cases for a work-stealing queue.
+\item Examples used to test the ESBMB tool\cite{cordeiro2011}, an SMT-based
+model checker for concurrency.
+\item Examples used to test the INSPECT tool\cite{yang2008}, a concurrency
+testing tool for instrumented C programs.
+\item A buggy lock-free stack implementation.
+\item A test case exposing a bug in the
+ctrace\footnote{\url{http://ctrace.sourceforge.net/}} concurrency debugging
+library.
+\item Buggy versions of a content similarity search tool and online clustering
+tool.
+\item Three benchmarks exposing bugs in Mozilla
+SpiderMonkey\footnote{\url{https://developer.mozilla.org/en-US/docs/Mozilla/Projects/SpiderMonkey}}
+and the Mozilla Netscape Portable Runtime Thread Package\footnote{\url{https://developer.mozilla.org/en-US/docs/Mozilla/Projects/NSPR}}.
+\item The SPLASH-2 programs\cite{woo1995}.
+\end{itemize}
+
+In total there are 49 benchmark programs.
+
+\subsection{Experimental Method}
+\label{sec:algorithms-eval-method}
+
+We aim to compare swarm scheduling, using a variety of parameters, with PCT and
+controlled random scheduling.  We do not consider the other algorithms used in
+the prior SCTBench work, or PCT with a bound other than $d=3$, as PCT $d=3$ was
+found to have superior bug-finding ability\cite{thomson2016}.
+
+In total, we try 9 algorithm-parameter variants:
+
+\begin{itemize}
+\item Controlled random scheduling.
+\item PCT with $d=3$.
+\item Swarm scheduling with $x \in \{1,10,100,1000\}$ and $d=0$.
+\item Swarm scheduling with $x=1$ and $d \in \{1,2,3\}$.
+\end{itemize}
+
+We do not vary $d$ for swarm scheduling with $x > 1$ as we found it to have
+little effect.
+
+For each controlled scheduling technique, we run each benchmark with a limit of
+10,000 executions.  We use a schedule limit rather than a time limit, as many
+factors can influence timing results, and they are not readily comparable or
+reproducible.  Number of executions required, however, is an intrinsic property
+of the algorithm and random seed.
+
+We were fortunate enough to have access to the scripts used
+by~\cite{thomson2016,thomson2014} to run the benchmarks, which greatly
+simplified experimentation.  Each benchmark goes through the following phases:
+
+\paragraph{Data race detection phase}
+It is sound to only consider scheduling points before synchronisation operations
+as long as execution aborts with an error as soon as a data race is
+detected\cite{musuvathi2008}.  This greatly reduces the number of schedules that
+need to be considered.  However, the benchmark programs contain many benign data
+races\cite{thomson2016}, so this condition is too strict.  As in prior
+work\cite{thomson2016,thomson2014,yu2012} we address this problem by performing
+dynamic data race detection first, to identify a subset of load and store
+operations which are known to be racey, which are then treated as visible
+synchronisation operations during testing.  This process is nondeterministic, so
+we run it ten times for each benchmark.
+
+\paragraph{Controlled random scheduling phase}
+We run each benchmark 10,000 times using Maple's random scheduler.  Although
+this approach was found to be inferior to PCT\cite{thomson2016}, we include it
+so we have a na\"{\i}ve baseline for evaluation purposes.
+
+\paragraph{PCT testing phase}
+PCT requires parameters $n$, the maximum number of threads; $k$, the maximum
+number of steps in the execution; and $d$, the bug depth.  We fix $d=3$, and use
+estimates for $n$ and $k$ found by~\cite{thomson2016}.  These estimates were
+obtained by making an initial estimate and then executing PCT with $d=3$, on the
+assumption that this would increase interleaving, and counting steps from when
+the first thread launches the second.  We run each benchmark 10,000 times using
+its estimated $n$ and $k$ values.
+
+\paragraph{Swarm testing phase}
+Swarm testing requires parameters $w_{min}$, the minimum weight; $w_{max}$, the
+maximum weight; $k$, the maximum number of steps in the execution; $d$, the
+number of weight change points to include; and $x$, the number of executions to
+use the same weights for.  We want to encourage executions with very unequal
+thread weights, and so pick $w_{min}=1$ and $w_{max}=50$, giving significantly
+more weights than most benchmarks have threads.  We use the same $k$ values as
+in PCT.\@ We then performed multiple runs of swarm testing, using different $d$
+and $x$ values.  For each $(d, x)$ pair, we perform 10,000 executions of each
+benchmark, using its estimated $k$ value.
+
+\paragraph{Note on randomness}
+For a given benchmark, we can use the ``average number of schedules needed to
+expose a bug'' (10,000 divided by ``the number of buggy schedules'') to compare
+techniques.  The exact value is dependent on the initial seed, but we would
+expect it to become stable as the number of executions is
+increased\cite{thomson2016}.
+
+\subsection{Experimental Results}
+\label{sec:algorithms-eval-results}
