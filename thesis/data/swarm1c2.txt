@@ -1,0 +1,35 @@
+account_bad.x: account_bad.c:30: check_result: Assertion `balance == (x - y) - z' failed.
+aget: Resume.c:102: save_log: Assertion `total_bwritten == h.bwritten' failed.
+arithmetic_prog_bad.x: arithmetic_prog_bad.c:79: main: Assertion `total!=((3*(3+1))/2)' failed.
+A:Source/pin/injector_nonmac/vm_elf_loader.cpp:VM_GetToolSectionOffsets:VM_GetToolSectionOffsets:296: assertion failed: VM_ReadELFHeader(filename, &elfFileInfo, true, true) == EHDR_RES_SUCCESS
+BARNES: code.C:154: main: Assertion `numFinished == NPROC' failed.
+bluetooth_driver_bad.x: bluetooth_driver_bad.c:52: BCSP_PnpAdd: Assertion `!stopped' failed.
+circular_buffer_bad.x: circular_buffer_bad.c:83: t2: Assertion `removeLogElement()==i' failed.
+din_phil2_sat.x: din_phil2_sat.c:32: thread1: Assertion `0' failed.
+din_phil3_sat.x: din_phil3_sat.c:32: thread1: Assertion `0' failed.
+din_phil4_sat.x: din_phil4_sat.c:32: thread1: Assertion `0' failed.
+din_phil5_sat.x: din_phil5_sat.c:33: thread1: Assertion `0' failed.
+din_phil6_sat.x: din_phil6_sat.c:33: thread1: Assertion `0' failed.
+ferret: /vagrant/benchmarks/parsec-2.0/pkgs/apps/ferret/obj/amd64-linux.gcc/image/image.c:241: image_read_rgb_hsv: Assertion `image != ((void *)0)' failed.
+FFT: fft.c:346: main: Assertion `numFinished == P' failed.
+fsbench_bad.x: fsbench_bad.c:28: thread_routine: Assertion `i >=0 && i < 26' failed.
+InterlockedWorkStealQueueWithState.x: WorkStealQueueWithState.h:72: void THE::State::Pop(int): Assertion `size > 0' failed.
+InterlockedWorkStealQueueWithState.x: WorkStealQueueWithState.h:79: THE::ActivationRecord& THE::State::Peek(int): Assertion `size > 0' failed.
+InterlockedWorkStealQueue.x: InterlockedWorkStealQueue.cpp:60: void ObjType::Check(): Assertion `field == 1' failed.
+lazy01_bad.x: lazy01_bad.c:27: thread3: Assertion `0' failed.
+LU: lu.c:246: main: Assertion `numFinished == P' failed.
+main: stringbuffer.cpp:54: void StringBuffer::getChars(int, int, char*, int): Assertion `0' failed.
+pinbin: src/systematic/program.cc:222: void systematic::Program::Load(const string&, StaticInfo*): Assertion `sobj->image_' failed.
+qsort_mt.x: qsort_mt.c:649: main: Assertion `0 && "Failed to verify sorted list!"' failed.
+queue_bad.x: queue_bad.c:122: t2: Assertion `dequeue(&queue)==stored_elements[i]' failed.
+reorder_3_bad.x: reorder_bad.c:80: checkThread: Assertion `0' failed.
+reorder_4_bad.x: reorder_bad.c:80: checkThread: Assertion `0' failed.
+reorder_5_bad.x: reorder_bad.c:80: checkThread: Assertion `0' failed.
+stack_bad.x: stack_bad.c:88: t2: Assertion `pop(arr)!=(-2)' failed.
+StateWorkStealQueue.x: WorkStealQueueWithState.h:72: void THE::State::Pop(int): Assertion `size > 0' failed.
+StateWorkStealQueue.x: WorkStealQueueWithState.h:79: THE::ActivationRecord& THE::State::Peek(int): Assertion `size > 0' failed.
+token_ring_bad.x: token_ring_bad.c:42: t4: Assertion `x1 == x2 && x2 == x3' failed.
+twostage_bad.x: twostage_bad.c:48: funcB: Assertion `0' failed.
+WorkStealQueue.x: WorkStealQueue.cpp:53: void ObjType::Check(): Assertion `field == 1' failed.
+wronglock_3_bad.x: wronglock_bad.c:23: funcA: Assertion `0' failed.
+wronglock_bad.x: wronglock_bad.c:23: funcA: Assertion `0' failed.

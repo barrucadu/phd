@@ -247,5 +247,129 @@ techniques.  The exact value is dependent on the initial seed, but we would
 expect it to become stable as the number of executions is
 increased\cite{thomson2016}.
 
+\begin{figure}[t]
+  \centering
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[thick]
+      \draw (0,0)      circle (1) node[above,shift={(-0.3,1)}] {Rand};
+      \draw (1.2,0)    circle (1) node[above,shift={(0.3,1)}]  {PCT};
+      \draw (.6,-1.04) circle (1) node[below,shift={(0,-1)}]   {Swarm};
+
+      \node at (.6,-.4)  {28}; % rand  ^ pct   ^ swarm
+      \node at (1.2,-.7) {6};  % pct   ^ swarm - rand
+      \node at (.6,.3)   {1};  % pct   ^ rand  - swarm
+      \node at (0,-.7)   {2};  % rand  ^ swarm - pct
+      \node at (1.4,.2)  {2};  % pct   - rand  - swam
+      \node at (-.2,.2)  {1};  % rand  - pct   - swarm
+      \node at (.6,-1.5) {1};  % swarm - pct   - rand
+    \end{tikzpicture}
+    \caption{Basic algorithms}\label{fig:bugs-base}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[thick]
+      \draw (0,0)      circle (1) node[above,shift={(-0.3,1)}] {$x=1$};
+      \draw (1.2,0)    circle (1) node[above,shift={(0.3,1)}]  {$x=10$};
+      \draw (.6,-1.04) circle (1) node[below,shift={(0,-1)}]   {$x=100$};
+
+      \node at (.6,-.4)  {35}; % 1   ^ 10  ^ 100
+      \node at (0,-.7)   {0};  % 1   ^ 100 - 10
+      \node at (.6,.3)   {1};  % 1   ^ 10  - 100
+      \node at (1.2,-.7) {1};  % 10  ^ 100 - 1
+      \node at (-.2,.2)  {1};  % 1   - 10  - 100
+      \node at (1.4,.2)  {0};  % 10  - 1   - 100
+      \node at (.6,-1.5) {0};  % 100 - 1   - 10
+    \end{tikzpicture}
+    \caption{Weight re-use}\label{fig:bugs-swarmx}
+  \end{subfigure}
+  \begin{subfigure}[t]{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}[thick]
+      \draw (0,0)      circle (1) node[above,shift={(-0.3,1)}] {$d=1$};
+      \draw (1.2,0)    circle (1) node[above,shift={(0.3,1)}]  {$d=2$};
+      \draw (.6,-1.04) circle (1) node[below,shift={(0,-1)}]   {$d=3$};
+
+      \node at (.6,-.4)  {33}; % 1 ^ 2 ^ 3
+      \node at (0,-.7)   {0};  % 1 ^ 3 - 2
+      \node at (.6,.3)   {1};  % 1 ^ 2 - 3
+      \node at (1.2,-.7) {0};  % 2 ^ 3 - 1
+      \node at (-.2,.2)  {5};  % 1 - 2 - 3
+      \node at (1.4,.2)  {1};  % 2 - 1 - 3
+      \node at (.6,-1.5) {0};  % 3 - 1 - 2
+    \end{tikzpicture}
+    \caption{Weight changes}\label{fig:bugs-swarmd}
+  \end{subfigure}
+
+  \caption{Overlap of bugs found by each algorithm.}\label{fig:bugs}
+\end{figure}
+
 \subsection{Experimental Results}
 \label{sec:algorithms-eval-results}
+
+We conducted our experiments in an Ubuntu 12.04 virtual machine, using a
+modified version of Maple based on the last commit from 2012\footnote{The same
+environment as~\cite{thomson2016}, available
+at \url{https://github.com/mc-imperial/sctbench}}.  Other than the
+implementation of swarm scheduling, available in \appref{swarm}, the code is
+unchanged.
+
+The Venn diagrams in \figref{bugs} show the relative bug-finding ability of each
+algorithm.  \figref{bugs-base} summarises the bugs found by controlled random
+scheduling, PCT $d=3$, and swarm scheduling $(d,x)=(0,1)$ (which we now call
+``Swarm'' for brevity); showing that swarm scheduling performs comparably with
+PCT.  Figures~\ref{fig:bugs-swarmx} and~\ref{fig:bugs-swarmd} show the effect of
+re-using the swarm weights and of introducing weight change points, we omit
+$x=1000$ because it performed worse than the other cases; we see that these
+variations have little effect.
+
+\begin{figure}[t]
+  \centering
+  \input{gen/bugs.tex}
+  \caption{The number of bugs found by each algorithm across all benchmarks.  This plot is intended to be viewed with colour.}\label{fig:totalbugs}
+\end{figure}
+
+As the techniques we have considered are nondeterministic, it is interesting to
+consider their average-case behaviour.  \figref{totalbugs} shows the aggregate
+behaviour of the algorithms across all benchmarks as the number of executions
+increases; we can see that Swarm initially outperforms PCT, but PCT catches up
+as the number of executions increases.  This observation is consistent
+with~\cite{thomson2016}.  The plots in \figref{freqbugs} show the average number
+of executions to find a bug across all benchmarks; as expected, we can see that
+the average number of executions to find \emph{any} bug rapidly converges,
+however the average number of schedules to find a \emph{unique} bug does not.
+This is due to two factors: (1) the number of bugs is finite; and (2) some bugs
+may be out of reach of a particular algorithm.  \tblref{freqs} shows the final
+values.  We can see that PCT and Swarm are almost identical, and both
+significantly improve upon random scheduling when it comes to
+finding \emph{unique} bugs.
+
+\begin{figure}[t]
+  \centering
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \resizebox{\textwidth}{!}{\input{gen/freqs-total.tex}}
+    \caption{All buggy executions.}\label{fig:freqbugs-total}
+  \end{subfigure}
+  \begin{subfigure}{0.49\textwidth}
+    \centering
+    \resizebox{\textwidth}{!}{\input{gen/freqs-unique.tex}}
+    \caption{Unique buggy executions.}\label{fig:freqbugs-unique}
+  \end{subfigure}
+  \caption{The average number of executions to expose a bug across all benchmarks.  These plots are intended to be viewed with colour.}\label{fig:freqbugs}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \begin{tabular}{lrr} \toprule
+    Algorithm & Any Bug & A Unique Bug \\ \midrule
+    Rand. & 0.071 & 312.5 \\
+    PCT   & 0.077 & 270.3 \\
+    Swarm & 0.078 & 270.3 \\ \bottomrule
+  \end{tabular}
+  \caption{Average number of executions needed to find a bug.}\label{tbl:freqs}
+\end{figure}
+
+Although it is disappointing that Swarm does not improve upon PCT, that it is
+able to perform comparably without needing the programmer to first determine the
+maximum length of an execution (as is unavoidable in PCT) is encouraging.
