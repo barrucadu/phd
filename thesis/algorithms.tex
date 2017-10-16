@@ -155,7 +155,7 @@ sets of benchmarks, so there is quite some variety in the programs:
 \item Buggy versions of aget (a file downloader) and pbzip2 (a compression
 program).
 \item A set of test cases for a work-stealing queue.
-\item Examples used to test the ESBMB tool\cite{cordeiro2011}, an SMT-based
+\item Examples used to test the ESBMC tool\cite{cordeiro2011}, an SMT-based
 model checker for concurrency.
 \item Examples used to test the INSPECT tool\cite{yang2008}, a concurrency
 testing tool for instrumented C programs.
@@ -229,20 +229,20 @@ assumption that this would increase interleaving, and counting steps from when
 the first thread launches the second.  We run each benchmark 10,000 times using
 its estimated $n$ and $k$ values.
 
-\paragraph{Swarm testing phase}
-Swarm testing requires parameters $w_{min}$, the minimum weight; $w_{max}$, the
-maximum weight; $k$, the maximum number of steps in the execution; $d$, the
+\paragraph{Swarm scheduling phase}
+Swarm scheduling requires parameters $w_{min}$, the minimum weight; $w_{max}$,
+the maximum weight; $k$, the maximum number of steps in the execution; $d$, the
 number of weight change points to include; and $x$, the number of executions to
 use the same weights for.  We want to encourage executions with very unequal
 thread weights, and so pick $w_{min}=1$ and $w_{max}=50$, giving significantly
 more weights than most benchmarks have threads.  We use the same $k$ values as
-in PCT.\@ We then performed multiple runs of swarm testing, using different $d$
+in PCT.\@ We then perform multiple runs of swarm scheduling, using different $d$
 and $x$ values.  For each $(d, x)$ pair, we perform 10,000 executions of each
 benchmark, using its estimated $k$ value.
 
 \paragraph{Note on randomness}
 For a given benchmark, we can use the ``average number of schedules needed to
-expose a bug'' (10,000 divided by ``the number of buggy schedules'') to compare
+expose a bug'' (10,000 $\div$ ``the number of buggy schedules'') to compare
 techniques.  The exact value is dependent on the initial seed, but we would
 expect it to become stable as the number of executions is
 increased\cite{thomson2016}.
