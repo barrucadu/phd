@@ -1,7 +1,7 @@
 Testing concurrent programs cannot be done with conventional techniques.  The
 nondeterminism of scheduling means that a test may produce different results in
-different executions.  In this chapter we give an introduction
-to \emph{systematic} concurrency testing, which addresses this problem.  We
+different executions.  In this chapter we give an introduction to concurrency
+testing through \emph{controlled scheduling}, which addresses this problem.  We
 first give a high-level overview~\sref{sct-fundamentals}, then have a more
 detailed discussion of specific implementation
 approaches~(\S\ref{sec:sct-complete}~and~\S\ref{sec:sct-incomplete}).
@@ -9,28 +9,33 @@ approaches~(\S\ref{sec:sct-complete}~and~\S\ref{sec:sct-incomplete}).
 \section{Controlling Program Execution}
 \label{sec:sct-fundamentals}
 
-Systematic concurrency testing
-(SCT)\cite{coons2013,musuvathi2008,musuvathi2007,flanagan2005} is a family of
-techniques for testing concurrent programs.  SCT works by repeatedly executing
-the program with different schedules to try to find bugs.  It is
-\emph{systematic} because this exploration is generally not random, but follows
-some deterministic search pattern.
+With a controlled scheduling technique, execution of a program is serialised and
+the controlling scheduler drives the program.  Program schedules are either
+explored \emph{systematically}\cite{coons2013,musuvathi2008,musuvathi2007,flanagan2005}
+(often called ``systematic concurrency testing'' or ``SCT'') or
+randomly\cite{thomson2016,burckhardt2010}.  Non-controlled methods do not
+provide their own scheduler, and instead use delays to affect
+execution\cite{yu2012}.  Controlled scheduling techniques are attractive because
+of their ability to record and replay program executions.
 
-SCT can be implemented by overriding the concurrency primitives of the
-programming language, forcing all threads to run on one controlling thread, and
-making scheduling decisions between atomic blocks.  An atomic block consists of
-a number of thread-local operations followed by a single access to shared state.
-This is preferable to exploring all possible points for making scheduling
-decisions, as the order of interleaving of thread-local operations cannot affect
-the result.
+Systematic techniques may be complete, whereas randomised techniques are
+typically not.  This means that random techniques cannot ``complete'', even for
+small programs, and are usually run for some predetermined number of program
+executions.
 
-Typically the assumption is made that all executions are \emph{terminating}: all
-possible sequences of scheduling decisions will lead to a termination by
-deadlock or otherwise.  Another common assumption is that there is a
-\emph{finite} number of possible schedules: this forbids finite but arbitrarily
-long executions, as can be created with constructs such as spinlocks.
+When exploring schedules, we only care about the relative ordering of visible
+actions, those actions of a thread which may affect another.  Controlled
+scheduling techniques can be implemented by overriding the concurrency
+primitives of the programming language\cite{walker2015}; by instrumenting the
+source program\cite{claessen2009}; or by instrumenting the compiled
+program\cite{yu2012,musuvathi2006}.
 
-Systematic testing terminates when there are no further distinct schedules.
+Typically we assume that all executions are \emph{terminating}: all possible
+sequences of scheduling decisions will lead to a termination by deadlock or
+otherwise.  Another common assumption is that the number of possible schedules
+is \emph{finite}: forbidding finite but arbitrarily long executions, as can be
+created with constructs such as spinlocks.  We can sacrifice completeness to do
+away with these assumptions, as we shall see in \secref{sct-incomplete}.
 
 \section{Sacrificing Time for Certainty}
 \label{sec:sct-complete}
