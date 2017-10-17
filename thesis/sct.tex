@@ -3,8 +3,8 @@ nondeterminism of scheduling means that a test may produce different results in
 different executions.  In this chapter we give an introduction to concurrency
 testing through \emph{controlled scheduling}, which addresses this problem.  We
 first give a high-level overview~\sref{sct-fundamentals}, then have a more
-detailed discussion of specific implementation
-approaches~(\S\ref{sec:sct-complete}~and~\S\ref{sec:sct-incomplete}).
+detailed discussion of specific implementation approaches, both
+complete~\sref{sct-dpor} and incomplete~\sref{sct-bounding}.
 
 \section{Controlling Program Execution}
 \label{sec:sct-fundamentals}
@@ -35,10 +35,10 @@ sequences of scheduling decisions will lead to a termination by deadlock or
 otherwise.  Another common assumption is that the number of possible schedules
 is \emph{finite}: forbidding finite but arbitrarily long executions, as can be
 created with constructs such as spinlocks.  We can sacrifice completeness to do
-away with these assumptions, as we shall see in \secref{sct-incomplete}.
+away with these assumptions, as we shall see in \secref{sct-bounding}.
 
-\section{Sacrificing Time for Certainty}
-\label{sec:sct-complete}
+\section{Dynamic Partial-order Reduction}
+\label{sec:sct-dpor}
 
 Dynamic partial-order reduction (DPOR)\cite{flanagan2005,godefroid1996} is a
 \emph{complete} approach to SCT\@.  It is based on the insight that, when
@@ -91,9 +91,9 @@ The dependency relation for Haskell is rather more complex than this, as there
 are more actions than just reads and writes.  However it can be simplified to a
 few general conditions over different sorts of reads and writes, with some
 remaining special cases for software transactional memory and exceptions.
-Unfortunately, a Haskell program terminates when the main thread terminates,
-which complicates matters further: a dependency relation isn't quite enough to
-express this behaviour.  The dependency relation used in \dejafu{} is given
+Additionally, a Haskell program terminates when the main thread terminates,
+which complicates matters further: a dependency relation isn't enough to express
+this behaviour.  The dependency relation used in \dejafu{} is given
 in~\sref{dejafu-testing}.
 
 \subsection{Total and Partial Orders}
@@ -126,10 +126,10 @@ are weaker than sequential consistency\cite{lamport1979} by using optimisations
 such as speculative execution, buffering, and caching.  Unlike sequential
 consistency, where a concurrent program behaves as a simple interleaving of
 atomic thread actions, relaxed memory models can be more complex, making program
-analysis and debugging difficult. Under Total Store Order (TSO), which x86
-processors use\cite{owens2009}, reads and writes in the same thread to
-different memory locations may be re-ordered.  Under Partial Store Order (PSO),
-a relaxation of TSO\cite{sparc}, two writes in the same thread, but to different
+analysis and debugging difficult.  Under Total Store Order (TSO), which x86
+processors use\cite{owens2009}, reads and writes in the same thread to different
+memory locations may be re-ordered.  Under Partial Store Order (PSO), a
+relaxation of TSO\cite{sparc}, two writes in the same thread, but to different
 memory locations, may also be reordered.
 
 A simple buffering technique can be used model the nondeterminism of
@@ -198,51 +198,56 @@ exceptions in Haskell.
 Like DPOR, MCR can be extended to support the relaxed memory models TSO and
 PSO\cite{huang2016}.
 
-\section{Sacrificing Certainty for Time}
-\label{sec:sct-incomplete}
+\section{Schedule Bounding}
+\label{sec:sct-bounding}
 
 Schedule bounding\cite{emmi2011,musuvathi2008,musuvathi2007} is an
-\emph{incomplete} approach to SCT\@.  A \emph{bound function} is defined which
-associates a schedule with some integer value.  This function is monotonically
-increasing over schedule prefixes: if a schedule has an associated value of $n$,
-all its prefixes will have an associated value $\leq n$.  This value $n$ is
-limited by some pre-determined bound.
+\emph{incomplete} approach to concurrency testing.  A \emph{bound function} is
+defined which associates a sequence of scheduling decisions with some value of a
+type that has a total order, such as the integers.  This function is
+monotonically increasing: if some sequence has an associated value of $n$, all
+its prefixes will have an associated value of at most $n$.  This value $n$ is
+limited by some pre-determined bound.  Testing proceeds by executing all
+schedules within the bound.
 
-A common schedule bounding approach is \emph{pre-emption
-  bounding}\cite{musuvathi2007}, which limits the number of pre-emptive context
-switches.  Empirical evidence\cite{thomson2014} shows that small bounds, and
-small numbers of threads, are effective for finding bugs in many real-world
-programs.
+A common schedule bounding approach is pre-emption bounding\cite{musuvathi2007},
+which limits the number of pre-emptive context switches.  Empirical
+evidence\cite{thomson2014} shows that small bounds, and small numbers of
+threads, are effective for finding bugs in many real-world programs.  Another
+common approach is fair bounding\cite{musuvathi2008}, which bounds the
+difference between how many times any two threads may explicitly yield.  This
+prevents infinitely long executions when using constructs such as spinlocks,
+which loop until some condition is true, yielding on every iteration.
 
-Another common approach is \emph{fair bounding}\cite{musuvathi2008}, which
-prevents infinitely long executions when constructs such as spinlocks are used.
-It bounds the difference between how many times any two threads may explicitly
-yield.
+Bound functions can be combined, where a sequence of scheduling decisions is
+outside the combined bound if it is outside either of the constituent bounds.
 
 Strictly speaking, schedule bounding refers to trying only those schedules with
 a bound value equal to some fixed parameter.  A variant of this is
 \emph{iterative} bounding, where this parameter is increased from zero up to
-some limit.  Another variant is where an inequality, rather than an equality, is
-used.  This explores the same schedules as iterative bounding, but doesn't
-impose the same ordering properties over schedules tried.  In practice,
-``schedule bounding'' typically refers to this third type, unless specified
-otherwise.
+some limit\cite{musuvathi2007}.  Another variant is where an inequality, rather
+than an equality, is used.  This explores the same schedules as iterative
+bounding, but doesn't impose the same ordering properties over schedules tried.
+In practice, ``schedule bounding'' typically refers to this third type, unless
+specified otherwise.
 
-\subsection{Integration with Dynamic Partial-order Reduction}
+\subsection{Integration with DPOR}
 
-The na\"{\i}ve way to integrate DPOR with schedule bounding would be
-to first use partial-order techniques to prune the search space, and
-then to additionally filter things out with schedule bounding.
+Schedule bounding can be combined with DPOR to produce a technique which is
+complete within its bound.  The na\"{\i}ve way to integrate these techniques
+would be to first use partial-order techniques to prune the search space, and
+then to additionally filter things out with schedule bounding.  However, this is
+unsound.  This approach misses parts of the search space reachable within the
+bound.  This is because the introduction of the bound introduces new
+dependencies between actions, which cannot be determined \emph{a
+  priori}\cite{coons2013}.
 
-However, this is unsound.  This approach misses parts of the search space
-reachable within the bound.  This is because the introduction of the bound
-introduces new dependencies between actions, which cannot be determined \emph{a
-  priori}.  The solution is to add \emph{conservative} backtracking points to
-account for the bound in addition to any normal backtracking points that are
-identified.  Where to insert these depends on the bound function.
+The solution is to add \emph{conservative} backtracking points to account for
+the bound in addition to any normal backtracking points that are identified.
+Where to insert these depends on the bound function.
 
-In the case of pre-emption bounding, it suffices to try all possibilities at the
-last context switch before a normal backtracking point.  This is because context
-switches influence the number of pre-emptions needed to reach a given program
-state, depending on which thread gets scheduled.  In practice this tends not to
-greatly increase the search space.
+In the case of pre-emption bounding, it is sufficient to try all possibilities
+at the last context switch before a normal backtracking point\cite{coons2013}.
+This is because context switches influence the number of pre-emptions needed to
+reach a given program state, depending on which thread gets scheduled.  In
+practice this tends not to greatly increase the search space.
