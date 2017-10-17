@@ -2,7 +2,7 @@ TEXFILES := $(shell find . -type f -name '*.tex')
 BIBFILES := $(shell find . -type f -name '*.bib')
 GENFILES := $(shell find . -type f -name '*.gnuplot' | sed 's:scripts:gen:' | sed 's:gnuplot:tex:')
 
-.PHONY: all clean lint
+.PHONY: all clean lint wc
 
 all: main.pdf
 
@@ -14,6 +14,9 @@ lint:
 	vale *.tex
 	@echo
 	proselint *.tex
+
+wc:
+	texcount -inc main.tex | grep "Words in text" | tail -n1
 
 main.pdf: $(TEXFILES) $(BIBFILES) $(GENFILES)
 	latexmk -xelatex -pdf main.tex
