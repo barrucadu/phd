@@ -2,13 +2,18 @@ TEXFILES := $(shell find . -type f -name '*.tex')
 BIBFILES := $(shell find . -type f -name '*.bib')
 GENFILES := $(shell find . -type f -name '*.gnuplot' | sed 's:scripts:gen:' | sed 's:gnuplot:tex:')
 
-.PHONY: all clean
+.PHONY: all clean lint
 
 all: main.pdf
 
 clean:
 	-@rm *.{aux,bbl,blg,fdb_latexmk,fls,log,out,pdf,toc}
 	-@rm -r gen
+
+lint:
+	vale *.tex
+	@echo
+	proselint *.tex
 
 main.pdf: $(TEXFILES) $(BIBFILES) $(GENFILES)
 	latexmk -xelatex -pdf main.tex
