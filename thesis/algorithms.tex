@@ -19,18 +19,18 @@ section we present two approaches to randomised scheduling.
 
 \paragraph{Controlled random scheduling}
 A controlled random scheduler uses a random-number generator to choose threads
-to execute. At each scheduling point, a runnable thread is randomly chosen using
-a uniform distribution. This thread is then executed until the next scheduling
-point. Like any controlled scheduling technique, the executed schedule can be
-recorded and replayed. Additionally, a random scheduler can be used on programs
-that exhibit nondeterminism beyond scheduler nondeterminism, although in this
-case schedule replay will be unreliable\cite{thomson2016}.
+to execute.  At each scheduling point, a runnable thread is randomly chosen
+using a uniform distribution.  This thread is then executed until the next
+scheduling point.  Like any controlled scheduling technique, the executed
+schedule can be recorded and replayed.  Additionally, a random scheduler can be
+used on programs that exhibit nondeterminism beyond scheduler nondeterminism,
+although in this case schedule replay will be unreliable\cite{thomson2016}.
 
 \paragraph{Probabilistic concurrency testing}
 The PCT algorithm\cite{burckhardt2010} uses a priority-based scheduler where the
-highest priority runnable thread is chosen at each scheduling point. A bounded
+highest priority runnable thread is chosen at each scheduling point.  A bounded
 number of \emph{priority change points} are inserted in the execution which
-change the priority of the currently executing thread to a low value. These
+change the priority of the currently executing thread to a low value.  These
 change points are distributed uniformly over the length of the execution.
 
 The algorithm is described as follows\cite{burckhardt2010}: given a program with
@@ -38,34 +38,34 @@ at most $n$ threads and at most $k$ steps, choose a bound $d$, then:
 
 \begin{enumerate}
 \item Randomly assign each of the $n$ threads a distinct initial priority value
-from $\{d, d + 1, \ldots, d+n\}$. The lower priority values $\{1, \ldots, d−1\}$
-are reserved for change points.
-\item Uniformly pick integers $c_1, \ldots, c_{d−1}$ from $\{1, \ldots,
-k\}$. These will be the priority change points.
-\item Schedule threads strictly according to their priorities: never
-schedule a thread if a higher priority thread is runnable. After executing the
-$c_i$-th step $(1 \leq i < d)$, change the priority of the thread that executed
-the step to $i$.
+  from $\{d, d + 1, \ldots, d+n\}$.  The lower priority values
+  $\{1, \ldots, d−1\}$ are reserved for change points.
+\item Uniformly pick integers $c_1, \ldots, c_{d−1}$ from $\{1, \ldots, k\}$.
+  These will be the priority change points.
+\item Schedule threads strictly according to their priorities: never schedule a
+  thread if a higher priority thread is runnable.  After executing the $c_i$-th
+  step $(1 \leq i < d)$, change the priority of the thread that executed the
+  step to $i$.
 \end{enumerate}
 
-PCT also introduces the idea of a ``bug depth''. The bug depth is defined as the
-minimum set of ordering constraints between actions from different threads that
-are sufficient to trigger the bug\cite{burckhardt2010}. Assuming a bug with
-depth $d$, the probability of the PCT algorithm detecting the bug on a single
-execution is $1/nk^{d−1}$.
+PCT also introduces the idea of a ``bug depth''.  The bug depth is defined as
+the minimum set of ordering constraints between actions from different threads
+that are sufficient to trigger the bug\cite{burckhardt2010}.  Assuming a bug
+with depth $d$, the probability of the PCT algorithm detecting the bug on a
+single execution is $1/nk^{d−1}$.
 
 The intuition behind PCT is that many concurrency bugs typically require
-orderings between only a few actions in order to appear.
+orderings between only a few actions to appear.
 
 \section{Weighted Random Scheduling and Swarm Testing}
 \label{sec:algorithms-swarm}
 
 We now present \emph{swarm scheduling}, our new algorithm for finding
-concurrency bugs through controlled scheduling.  The algorithm is inspired
-by \emph{swarm testing}\cite{groce2012}, an approach to finding bugs using fuzz
+concurrency bugs through controlled scheduling.  The algorithm is inspired by
+\emph{swarm testing}\cite{groce2012}, an approach to finding bugs using fuzz
 testing more effectively.  Swarm testing makes the observation that, in a fuzz
 tester with many available choices, the uniform selection of these is unlikely
-to discover bugs which require a very unfair distribution to find:
+to discover bugs which require an unfair distribution to find:
 
 \begin{bquote}{Groce et al., 2012\nocite{groce2012}}
   As a simple example, consider testing an implementation of a stack ADT that
@@ -83,14 +83,13 @@ generate \emph{multiple} distributions to encourage greater variety.
 
 We transfer this idea to the context of scheduling algorithms by observing that
 controlled random scheduling is much like the ``single optimal distribution''
-for generating fuzz tests.  There are a number of options, and we simply pick
-one according to a single pre-determined distribution.  So instead, we assign
-a \emph{uniformly-chosen weight} to each new thread as it is created, and
-schedule threads with a weighted random selection.  This approach is similar to
-PCT, but less deterministic: PCT will always schedule the highest-weighted
-runnable thread, whereas our approach is most likely to, but may not.  We can
-also introduce weight change points, as in PCT, where we simply assign the
-running thread a new weight uniformly.
+for generating fuzz tests.  We pick threads according to a single pre-determined
+distribution.  So instead, we assign a \emph{uniformly chosen weight} to each
+new thread as it is created, and schedule threads with a weighted random
+selection.  This approach is similar to PCT, but less deterministic: PCT will
+always schedule the highest-weighted runnable thread, whereas our approach is
+most likely to, but may not.  We can also introduce weight change points, as in
+PCT, where we simply assign the running thread a new weight uniformly.
 
 With weight change points included, the algorithm is as follows: given a program
 with at most $k$ steps, choose a range of weights $[w_{min}, w_{max}]$ and
@@ -138,10 +137,9 @@ directly handle yielding threads: if the highest-priority runnable thread is in
 a busy-wait loop, it may yield until some condition holds.  Immediately
 scheduling the thread again after it yields would lead to a nonterminating
 execution.  The original PCT implementation uses heuristics to determine if a
-thread is not making progress, and to lower its
-priority\cite{burckhardt2010}. In the implementation we use, the priority of the
-current thread is changed to the lowest possible priority if it
-yields\cite{thomson2016}.
+thread is not making progress, and to lower its priority\cite{burckhardt2010}.
+In the implementation we use, the priority of the current thread is changed to
+the lowest possible priority if it yields\cite{thomson2016}.
 
 \subsection{Benchmark Collection}
 \label{sec:algorithms-eval-sctbench}
@@ -149,7 +147,7 @@ yields\cite{thomson2016}.
 SCTBench\cite{thomson2016,thomson2014} is a collection of pthread programs
 amenable to systematic concurrency testing.  All the programs are deterministic,
 other than scheduler nondeterminism.  SCTBench is assembled from several other
-sets of benchmarks, so there is quite some variety in the programs:
+sets of benchmarks, so there is some variety in the programs:
 
 \begin{itemize}
 \item Buggy versions of aget (a file downloader) and pbzip2 (a compression
