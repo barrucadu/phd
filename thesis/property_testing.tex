@@ -1,8 +1,204 @@
-A common approach to testing in Haskell is to give properties about the code.
-Property-testing tools are used to generate input values, and check that these
-properties hold.  The popularity of property-testing stems from the difficulty
-of writing good tests.  Much better to let something else, such as a tool, worry
-about which cases to test.  In this chapter we give an overview of using
-property-testing tools.
+A common approach to testing in Haskell is to give functional
+properties about the code.  Property testing tools are used to
+generate input values, and check that these properties hold, or
+display a counterexample if they do not.  The popularity of property
+testing stems from the difficulty of writing good tests.  In this
+chapter we give an overview of using property testing tools.  We first
+give a general introduction to specifying and using properties as
+tests~\sref{property_testing-intro}, then discuss specific
+tools~\sref{property_testing-tools}.
 
-Readers already familiar with property-testing may wish to skip this chapter.
+Readers already familiar with property testing may wish to skip this
+chapter.
+
+\section{Properties as Tests}
+\label{sec:property_testing-intro}
+
+Property-based testing\cite{claessen2000}, sometimes called \emph{parameterised
+  unit testing}, is an approach to testing where the programmer gives general
+laws (or properties) which should hold for all input values.  This is unlike
+typical unit testing, which can be thought of as checking specific pairs of
+input--output values.  For example, a sort function should preserve length:
+
+\begin{verbatim}
+prop_sort_len xs = length xs == length (sort xs)
+\end{verbatim}
+
+Often we do not want to check a property for arbitrary input values.
+Perhaps we know something about how the functions we are testing are
+expected to be used, or we are only interested in how they behave in a
+certain case.  For this, we can use implication:
+
+\begin{verbatim}
+prop_ord_insert x xs = ordered xs ==> ordered (insert x xs)
+\end{verbatim}
+
+Implication is typically provided as part of property DSL of a tool,
+rather than being a normal boolean function.  This allows the tool to
+use the precondition as part of its input generation strategy.
+
+While implication is a useful technique, it can skew the input distribution.
+All empty lists and lists of length one satisfy \verb|ordered xs|, but only 50\%
+of all lists of length two do.  An alternative approach is to use a custom value
+generator.  For example, suppose we have a suitable function for producing
+ordered lists, we could restate the implication property as:
+
+\begin{verbatim}
+prop_ord_insert x = forAll orderedList (\xs -> ordered (insert x xs))
+\end{verbatim}
+
+By only generating input values which satisfy the precondition, we can avoid
+skewing the distribution, and improve our confidence that the property does
+hold.
+
+In the absence of a programmer-supplied generator function, input values are
+generated in a type-directed process.  There is a typeclass, typically called
+\verb|Arbitrary| or \verb|Enumerable| or \verb|Listable| or something, which has
+functions to generate values.  This typeclass will typically have instances for
+most common types, but if a programmer wishes to have input values of custom
+types, they will need to supply a suitable instance.
+
+\section{Tools}
+\label{sec:property_testing-tools}
+
+Property-based testing tools mainly differ along two axes: the
+expressiveness of the property DSL, and the strategy for generating
+input values. \tblref{proptools} summarises the differences between
+several tools for Haskell.
+
+\begingroup
+\newcommand{\Y}{\CIRCLE}
+\newcommand{\N}{\Circle}
+\newcommand{\YN}{\LEFTcircle}
+\newcommand{\Q}{\N$^p$}
+\newcommand{\VBS}{\rotatebox{90}{\scriptsize BSD3}}
+\newcommand{\VGP}{\rotatebox{90}{\scriptsize GPLv3}}
+
+\begin{figure}[t]
+\centering
+\begin{tabularx}{\textwidth}{lXXXXXXXXXX}
+&\rotatebox{90}{QuickCheck\hphantom{a}}
+&\rotatebox{90}{SmartCheck}
+&\rotatebox{90}{SmallCheck}
+&\rotatebox{90}{Lazy SmallCheck}
+&\rotatebox{90}{LeanCheck}
+&\rotatebox{90}{Feat}
+&\rotatebox{90}{Neat}
+&\rotatebox{90}{GenCheck}
+&\rotatebox{90}{Irulan}
+&\rotatebox{90}{Reach}
+\\ \toprule
+\textbf{Input value generation}          &&&&&&&&&&\\
+~~random                              &\Y&\Y&\N&\N&\N&\Y&\N&\Y&\Y&\N\\
+~~enumerative                         &\N&\N&\Y&\Y&\Y&\Y&\Y&\Y&\Y&\N\\
+~~mixed random \& enumerative         &\N&\N&\N&\N&\N&\Y&\N&\Y&\Y&\N\\ \midrule
+\textbf{Property DSL}          &&&&&&&&&&\\
+~~existential                 &\N&\N&\Y&\Y&\Y&\Q&\Q&\Q&\N&\N\\
+~~higher order                &\Y&\Y&\Y&\Y&\Y&\Q&\Q&\Q&\N&\N\\ \midrule
+\textbf{Output}          &&&&&&&&&&\\
+~~generalized counterexamples            &\N&\Y&\N&\YN&\N&\N&\N&\N&\N&\N\\
+\bottomrule
+\multicolumn{11}{l}{
+\footnotesize
+Legend:\hspace{1em}
+\Y{} Yes/Good.\hspace{1em}
+\N{} No/Poor.\hspace{1em}
+\YN{} Partial/Median.\hspace{1em}
+$^p$ Potential support} \\
+\end{tabularx}
+\caption{Summary of differences between property-based testing tools for Haskell.}\label{tbl:proptools}
+\end{figure}
+
+\paragraph{Input value generation}
+Inputs can either be generated randomly or enumerated.  Randomisation
+is a simple technique which tends to work well in practice,
+QuickCheck\cite{claessen2000} is an example of a randomised property
+testing tool.  Alternatively, we may assume that there is some
+enumeration likely to expose useful counterexamples.
+SmallCheck\cite{runciman2008} enumerates values in size order, on the
+assumption that most bugs are exhibited by simple counterexamples.  As
+simple counterexamples are more useful to the programmer than large
+ones, random approaches must have an additional \emph{shrinking} step,
+to try and remove unnecessary complexity from counterexamples, which
+enumerative approaches may not need.
+
+\paragraph{Property DSL}
+A more expressive property language complicates implementation, but
+allows the programmer to say more about their tests.  Two important
+types of property are \emph{existential} properties and
+\emph{higher-order} properties.
+
+Existential properties allow the programmer to assert that some input
+exists which the property holds for.  Existential properties are
+difficult to implement reliably in a randomised tool, such as
+QuickCheck, because the nondeterminism means that the property may
+sometimes pass and sometimes fail.  Existential properties are more
+commonly supported by enumerative tools.  This is an example of an
+existential property:
+
+\begin{verbatim}
+prop_gt_5 = exists (\x -> x > 5)
+\end{verbatim}
+
+Higher-order properties are properties where some of the inputs are,
+themselves, functions.  To test such a property requires the tool to
+be able to generate functions.  Higher-order properties are invaluable
+in the testing of higher-order functions.  This is an example of a
+higher-order property:
+
+\begin{verbatim}
+prop_map_fuse xs f g = map g (map f xs) == map (g . f) xs
+\end{verbatim}
+
+\paragraph{Output}
+Despite not affecting the expressiveness of the tool, presenting
+output clearly is essential.  This is why
+QuickCheck\cite{claessen2000} shrinks counterexamples to find a local
+minimum.  However, shrinking and enumeration are not the only ways to
+produce small counterexamples.  Both SmartCheck\cite{pike2014} and
+Lazy SmallCheck\cite{runciman2008} can generalise counter\-examples.
+Generalising counterexamples directly can be more efficient than a
+QuickCheck-style shrinking process\cite{pike2014}.  This is an example
+of a generalised counterexample:
+
+\begin{verbatim}
+> check $ \xs -> nub xs == (xs::[Int])
+*** Failed! Falsifiable (after 3 tests):
+[0,0]
+
+Generalization:
+x:x:_
+\end{verbatim}
+
+\noindent where the \verb|nub| function removes duplicates from a
+list.
+
+\paragraph{Beyond Haskell}
+While this is a thesis using Haskell, the interest in property-based testing is
+wider than that.
+
+\begin{itemize}
+\item QuviQ provide a commercial version of QuickCheck for
+  Erlang\cite{arts2006}.
+\item The popular JUnit library for Java provides built-in support for parameterised
+  tests\footnote{\url{https://github.com/junit-team/junit4/wiki/Parameterized-tests}},
+  whereas the
+  junit-quickcheck\footnote{\url{https://github.com/pholser/junit-quickcheck}}
+  library provides a more traditional property testing experience.
+\item The Go standard library provides a
+  testing/quick\footnote{\url{https://golang.org/pkg/testing/quick/}} module.
+\item The
+  Hypothesis\footnote{\url{https://github.com/HypothesisWorks/hypothesis-python}}
+  tool for Python implements property-based testing, but cannot do automated
+  type-directed input value generation due to Python's dynamic nature.
+\item NUnit, the common .NET unit testing library, allows tests to be
+  parameterised with random numeric
+  values\footnote{\url{https://github.com/nunit/docs/wiki/Random-Attribute}},
+  and with combinations of values of arbitrary
+  types\footnote{\url{https://github.com/nunit/docs/wiki/Values-Attribute}}.
+\end{itemize}
+
+Although QuickCheck was arguably the first tool to popularise this style of
+testing, and did so in Haskell, it is increasingly gaining recognition by
+programmers of other languages as a good way to overcome the pitfalls and
+difficulties of traditional unit testing techniques.
