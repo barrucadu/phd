@@ -15,10 +15,31 @@ This chapter is derived from our previous work \cite{walker2015} and
 
 \todo{Note: discussion of random scheduling is in chapter 6 (swarm) and chapter 9 (eval \& conclusions), so just have brief forward refs in this chapter}
 
-\section{What We Cannot Test}
+\section{Scope}
 \label{sec:dejafu-scope}
 
-\blindtext
+We aim to support most of the functionality of GHC’s concurrency API, as made
+available through the Control.Concurrent and Control.Exception module
+hierarchies, which does not unavoidably require support from the runtime system.
+
+In particular, we do not support:
+
+\begin{itemize}
+\item Blocking a thread until a file descriptor becomes available, as this
+  introduces an additional source of nondeterminism.
+\item Throwing an exception to a thread if it becomes deadlocked, as we cannot
+  reliably detect deadlock involving only a subset of threads without support
+  from the garbage collector.
+\item Querying which capability (OS thread) a Haskell thread is running on, as
+  this introduces an additional source of nondeterminism.
+\end{itemize}
+
+We also do not yet support \emph{bound threads}: a Haskell thread which will
+always run on the same, unique, OS thread.  Bound threads are essential for
+using the FFI to call libraries which use thread-local state, to ensure the
+Haskell thread always sees its state and never the state of another thread.  We
+have a prototype implementation, which is not yet present in a released version
+of \dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu/issues/126}}.
 
 \section{Abstracting over I/O}
 \label{sec:dejafu-monadconc}
