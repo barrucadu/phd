@@ -118,7 +118,8 @@ continuation, which is then converted into a \verb|ConcT| value.
 A concurrent computation is just a large value, where we can inspect each
 ``step'' of the computation by looking at the data constructor used.
 Constructors mostly correspond to operations in the \verb|MonadConc| class
-(there are also a few extra).
+(there are also a few extra).  We call these constructors \emph{primitive
+  actions}.  A full listing is available in \appref{primops}.
 
 We make a few departures from the semantics of the \verb|IO| monad where
 necessary:

@@ -1,0 +1,187 @@
+\section{MonadConc}
+\label{app:primops-conc}
+
+\newcommand{\defineprim}[3]{\item[#1 \textit{#2}] \hfill (#3)\\}
+
+There are 33 primitive actions used to construct the testing instance of
+\verb|MonadConc|\footnote{\url{https://github.com/barrucadu/dejafu/blob/master/dejafu/Test/DejaFu/Conc/Internal/Common.hs}, accurate at commit \texttt{c6af27f} (dejafu-0.9.0.0).}.
+These primitive actions contain a continuation, allowing individual actions to
+be composed into larger execution sequences.  Each thread of execution consists
+of such a sequence, terminated by the \verb|AStop| primitive, which has no
+continuation and signals the successful termination of the thread.
+
+\subsection{Threading}
+
+\begin{description}
+\defineprim{AFork}{name (umask \arr action) (thread\_id \arr action)}{unsynchronised}
+  Create a new thread from the first action, and continue executing the
+  current thread with the second.
+
+\defineprim{AMyTId}{(thread\_id -> action)}{unsynchronised}
+  Get the ID of the current thread.
+
+\defineprim{AYield}{action}{unsynchronised}
+  Execute the action, but also signal to the scheduler that it may be worth
+  running another thread next.
+
+\defineprim{ADelay}{delay action}{unsynchronised}
+  The same as \texttt{AYield}, but include the delay time in the execution
+  trace.
+
+\defineprim{AStop}{effect}{unsynchronised}
+  Run the effect and terminate the current thread.
+\end{description}
+
+\subsection{\texttt{CRef}}
+
+\begin{description}
+\defineprim{ANewCRef}{name a (cref a \arr action)}{unsynchronised}
+  Construct a new \verb|CRef| and give it to the continuation.
+
+\defineprim{AReadCRef}{(cref a) (a \arr action)}{unsynchronised}
+  Read the currently visible value of a \verb|CRef|.
+
+\defineprim{AReadCRefCas}{(cref a) (ticket a \arr action)}{unsynchronised}
+  Produce a \verb|Ticket| from the currently visible state of a
+  \verb|CRef|.
+
+\defineprim{AModCRef}{(cref a) (a \arr (a, b)) (b \arr action)}{synchronised}
+  Commit all pending writes and atomically modify the value within a
+  \verb|CRef|.
+
+\defineprim{AModCRefCas}{(cref a) (a \arr (a, b)) (b \arr action)}{partially}
+  Commit all pending writes and atomically modify the value within a
+  \verb|CRef| using a compare-and-swap.
+
+\defineprim{AWriteCRef}{(cref a) a action}{unsynchronised}
+  Update the value of a \verb|CRef|.  The updated value is visible to the
+  current thread immediately.
+
+\defineprim{ACasCRef}{(cref a) (ticket a) a ((succeeded?, ticket a) \arr action)}{partially}
+  Update the value of a \verb|CRef| if it hasn't changed since the ticket
+  was produced.
+
+\defineprim{ACommit}{thread\_id cref\_id}{partially}
+  Make the last write to the given \verb|CRef| by that thread visible to all
+  threads.
+\end{description}
+
+\subsection{\texttt{MVar}}
+
+\begin{description}
+\defineprim{ANewMVar}{name (mvar a \arr action)}{unsynchronised}
+  Construct a new \verb|MVar| and give it to the continuation.
+
+\defineprim{APutMVar}{(mvar a) a action}{synchronised}
+  Block until the \verb|MVar| is empty and put a value into it.
+
+\defineprim{ATryPutMVar}{(mvar a) a (succeeded? \arr action)}{synchronised}
+  Try to put a value into the \verb|MVar| without blocking.
+
+\defineprim{AReadMVar}{(mvar a) (a \arr action)}{synchronised}
+  Block until the \verb|MVar| is full and read its value.
+
+\defineprim{ATryTakeMVar}{(mvar a) (Maybe a \arr action)}{synchronised}
+  Try to read the value from a \verb|MVar| without blocking.
+
+\defineprim{ATakeMVar}{(mvar a) (a \arr action)}{synchronised}
+  Block until the \verb|MVar| is full and take its value.
+
+\defineprim{ATryTakeMVar}{(mvar a) (Maybe a \arr action)}{synchronised}
+  Try to take the value from a \verb|MVar| without blocking.
+\end{description}
+
+\subsection{Exceptions}
+
+\begin{description}
+\defineprim{AThrow}{exception}{unsynchronised}
+  Raises an exception in the current thread.
+
+\defineprim{AThrowTo}{thread\_id exception action}{synchronised}
+  Raises an exception in the other thread, blocking if the other thread has
+  exceptions masked.
+
+\defineprim{ACatching}{(exception \arr (handler a)) (inner a) (a \arr action)}{unsynchronised}
+  Registers a new exception handler for the duration of the inner action.
+
+\defineprim{APopCatching}{action}{unsynchronised}
+  Remove the exception handler from the top of the stack.
+
+\defineprim{AMasking}{masking\_state (unmask \arr inner a) (a \arr action)}{unsynchronised}
+  Executes the inner action under a new masking state, and also gives
+  it a function to reset the masking state.
+
+\defineprim{AResetMask}{set? inner? masking\_state action}{unsynchronised}
+  Sets the masking state.
+\end{description}
+
+\subsection{Capabilities}
+
+\begin{description}
+\defineprim{AGetNumCapabilities}{(num \arr action)}{unsynchronised}
+  Get the number of capabilities (returns 2 if not set).
+
+\defineprim{ASetNumCapabilities}{num action}{unsynchronised}
+  Set the number of capabilities.
+\end{description}
+
+\subsection{Subconcurrency}
+
+\begin{description}
+\defineprim{ASub}{(inner a) (result a \arr action)}{unsynchronised}
+  Execute the inner action, then call the continuation with the result.
+  The continuation is always executed, even if the inner action fails.
+
+\defineprim{AStopSub}{action}{unsynchronised}
+  Signals the end of the \textbf{ASub} inner action.
+\end{description}
+
+\subsection{Miscellaneous}
+
+\begin{description}
+\defineprim{AAtom}{(stm a) (a \arr action)}{synchronised}
+  Atomically execute an STM transaction.
+
+\defineprim{ALift}{(n action)}{unsynchronised}
+  Execute an action in the underlying monad.
+
+\defineprim{AReturn}{action}{unsynchronised}
+  Execute the given action.
+\end{description}
+
+\section{MonadSTM}
+\label{app:primops-stm}
+
+\renewcommand{\defineprim}[2]{\item[#1 \textit{#2}]}
+
+There are 8 primitive actions used to construct the testing instance of
+\verb|MonadSTM|\footnote{\url{https://github.com/barrucadu/dejafu/blob/master/dejafu/Test/DejaFu/STM/Internal.hs},
+  accurate at commit \texttt{c6af27f} (dejafu-0.9.0.0).}.  These primitive
+actions contain a continuation, allowing individual actions to be composed into
+larger execution sequences.  A transaction consists of such a sequence,
+terminated by the \verb|SStop| primitive, which has no continuation and signals
+the successful completion of the transaction.
+
+\begin{description}
+\defineprim{SNew}{name a (tvar a \arr action)}
+  Create a new \verb|TVar| containing the given value.
+
+\defineprim{SRead}{(tvar a) (a \arr action)}
+  Read the current value of a \verb|TVar|.
+
+\defineprim{SWrite}{(tvar a) a action}
+  Update a \verb|TVar|.
+
+\defineprim{SThrow}{exception}
+  Throw an exception, aborting the current execution flow.
+
+\defineprim{SCatch}{(exception \arr (handler a)) (inner a) (a \arr action)}
+  Registers a new exception handler for the duration of the action.
+
+\defineprim{SRetry}{}
+  Abort the current transaction.
+
+\defineprim{SOrElse}{(inner a) (inner a) (a \arr action)}
+  Try executing the first transaction, if it fails, execute the
+  second.
+\end{description}
