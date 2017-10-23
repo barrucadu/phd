@@ -41,10 +41,107 @@ Haskell thread always sees its state and never the state of another thread.  We
 have a prototype implementation, which is not yet present in a released version
 of \dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu/issues/126}}.
 
-\section{Abstracting over I/O}
+\section{Abstracting over \texttt{IO}}
 \label{sec:dejafu-monadconc}
 
-\blindtext
+Recall from \secref{sct-fundamentals} that there are three ways of implementing
+a concurrency testing tool:
+
+\begin{itemize}
+\item Override the concurrency primitives of the programming language.
+\item Instrument the source program.
+\item Instrument the compiled program.
+\end{itemize}
+
+We adopt the first approach in \dejafu{}.  Haskell's typeclass machinery lets us
+specify an interface for concurrency, and to provide different concrete
+implementations.  There is one implementation using the \verb|IO| type and the
+standard functions; there is another using our own type, based on continuations
+which we can inspect.
+
+\begin{figure}[t]
+  \centering
+  \begin{lstlisting}
+class (Monad m, {- other constraints omitted -}) => MonadConc m where
+  type MVar m :: * -> *
+  -- other types omitted
+
+  newEmptyMVar :: m (MVar m a)
+  newEmptyMVar = newEmptyMVarN ""
+
+  newEmptyMVarN :: String -> m (MVar m a)
+  newEmptyMVarN _ = newEmptyMVar
+
+  putMVar  :: MVar m a -> a -> m ()
+  readMVar :: MVar m a -> m a
+  takeMVar :: MVar m a -> m a
+  -- other operations omitted
+  \end{lstlisting}
+  \caption{A fragment of the \texttt{MonadConc} typeclass.}
+  \label{fig:monadconc}
+\end{figure}
+
+We call our typeclass \verb|MonadConc| for monads which can do concurrency,
+\figref{monadconc} shows a fragment.  When defining an instance of this class,
+the programmer must supply concrete types for the abstract types in the
+interface.  They must also supply implementations of, at least, all undefined
+operations.  Some operations have default definitions: for example, there are
+two ways of constructing an empty \verb|MVar|.  One way takes a name, which is
+displayed in debugging information, the other does not.  Each is defined in
+terms of the other, and so the programmer must supply at least one.
+
+\begin{figure}[t]
+  \centering
+  \begin{lstlisting}
+instance Monad n => MonadConc (ConcT r n) where
+  type MVar (ConcT r n) = MVar r
+  -- other types omitted
+
+  newEmptyMVarN n = toConc (ANewMVar n)
+
+  putMVar  var a = toConc (\c -> APutMVar var a (c ()))
+  readMVar var   = toConc (AReadMVar var)
+  takeMVar var   = toConc (ATakeMVar var)
+  -- other operations omitted
+  \end{lstlisting}
+  \caption{The implementation of \figref{monadconc} we use for testing.}
+  \label{fig:mvarops}
+\end{figure}
+
+The type for our testing implementation is called \verb|ConcT r n|, which is a
+monad that has access to \emph{references} of type \verb|r| in a monad of type
+\verb|n|.  \figref{mvarops} shows the implementation of \figref{monadconc} for
+this type.  Each concurrency operation is of the same form: we take the
+arguments and wrap them up inside a data structure whose final argument is a
+continuation, which is then converted into a \verb|ConcT| value.
+
+A concurrent computation is just a large value, where we can inspect each
+``step'' of the computation by looking at the data constructor used.
+Constructors mostly correspond to operations in the \verb|MonadConc| class
+(there are also a few extra).
+
+We make a few departures from the semantics of the \verb|IO| monad where
+necessary:
+
+\begin{itemize}
+\item The \verb|getNumCapabilities| operation allows the programmer to query the
+  number of capabilities.  During testing, we return ``2'', despite executing
+  everything in the same OS thread.  This is to avoid special-case behaviour for
+  one capability, which may reduce concurrency.
+\item Runtime errors, such as pattern match failures, can be caught as
+  exceptions inside \verb|IO|.  As there is no non-\verb|IO| way to do the same,
+  \dejafu{} cannot.
+\item The \verb|threadDelay| operation is required to yield the thread, but not
+  necessarily to delay it.  This is because it is not clear how to incorporate
+  time into the systematic concurrency testing model.
+\end{itemize}
+
+There is more to \verb|IO| than concurrency and exceptions.  \dejafu{} supports
+testing computations with embedded \verb|IO| actions provided that the
+programmer ensures that the \verb|IO| action is atomic; that it is deterministic
+when executed with a fixed schedule; and that it does not block on the action of
+another thread.  Failing to meet any of these conditions may lead to incomplete
+testing.
 
 \section{Executing Concurrent Programs}
 \label{sec:dejafu-execution}
