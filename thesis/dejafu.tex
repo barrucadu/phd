@@ -13,8 +13,6 @@ and present further work~\sref{dejafu-conclusions}.
 This chapter is derived from our previous work \cite{walker2015} and
 \cite{YCS-2016-503}.
 
-\todo{Note: discussion of random scheduling is in chapter 6 (swarm) and chapter 9 (eval \& conclusions), so just have brief forward refs in this chapter}
-
 \section{Scope}
 \label{sec:dejafu-scope}
 
@@ -457,7 +455,123 @@ approach from \cite{zhang2015}.
 \section{Testing Concurrent Programs}
 \label{sec:dejafu-testing}
 
-\blindtext
+\dejafu{} uses a combination of dynamic partial-order reduction and
+schedule bounding to test programs, by default.  Controlled random
+scheduling using a fixed number of executions is also available.  To
+make the tool easier to use, we provide a collection of different
+testing functions, with varying levels of detail exposed, hoping that
+the defaults will suffice for most users.  \figref{autocheck} shows
+the simplest case: the \verb|autocheck| function, which looks for
+deadlocks, uncaught exceptions in the main thread, and nondeterminism.
+At the other end of the scale is the \verb|dejafuDiscard| function
+(\figref{dejafuDiscard}), which exposes all the controls.
+
+\begin{figure}[t]
+  \centering
+  \begin{lstlisting}
+autocheck :: (Eq a, Show a)
+  => (forall t. ConcST t a)
+  -> IO Bool
+  \end{lstlisting}
+  \caption{The type of the \texttt{autocheck} function.}
+  \label{fig:autocheck}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \begin{lstlisting}
+dejafuDiscard :: Show a
+  => (Either Failure a -> Maybe Discard)
+  -> Way
+  -> MemType
+  -> (forall t. ConcST t a)
+  -> (String, Predicate a)
+  -> IO Bool
+  \end{lstlisting}
+  \caption{The type of the \texttt{dejafuDiscard} function.}
+  \label{fig:dejafuDiscard}
+\end{figure}
+
+A \dejafu{} test has the following components:
+
+\begin{itemize}
+\item The testing algorithm to use plus any configuration it needs.
+  The default is DPOR with schedule bounding.
+\item A function to optionally discard results or traces as they are
+  produced, and so not considering them when determining if the test
+  passes.  This is a concession to performance: execution traces can
+  take up a lot of memory, but typically we are only interested in a
+  subset of them.
+\item The memory model.  The default is total store order (TSO), as it
+  is closest to the behaviour of an x86 processor\cite{owens2009},
+  which is what the user probably has.
+\item The \verb|MonadConc| action to test.
+\item A named predicates, where a predicate is a function from the
+  final list of results and traces to an indication of success or
+  failure with an optional list of failing traces to display to the
+  user.
+\end{itemize}
+
+\subsection{Dynamic Partial-order Reduction}
+
+\todo{difficulty of producing a dependency relation for haskell}
+
+\todo{action simplification \& dep.rel. we ended up with}
+
+\paragraph{Sleep Sets}
+\todo{complementary optimisation to DPOR}
+
+\paragraph{Schedule Bounding}
+\todo{pb, fb, lb: problems}
+
+\paragraph{Daemon Threads}
+A daemon thread is a thread which is automatically killed after the
+last non-daemon thread terminates.  They do not prevent termination of
+the program.  In Haskell, every thread other than the main thread is a
+daemon thread, so as soon as it terminates the whole program
+terminates.  This is a problem for DPOR, as it makes the last action
+of the execution dependent with everything else in the program!
+
+Consider this small example program:
+
+\begin{lstlisting}
+main = do
+  v <- newEmptyMVar
+  fork (myThreadId >> putMVar v "hello world")
+  tryReadMVar v
+\end{lstlisting}
+
+There are two possible results: \verb|Nothing|, and
+\verb|Just "hello world"|, we would like to see both of these.
+However, there is no dependency between \verb|myThreadId| and
+\verb|tryReadMVar|, so if the deterministic scheduler used favours the
+main thread, we may not see the second execution.  Introducing a
+dependency between the last action of the execution and everything
+else solves this.  Now consider this example:
+
+\begin{lstlisting}
+main = do
+  v <- newEmptyMVar
+  fork (myThreadId >> myThreadId >> putMVar v "hello world")
+  tryReadMVar v
+\end{lstlisting}
+
+The forked thread now performs two calls to \verb|myThreadId|.  If the
+\verb|tryReadMVar| happens after the second, we get the same result as
+if it happened after the first.  Normally, DPOR would prevent this
+redundancy, but by introducing a dependency between the final action
+and everything else, we have told the algorithm that it is \emph{not}
+redundant!  In general, introducing a dependency like this will lead
+to many redundant executions which we would otherwise avoid.
+
+The solution we adopt is to change the deterministic scheduler.  If
+the scheduler has a choice of actions, where one or more will cause
+the main thread to terminate, it makes its choice as usual, and then
+records every other decision as a backtracking point.  By ensuring
+that every other decision is tried at least once, we do not need to
+introduce an additional dependency between the final action of the
+main thread and everything else, and can just let DPOR do its job as
+usual.
 
 \section{Soundness and Completeness}
 \label{sec:dejafu-correctness}
