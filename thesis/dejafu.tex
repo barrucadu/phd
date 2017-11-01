@@ -1,14 +1,17 @@
-Tools are necessary to test concurrency, the standard approach does not suffice.
-In this chapter we present and evaluate \dejafu{}, our library for testing
-concurrency in Haskell.  We discuss the scope of the tool~\sref{dejafu-scope}
-and present our abstraction over the GHC Haskell concurrency
-functionality~\sref{dejafu-monadconc}.  We explain how programs using our
-abstraction are executed~\sref{dejafu-execution} and
+Tools are necessary to test concurrency, the standard approach does
+not suffice.  In this chapter we present and evaluate \dejafu{}, our
+library for testing concurrency in Haskell.  We discuss the scope of
+the tool~\sref{dejafu-scope} and present our abstraction over the GHC
+Haskell concurrency functionality~\sref{dejafu-monadconc}.  We then
+show an example of a small logic puzzle which we can represent as a
+concurrent program~\sref{dejafu-100}.  We explain how programs using
+our abstraction are executed~\sref{dejafu-execution} and
 tested~\sref{dejafu-testing}, and argue the correctness of the testing
 approach~\sref{dejafu-correctness}.  We present three case
-studies~\sref{dejafu-casestudies}, evaluate the usefulness of \dejafu{} for
-testing pre-existing code~\sref{dejafu-evaluation}, and finally draw conclusions
-and present further work~\sref{dejafu-conclusions}.
+studies~\sref{dejafu-casestudies}, evaluate the usefulness of
+\dejafu{} for testing pre-existing code~\sref{dejafu-evaluation}, and
+finally draw conclusions and present further
+work~\sref{dejafu-conclusions}.
 
 This chapter is derived from our previous work \cite{walker2015} and
 \cite{YCS-2016-503}.
@@ -142,6 +145,197 @@ when executed with a fixed schedule; and that it does not block on the action of
 another thread.  Failing to meet any of these conditions may lead to incomplete
 testing.
 
+\section{The 100 Prisoners Problem}
+\label{sec:dejafu-100}
+
+There's a popular logic puzzle which goes something like this:
+
+\begin{displayquote}
+  There are 100 prisoners in solitary cells.  There's a central living
+  room with one light bulb.  No prisoner can see the light bulb from
+  their own cell.  Everyday, the warden picks a prisoner equally at
+  random, and that prisoner visits the living room.  While there, the
+  prisoner may toggle the bulb.  The prisoner also has the option of
+  asserting that all 100 prisoners have been to the living room.  If
+  this assertion is false, all 100 prisoners are shot.  However, if
+  true, all prisoners are set free.  Thus, the assertion should only
+  be made if the prisoner is 100\% certain of its validity.  The
+  prisoners are allowed to get together one night in the courtyard, to
+  discuss a plan.  What plan should they agree on, so that eventually,
+  someone will make a correct assertion?
+\end{displayquote}
+
+We can express this puzzle as a concurrency problem: the warden is the
+scheduler, each prisoner is a thread, and when the program terminates
+every prisoner should have visited the living room.  So if every
+thread (prisoner) that is forked is scheduled (taken to the room),
+then the prisoners are successful.  \dejafu{} can give us an execution
+trace.  So, given some way of setting up the prison, we can ask
+\dejafu{} to execute it and then examine the returned traces to
+discover if the prisoners are successful.
+
+\begin{table}[t]
+  \centering
+  \begin{tabular}{l|rrrrrrrr} \toprule
+    Prisoners          &   1 &   2    &   3    &   4    &   5    &   6    &   7    &   8 \\
+    Successes          & 100 & 100    & 100    & 100    & 100    & 100    & 100    & 100 \\
+    Failures           &   0 &   0    &   0    &   0    &   0    &   0    &   0    &   0 \\
+    Avg.\@ Room Visits &   2 &  18.35 &  31.92 &  43.52 &  55.88 &  67.37 &  77.05 &  90.40 \\ \bottomrule
+  \end{tabular}
+  \caption{The behaviour of the good enough solution.}\label{tbl:100rand}
+\end{table}
+
+\subsection{The ``Good Enough'' Solution}
+
+One school of thought says to just wait for three years, because by
+then it's unlikely that any single prisoner had never visited the
+room.  In fact, w would expect each prisoner to have been to the room
+ten times by then.  \figref{100good} shows an implementation of this
+strategy, and \tblref{100rand} shows how the prisoners fare over 100
+random executions.
+
+\begin{figure}[t]
+  \centering
+  \begin{lstlisting}
+leader :: MonadConc m => Int -> TVar (STM m) Int -> m ()
+leader numPrisoners days = atomically $ do
+  numDays <- readTVar days
+  when (numDays < (numPrisoners - 1) * 10) retry
+
+notLeader :: MonadConc m => TVar (STM m) Int -> m ()
+notLeader days = forever $ atomically (modifyTVar days (+1))
+
+prison :: MonadConc m => Int -> m ()
+prison numPrisoners = do
+  days <- atomically (newTVar 0)
+  for_ [1..numPrisoners-1] (\_ -> fork (notLeader days))
+  leader numPrisoners days
+  \end{lstlisting}
+  \caption{The good enough solution: just wait a long time and gamble.}
+  \label{fig:100good}
+\end{figure}
+
+After waiting $10 n$ days, where $n$ is the number of prisoners, the
+chance that any one prisoner has been consistently missed is
+$\left(1 - \frac{1}{n}\right)^{10n}$.  This is roughly 0.004\% for 100
+prisoners, and converges to $\frac{1}{e^{10}}$.
+
+\subsection{The Perfect Solution}
+
+Perhaps our prisoners are more cautious, and a 0.004\% chance of death
+is too much.  They want to be certain of their success.
+
+A slow but simple strategy is for the prisoners to nominate a leader.
+Only the leader can declare to the warden that everyone has visited
+the room.  Whenever a prisoner other than the leader visits the room,
+if the light is on, they do nothing; otherwise, if this is their first
+time in the room with the light off, they turn it on, otherwise they
+leave it.  Whenever the leader enters the room, they turn the light
+off.  When the leader has turned the light off 99 times, they tell the
+warden that everyone has visited.
+
+\figref{100perfect} shows an implementation of these behaviours.
+
+\begin{figure}[t]
+  \centering
+  \begin{lstlisting}
+data Light = IsOn | IsOff
+
+leader :: MonadConc m => Int -> TVar (STM m) Light -> m ()
+leader numPrisoners light = go 0 where
+  go counter = do
+    counter' <- atomically $ do
+      state <- readTVar light
+      case state of
+        IsOn -> do
+          writeTVar light IsOff
+          pure (counter + 1)
+        IsOff -> retry
+    when (counter' < prisoners - 1)
+      (go counter')
+
+notLeader :: MonadConc m => TVar (STM m) Light -> m ()
+notLeader light = do
+  atomically $ do
+    state <- readTVar light
+    case state of
+      IsOn  -> retry
+      IsOff -> writeTVar light IsOn
+  forever yield
+
+prison :: MonadConc m => Int -> m ()
+prison numPrisoners = do
+  light <- atomically (newTVar IsOff)
+  for_ [1..numPrisoners-1] (\_ -> fork (notLeader light))
+  leader numPrisoners light
+  \end{lstlisting}
+  \caption{The perfect solution: nominate a leader, who waits until he is certain that everyone has been in the room.}
+  \label{fig:100perfect}
+\end{figure}
+
+We can satisfy ourselves that this works for all cases by using
+\dejafu{}'s systematic concurrency testing functionality, which is a
+combination of dynamic partial-order reduction and schedule bounding.
+\tblref{100slow} shows how the number of attempts and average room
+visits grows as the number of prisoners increases.
+
+\begin{table}[t]
+  \centering
+  \begin{tabular}{l|rrr} \toprule
+    Prisoners          & 1 & 2 &    3 \\
+    Schedules          & 1 & 5 & 2035 \\
+    Avg.\@ Room Visits & 2 & 7 &  133 \\ \bottomrule
+  \end{tabular}
+  \caption{Schedule growth with increasing prisoner numbers.}\label{tbl:100slow}
+\end{table}
+
+This doesn't scale well.  Our algorithm is a really bad case for
+concurrency testing: every thread is messing with the same shared
+state, so \dejafu{} has to try all the orderings.  Taking another look
+at our prisoners, we can see two things which a human would use to
+decide whether some schedules are redundant or not:
+
+\begin{enumerate}
+\item If we adopt any schedule other than alternating leader /
+  non-leader, threads will block without doing anything.  So we should
+  alternate.
+\item When a non-leader has completed their task, they will always
+  yield.  So we should never schedule a prisoner who will yield.
+\end{enumerate}
+
+\dejafu{} can't make use of (1).  It could be inferred \emph{if}
+\dejafu{} were able to compare values inside \verb|TVar|s.  We cannot
+do that without putting an \verb|Eq| constraint on \verb|writeTVar|,
+however.
+
+\dejafu{} \emph{can} make use of (2).  \dejafu{} already bounds the
+maximum number of times a thread can yield, so that it can test
+constructs like spinlocks.  This is called \emph{fair bounding}.  The
+default bound is 5, but if we set it to 0 \dejafu{} will never
+schedule a thread which is going to yield.  \tblref{100fast} shows how
+the number of schedules and average room visits grows with this
+change.
+
+\begin{table}[t]
+  \centering
+  \begin{tabular}{l|rrrrrr} \toprule
+    Prisoners          & 1 & 2 & 3   &  4   &    5 &      6 \\
+    Schedules          & 1 & 1 & 4   & 48   & 1536 & 122880 \\
+    Avg.\@ Room Visits & 2 & 4 & 7.5 & 11.5 &   16 &     21 \\ \bottomrule
+  \end{tabular}
+  \caption{Schedule growth with increasing prisoner numbers (improved).}\label{tbl:100fast}
+\end{table}
+
+This is better, but still scales poorly.  The prisoners are stepping
+on each other's toes and causing needless work.  This is probably as
+good as we can do without adding some extra primitives to \dejafu{} to
+optimise the case where we have an \verb|Eq| instance available.
+
+It's not the end for systematic testing, however.  Empirical
+studies\cite{thomson2014} have found that many concurrency bugs can be
+exhibited with only two or three threads.  Furthermore, most
+real-world concurrent programs don't have every single thread
+operating on the same bit of shared state.
 \section{Executing Concurrent Programs}
 \label{sec:dejafu-execution}
 
