@@ -383,22 +383,6 @@ sequencing.  Finally, the \verb|MonadFail| instance alows signalling a pattern
 match failure in a monadic expression.  \dejafu{} aims to support the latest
 three major releases of GHC, and so we use conditional compilation here.
 
-\begin{figure}[t]
-  \centering
-\begin{lstlisting}
-pure id <*> v
-  = M (\c -> AReturn (c id)) <*> v
-  = M (\c -> runM (M (\c -> AReturn (c id))) (\g -> runM v (c . g)))
-  = M (\c -> (\c -> AReturn (c id)) (\g -> runM v (c . g)))
-  = M (\c -> AReturn ((\g -> runM v (c . g)) id))
-  = M (\c -> AReturn (runM v (c . id)))
-  = M (\c -> AReturn (runM v c))
- /= v
-\end{lstlisting}
-  \caption{Expansion of the \texttt{Applicative} identity law.}
-  \label{fig:areturn}
-\end{figure}
-
 \paragraph{Operational Semantics}
 We give an operational semantics for Haskell concurrency in the form of a step
 function on primitive actions.  Given the current state, which we call the
@@ -418,6 +402,22 @@ collection.  By using Haskell mutable references directly, when all copies of a
 reference fall out of scope, the referenced value can be garbage collected;
 whereas if we model references as keys into a heap, then such data can never be
 freed, as we cannot tell when it is safe to delete something from our heap.
+
+\begin{figure}[t]
+  \centering
+\begin{lstlisting}
+pure id <*> v
+  = M (\c -> AReturn (c id)) <*> v
+  = M (\c -> runM (M (\c -> AReturn (c id))) (\g -> runM v (c . g)))
+  = M (\c -> (\c -> AReturn (c id)) (\g -> runM v (c . g)))
+  = M (\c -> AReturn ((\g -> runM v (c . g)) id))
+  = M (\c -> AReturn (runM v (c . id)))
+  = M (\c -> AReturn (runM v c))
+ /= v
+\end{lstlisting}
+  \caption{Expansion of the \texttt{Applicative} identity law.}
+  \label{fig:areturn}
+\end{figure}
 
 \paragraph{Nonterminating Executions}
 \dejafu{} is only able to make scheduling decisions at the level of primitive
@@ -472,26 +472,9 @@ When testing concurrent computations, we are interested in both
 success and failure.  If a computation succeeds and returns a value,
 we want to know that; if it fails and deadlocks, we also want to know
 that.  The result of a single execution of the program is an
-\verb|Either Failure result| value, where the \verb|Failure| type
-(\figref{Failure}) is an enumeration of error conditions that
-\dejafu{} can detect, and the \verb|result| type is the result in the
-successful case.
-
-\begin{figure}[t]
-  \centering
-  \begin{lstlisting}
-data Failure
-  = InternalError
-  | Abort
-  | Deadlock
-  | STMDeadlock
-  | UncaughtException SomeException
-  | IllegalSubconcurrency
-  deriving Show
-  \end{lstlisting}
-  \caption{The \texttt{Failure} type.}
-  \label{fig:Failure}
-\end{figure}
+\verb|Either Failure result| value, where the \verb|Failure| type is
+an enumeration of error conditions that \dejafu{} can detect, and the
+\verb|result| type is the result in the successful case.
 
 \subsection{Software Transactional Memory}
 
@@ -521,41 +504,6 @@ otherwise it does not.  If it evaluates to a thrown exception, we throw the
 exception in the thread performing the transaction.  If it evaluates to an
 abort, we block the thread performing the transaction until at least one
 \verb|TVar| read in the transaction is mutated by another thread.
-
-\subsection{Relaxed Memory}
-
-There are three memory models supported in \dejafu{}:
-
-\begin{description}
-\item[Sequential Consistency] This model is the most intuitive.  A program
-  behaves as a simple interleaving of the actions in different threads.  When a
-  \texttt{CRef} is written to, that write is immediately visible to all
-  threads.
-
-\item[Total Store Order (TSO)] Each thread has a write buffer.  A thread sees
-  its writes immediately, but other threads will only see writes when they are
-  \emph{committed}, which may happen later.  Writes by the same thread are
-  committed in program order.
-
-\item[Partial Store Order (PSO)] A relaxation of TSO where each thread has a
-  write buffer for each \verb|CRef|.  Writes to different \verb|CRef|s by the
-  same thread are not necessarily committed in program order.
-\end{description}
-
-The default memory model for testing is TSO, as that most accurately models the
-behaviour of modern x86 processors\cite{owens2009}.  The use of a relaxed memory
-model can require a much larger number of schedules when its effects are at
-play.
-
-\paragraph{Write Buffering}
-We model relaxed memory by introducing buffers for thread writes.  When a thread
-writes to a \verb|CRef|, the write is appended to its buffer.  When a thread
-reads from a \verb|CRef|, it reads the value of the newest write in its buffer,
-or the most recently committed value if the buffer is empty.  After a write is
-committed, it is removed from its buffer.  Any non-empty buffer may have a write
-committed, but only the oldest write in a buffer may be committed.  \figref{wb}
-shows the arrangement of buffers for the three memory models in a system with
-two threads and two \verb|CRef|s.
 
 \begin{figure}[t]
   \centering
@@ -625,6 +573,41 @@ two threads and two \verb|CRef|s.
   \caption{Write buffering for two threads and two \texttt{CRef}s.}
   \label{fig:wb}
 \end{figure}
+
+\subsection{Relaxed Memory}
+
+There are three memory models supported in \dejafu{}:
+
+\begin{description}
+\item[Sequential Consistency] This model is the most intuitive.  A program
+  behaves as a simple interleaving of the actions in different threads.  When a
+  \texttt{CRef} is written to, that write is immediately visible to all
+  threads.
+
+\item[Total Store Order (TSO)] Each thread has a write buffer.  A thread sees
+  its writes immediately, but other threads will only see writes when they are
+  \emph{committed}, which may happen later.  Writes by the same thread are
+  committed in program order.
+
+\item[Partial Store Order (PSO)] A relaxation of TSO where each thread has a
+  write buffer for each \verb|CRef|.  Writes to different \verb|CRef|s by the
+  same thread are not necessarily committed in program order.
+\end{description}
+
+The default memory model for testing is TSO, as that most accurately models the
+behaviour of modern x86 processors\cite{owens2009}.  The use of a relaxed memory
+model can require a much larger number of schedules when its effects are at
+play.
+
+\paragraph{Write Buffering}
+We model relaxed memory by introducing buffers for thread writes.  When a thread
+writes to a \verb|CRef|, the write is appended to its buffer.  When a thread
+reads from a \verb|CRef|, it reads the value of the newest write in its buffer,
+or the most recently committed value if the buffer is empty.  After a write is
+committed, it is removed from its buffer.  Any non-empty buffer may have a write
+committed, but only the oldest write in a buffer may be committed.  \figref{wb}
+shows the arrangement of buffers for the three memory models in a system with
+two threads and two \verb|CRef|s.
 
 We divide concurrency operations into three categories: \emph{synchronised}
 operations impose a \emph{memory barrier}, which commits all buffered writes;
