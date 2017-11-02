@@ -689,17 +689,146 @@ A \dejafu{} test has the following components:
   user.
 \end{itemize}
 
-\subsection{Dynamic Partial-order Reduction}
+\paragraph{Dependency Relation}
+Correct DPOR relies on a dependency relation between pairs of actions
+in a schedule trace.  This relation may be pessimistic, but cannot be
+optimistic.  A pessimistic relation could claim that two actions are
+related when they do not affect each other; an optimistic relation
+could claim that two actions are unrelated when they do affect each
+other.  A pessmistic relation may lead to exploring redundant
+schedules, an optimistic relation may lead to missing distinct ones.
 
-\todo{difficulty of producing a dependency relation for haskell}
+For ease of explanation, DPOR algorithms in the literature are
+presented for small languages.  A paper will typically start with a
+sentence like ``we assume a core concurrent language of reads and
+writes to shared variables, and locks.''  The Haskell concurrency API
+is richer than this, and the implicit dependencies between actions
+(such as which actions impose a memory barrier) are not documented.
+The dependency relation we now use in \dejafu{} was derived by running
+small test cases many thousands of times.
 
-\todo{action simplification \& dep.rel. we ended up with}
+We express our dependency relation in three parts: a relation on
+\emph{thread actions}, which are entries in the trace; a relation on
+\emph{thread action} and \emph{lookahead values}, which are forecasts
+of what a thread will do, available to the scheduler; and a relation
+on \emph{action types}, a simplification of thread actions.  Thread
+actions contain more information than lookahead values, which contain
+more information than action types.  We use this layered approach to
+make use of this extra information to improve dependency detection
+where possible.  \figref{deprel-simp} shows a simplified view of our
+relations.  \appref{deprel} shows the full dependency relation.
+
+\begin{figure}[t]
+  \centering
+  \begin{lstlisting}
+depends :: (ThreadId, ThreadAction) -> (ThreadId, ThreadAction) -> Bool
+depends (tid1, ta1) (tid2, ta2)
+  | ...       = True
+  | ...       = False
+  | otherwise = depends' (tid1, ta1) (tid2, rewind ta2) &&
+                depends' (tid2, ta2) (tid1, rewind ta1)
+
+depends' :: (ThreadId, ThreadAction) -> (ThreadId, Lookahead) -> Bool
+depends' (tid1, ta) (tid2, lh)
+  | ...       = True
+  | ...       = False
+  | otherwise = dependentActions (simplifyAction    ta)
+                                 (simplifyLookahead lh)
+
+dependentActions :: ActionType -> ActionType -> Bool
+dependentActions = ...
+  \end{lstlisting}
+  \caption{A simplified view of the \dejafu{} dependency relations.}
+  \label{fig:deprel-simp}
+\end{figure}
+
+For our dependency relation to be correct, we require some consistency
+rules:
+
+\begin{description}
+\item[Commutativity (1)]
+  $\mathrm{depends}~x~y = \mathrm{depends}~y~x$
+\item[Commutativity (2)]
+  $\mathrm{dependentActions}~x~y = \mathrm{dependentActions}~y~x$
+\item[Consistency (1)]
+  $\mathrm{depends}~x~(t,y) \Rightarrow \mathrm{depends'}~x~(t, \mathrm{rewind}~y)$
+\item[Consistency (2)]
+  $\mathrm{simplifyLookahead} = \mathrm{simplifyAction} \circ \mathrm{rewind}$
+\end{description}
+
+We establish these conditions through the syntactic structure of the
+implementation.  Each function is a straightforward enumeration of
+cases with attached side-conditions, which makes commutativity
+apparent.  The more pessimistic \verb|depends'| function is similar to
+the more accurate \verb|depends| function, but with less information
+available, which makes consistency apparent.  We also include these
+properties in the \dejafu{} testsuite to ensure they are not
+inadvertently broken.
+
+Recall that we divide thread actions into \emph{synchronised}, which
+impose a memory barrier; \emph{unsynchronised}, which do not; and
+\emph{partially synchronised}, which synchronise a single \verb|CRef|.
+The \verb|dependentActions| function is defined in terms of this
+synchronisation, and corresponds to the dependency relation for a core
+concurrent language as would typically be used to introduce a new DPOR
+algorithm.  The cases are:
+
+\begin{enumerate}
+\item Any two operations (excluding commits) on the same \verb|CRef|
+  are dependent, other than two reads.
+\item A write to a \verb|CRef| and a commit are \emph{not} dependent
+  if the write buffer corresponding to the \verb|CRef| is not
+  empty\cite{linden2013}.
+\item A read of a \verb|CRef| is dependent with any action which
+  imposes a memory barrier, if there are buffered writes.
+\item A commit to a \verb|CRef| is dependent with any action which
+  imposes a memory barrier.
+\item Two actions involving the same \verb|CRef| where at least one
+  would synchronise it are dependent.
+\item Two actions involving the same \verb|MVar| are dependent.
+\end{enumerate}
+
+So, through the lens of \verb|dependentActions|, Haskell is a small
+concurrent language with synchronised and unsynchronised shared
+variables and memory barriers.  The other cases which are handled by
+\verb|deprel| and \verb|deprel'| are: lifted \verb|IO| actions,
+exceptions, STM transactions, and getting and setting the number of
+capabilities.
 
 \paragraph{Sleep Sets}
-\todo{complementary optimisation to DPOR}
+The sleep set optimisation is a complementary approach to
+DPOR\cite{flanagan2005,godefroid1996} which we use to further reduce
+schedules explored.  The intuition is as follows: if we have a choice
+of two scheduling decisions, $t_{1}$ and $t_{2}$, after trying out
+$t_{1}$ there is no point in making the sequence of decisions
+$t_{2}t_{1}$ unless $t_{1} \dependent t_{2}$.  This is because all
+states reachable from $t_{1}$ have already been explored, so the only
+way a new state could arise is if $t_{1}$ had a different effect, and
+that is what it means for two transitions to be dependent.
+
+Formally, we augment each state $s$ with a \emph{sleep set}, these are
+the transitions enabled in $s$ but which we will not make.  The
+initial state has an empty sleep set.  Let $T$ be the transitions that
+have been selected to be explored from $s$.  We proceed as follows:
+take a transition $t_{1}$ out of $T$.  The sleep set associated with
+the state reached after executing $t_{1}$ from $s$ is the sleep set
+associated with $s$ with all transitions that are dependent with
+$t_{1}$ removed.  Let $t_{2}$ be a second transition taken out of $T$.
+The sleep set associated with the state reached after executing
+$t_{2}$ from $s$ is the sleep set associated with $s$ augmented with
+$t_{1}$, minus all transitions that are dependent with $t_{2}$.  We
+continue until all transitions in $T$ have been explored, at each step
+adding the previously taken transitions to the sleep set of the new
+state, and removing the dependent transitions.
 
 \paragraph{Schedule Bounding}
-\todo{pb, fb, lb: problems}
+\dejafu{} supports pre-emption bounding\cite{musuvathi2007}, fair
+bounding\cite{musuvathi2008}, and length bounding.  Fair and length
+bounding allow the testing of cyclic or potentially infinite
+state-spaces, at the cost of potentially confusing the user by
+aborting the execution of their program when it is still runnable.
+All three bounds are enabled by default, but can be selectively
+disabled or customised.
 
 \paragraph{Daemon Threads}
 A daemon thread is a thread which is automatically killed after the
