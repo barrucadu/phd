@@ -29,6 +29,7 @@
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{csquotes}
+\usepackage{caption}
 \usepackage{subcaption}
 \usepackage{tikz}
 \usepackage{wasysym}
@@ -78,6 +79,10 @@
   showstringspaces=false
 }
 
+\usepackage{minted}
+\usemintedstyle{tango}
+\setminted{fontsize=\footnotesize,linenos}
+
 % Quotes
 \usepackage{xparse}
 \NewDocumentEnvironment{bquote}{m}{\begin{displayquote}}{\par\noindent(#1)\end{displayquote}}
@@ -89,6 +94,7 @@
 \newcommand{\appref}[1]{Appendix~\ref{app:#1}}
 \newcommand{\figref}[1]{Figure~\ref{fig:#1}}
 \newcommand{\tblref}[1]{Table~\ref{tbl:#1}}
+\newcommand{\lstref}[1]{Listing~\ref{lst:#1}}
 \newcommand{\sref}[1]{(\S\ref{sec:#1})}
 
 % Maths

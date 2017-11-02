@@ -27,7 +27,6 @@ namespace systematic {
     void AssignWeightTo(uint32 uid);
     void RestoreWeights();
     void PersistWeights();
-
   private:
     uint32 runs;
     std::map<uint32, uint8> weights;

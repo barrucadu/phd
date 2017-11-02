@@ -60,9 +60,9 @@ implementations.  There is one implementation using the \verb|IO| type and the
 standard functions; there is another using our own type, based on continuations
 which we can inspect.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
+  \begin{minted}{haskell}
 class (Monad m, {- other constraints omitted -}) => MonadConc m where
   type MVar m :: * -> *
   -- other types omitted
@@ -77,13 +77,12 @@ class (Monad m, {- other constraints omitted -}) => MonadConc m where
   readMVar :: MVar m a -> m a
   takeMVar :: MVar m a -> m a
   -- other operations omitted
-  \end{lstlisting}
-  \caption{A fragment of the \texttt{MonadConc} typeclass.}
-  \label{fig:monadconc}
-\end{figure}
+  \end{minted}
+  \caption{A fragment of the \texttt{MonadConc} typeclass.}\label{lst:monadconc}
+\end{listing}
 
 We call our typeclass \verb|MonadConc| for monads which can do concurrency,
-\figref{monadconc} shows a fragment.  When defining an instance of this class,
+\lstref{monadconc} shows a fragment.  When defining an instance of this class,
 the programmer must supply concrete types for the abstract types in the
 interface.  They must also supply implementations of, at least, all undefined
 operations.  Some operations have default definitions: for example, there are
@@ -91,9 +90,9 @@ two ways of constructing an empty \verb|MVar|.  One way takes a name, which is
 displayed in debugging information, the other does not.  Each is defined in
 terms of the other, and so the programmer must supply at least one.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
+  \begin{minted}{haskell}
 instance Monad n => MonadConc (ConcT r n) where
   type MVar (ConcT r n) = MVar r
   -- other types omitted
@@ -104,14 +103,13 @@ instance Monad n => MonadConc (ConcT r n) where
   readMVar var   = toConc (AReadMVar var)
   takeMVar var   = toConc (ATakeMVar var)
   -- other operations omitted
-  \end{lstlisting}
-  \caption{The implementation of \figref{monadconc} we use for testing.}
-  \label{fig:mvarops}
-\end{figure}
+  \end{minted}
+  \caption{The implementation of \lstref{monadconc} we use for testing.}\label{lst:mvarops}
+\end{listing}
 
 The type for our testing implementation is called \verb|ConcT r n|, which is a
 monad that has access to \emph{references} of type \verb|r| in a monad of type
-\verb|n|.  \figref{mvarops} shows the implementation of \figref{monadconc} for
+\verb|n|.  \lstref{mvarops} shows the implementation of \lstref{monadconc} for
 this type.  Each concurrency operation is of the same form: we take the
 arguments and wrap them up inside a data structure whose final argument is a
 continuation, which is then converted into a \verb|ConcT| value.
@@ -190,13 +188,13 @@ discover if the prisoners are successful.
 One school of thought says to just wait for three years, because by
 then it's unlikely that any single prisoner had never visited the
 room.  In fact, w would expect each prisoner to have been to the room
-ten times by then.  \figref{100good} shows an implementation of this
+ten times by then.  \lstref{100good} shows an implementation of this
 strategy, and \tblref{100rand} shows how the prisoners fare over 100
 random executions.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
+  \begin{minted}{haskell}
 leader :: MonadConc m => Int -> TVar (STM m) Int -> m ()
 leader numPrisoners days = atomically $ do
   numDays <- readTVar days
@@ -210,10 +208,9 @@ prison numPrisoners = do
   days <- atomically (newTVar 0)
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader days))
   leader numPrisoners days
-  \end{lstlisting}
-  \caption{The good enough solution: just wait a long time and gamble.}
-  \label{fig:100good}
-\end{figure}
+  \end{minted}
+  \caption{The good enough solution: just wait a long time and gamble.}\label{lst:100good}
+\end{listing}
 
 After waiting $10 n$ days, where $n$ is the number of prisoners, the
 chance that any one prisoner has been consistently missed is
@@ -234,11 +231,11 @@ leave it.  Whenever the leader enters the room, they turn the light
 off.  When the leader has turned the light off 99 times, they tell the
 warden that everyone has visited.
 
-\figref{100perfect} shows an implementation of these behaviours.
+\lstref{100perfect} shows an implementation of these behaviours.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
+  \begin{minted}{haskell}
 data Light = IsOn | IsOff
 
 leader :: MonadConc m => Int -> TVar (STM m) Light -> m ()
@@ -268,10 +265,9 @@ prison numPrisoners = do
   light <- atomically (newTVar IsOff)
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader light))
   leader numPrisoners light
-  \end{lstlisting}
-  \caption{The perfect solution: nominate a leader, who waits until he is certain that everyone has been in the room.}
-  \label{fig:100perfect}
-\end{figure}
+  \end{minted}
+  \caption{The perfect solution: nominate a leader, who waits until he is certain that everyone has been in the room.}\label{lst:100perfect}
+\end{listing}
 
 We can satisfy ourselves that this works for all cases by using
 \dejafu{}'s systematic concurrency testing functionality, which is a
@@ -346,9 +342,9 @@ effect and has a continuation.  This is the \verb|Action| type.  Each thread of
 execution is terminated by a distinguished \emph{stop} primitive, which has no
 continuation and signals successful completion.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
+  \begin{minted}{haskell}
 newtype M n r a = M { runM :: (a -> Action n r) -> Action n r }
 
 instance Functor (M n r) where
@@ -368,12 +364,11 @@ instance Monad (M n r) where
 instance Fail.MonadFail (M n r) where
 #endif
   fail e = M (\_ -> AThrow (MonadFailException e))
-  \end{lstlisting}
-  \caption{The \dejafu{} continuation monad.}
-  \label{fig:m}
-\end{figure}
+  \end{minted}
+  \caption{The \dejafu{} continuation monad.}\label{lst:m}
+\end{listing}
 
-\figref{m} gives the definition and typeclass instances of the \dejafu{}
+\lstref{m} gives the definition and typeclass instances of the \dejafu{}
 continuation monad.  The \verb|Functor| instance allows applying a function to
 the input of the continuation.  The \verb|Applicative| instance allows injecting
 a pure value into the \verb|M| type, by constructing a continuation which
@@ -403,9 +398,9 @@ reference fall out of scope, the referenced value can be garbage collected;
 whereas if we model references as keys into a heap, then such data can never be
 freed, as we cannot tell when it is safe to delete something from our heap.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-\begin{lstlisting}
+\begin{minted}{haskell}
 pure id <*> v
   = M (\c -> AReturn (c id)) <*> v
   = M (\c -> runM (M (\c -> AReturn (c id))) (\g -> runM v (c . g)))
@@ -414,23 +409,22 @@ pure id <*> v
   = M (\c -> AReturn (runM v (c . id)))
   = M (\c -> AReturn (runM v c))
  /= v
-\end{lstlisting}
-  \caption{Expansion of the \texttt{Applicative} identity law.}
-  \label{fig:areturn}
-\end{figure}
+\end{minted}
+  \caption{Expansion of the \texttt{Applicative} identity law.}\label{lst:areturn}
+\end{listing}
 
 \paragraph{Nonterminating Executions}
 \dejafu{} is only able to make scheduling decisions at the level of primitive
 actions, which means that if evaluating a primitive action does not terminate,
 \dejafu{} will hang.  We deliberately break the \verb|Applicative| identity law,
-that \verb|pure id <*> v = v| for all \verb|v| (\figref{areturn}), to make some
+that \verb|pure id <*> v = v| for all \verb|v| (\lstref{areturn}), to make some
 programs more defined than they otherwise would be.  Consider this small
 program:
 
-\begin{lstlisting}
+\begin{minted}{haskell}
 test = forever (pure "loop") where
   forever mx = mx >> forever mx
-\end{lstlisting}
+\end{minted}
 
 Neither \verb|(>>)| nor \verb|forever| correspond to primitive actions, so they
 cannot be pre-empted.  If \verb|pure| did not correspond to a primitive action
@@ -444,7 +438,7 @@ limit\footnote{\url{https://github.com/barrucadu/dejafu/issues/27}\\\url{https:/
 The choice of which thread to execute is made by a scheduler function, which is
 supplied by the user.  The scheduler is called even if there is only one
 runnable thread, to keep things simple.  A scheduler, shown in
-\figref{scheduler}, is a stateful function which is given the previous action
+\lstref{scheduler}, is a stateful function which is given the previous action
 and the runnable threads, which possibly returns a thread to run.  If no thread
 is returned, the computation is aborted.  This is used to implement schedule
 bounding.  The state is used to implement partial-order reduction and random
@@ -452,9 +446,9 @@ scheduling: in the former, the state is a list of scheduling decisions designed
 to put the system into an unseen state; in the latter, the state is a random
 number generator.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
+  \begin{minted}{haskell}
 newtype Scheduler state = Scheduler
   { scheduleThread
     :: Maybe (ThreadId, ThreadAction)
@@ -462,10 +456,9 @@ newtype Scheduler state = Scheduler
     -> state
     -> (Maybe ThreadId, state)
   }
-  \end{lstlisting}
-  \caption{The \texttt{Scheduler} type.}
-  \label{fig:scheduler}
-\end{figure}
+  \end{minted}
+  \caption{The \texttt{Scheduler} type.}\label{lst:scheduler}
+\end{listing}
 
 \paragraph{Success and Failure}
 When testing concurrent computations, we are interested in both
@@ -637,37 +630,28 @@ schedule bounding to test programs, by default.  Controlled random
 scheduling using a fixed number of executions is also available.  To
 make the tool easier to use, we provide a collection of different
 testing functions, with varying levels of detail exposed, hoping that
-the defaults will suffice for most users.  \figref{autocheck} shows
+the defaults will suffice for most users.  \lstref{autocheck} shows
 the simplest case: the \verb|autocheck| function, which looks for
 deadlocks, uncaught exceptions in the main thread, and nondeterminism.
 At the other end of the scale is the \verb|dejafuDiscard| function
-(\figref{dejafuDiscard}), which exposes all the controls.
+(\lstref{dejafuDiscard}), which exposes all the controls.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
-autocheck :: (Eq a, Show a)
-  => (forall t. ConcST t a)
-  -> IO Bool
-  \end{lstlisting}
-  \caption{The type of the \texttt{autocheck} function.}
-  \label{fig:autocheck}
-\end{figure}
+  \begin{minted}{haskell}
+autocheck :: (Eq a, Show a) => (forall t. ConcST t a) -> IO Bool
+  \end{minted}
+  \caption{The type of the \texttt{autocheck} function.}\label{lst:autocheck}
+\end{listing}
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
-dejafuDiscard :: Show a
-  => (Either Failure a -> Maybe Discard)
-  -> Way
-  -> MemType
-  -> (forall t. ConcST t a)
-  -> (String, Predicate a)
-  -> IO Bool
-  \end{lstlisting}
-  \caption{The type of the \texttt{dejafuDiscard} function.}
-  \label{fig:dejafuDiscard}
-\end{figure}
+  \begin{minted}{haskell}
+dejafuDiscard :: Show a => (Either Failure a -> Maybe Discard) -> Way -> MemType
+              -> (forall t. ConcST t a) -> (String, Predicate a) -> IO Bool
+  \end{minted}
+  \caption{The type of the \texttt{dejafuDiscard} function.}\label{lst:dejafuDiscard}
+\end{listing}
 
 A \dejafu{} test has the following components:
 
@@ -715,21 +699,21 @@ on \emph{action types}, a simplification of thread actions.  Thread
 actions contain more information than lookahead values, which contain
 more information than action types.  We use this layered approach to
 make use of this extra information to improve dependency detection
-where possible.  \figref{deprel-simp} shows a simplified view of our
+where possible.  \lstref{deprel-simp} shows a simplified view of our
 relations.  \appref{deprel} shows the full dependency relation.
 
-\begin{figure}[t]
+\begin{listing}[t]
   \centering
-  \begin{lstlisting}
-depends :: (ThreadId, ThreadAction) -> (ThreadId, ThreadAction) -> Bool
-depends (tid1, ta1) (tid2, ta2)
+  \begin{minted}{haskell}
+dependency :: ThreadId -> ThreadAction -> ThreadId -> ThreadAction -> Bool
+dependency tid1 ta1 tid2 ta2
   | ...       = True
   | ...       = False
-  | otherwise = depends' (tid1, ta1) (tid2, rewind ta2) &&
-                depends' (tid2, ta2) (tid1, rewind ta1)
+  | otherwise = dependency' tid1 ta1 tid2 (rewind ta2) &&
+                dependency' tid2 ta2 tid1 (rewind ta1)
 
-depends' :: (ThreadId, ThreadAction) -> (ThreadId, Lookahead) -> Bool
-depends' (tid1, ta) (tid2, lh)
+dependency' :: ThreadId -> ThreadAction -> ThreadId -> Lookahead -> Bool
+dependency' tid1 ta tid2 lh
   | ...       = True
   | ...       = False
   | otherwise = dependentActions (simplifyAction    ta)
@@ -737,21 +721,20 @@ depends' (tid1, ta) (tid2, lh)
 
 dependentActions :: ActionType -> ActionType -> Bool
 dependentActions = ...
-  \end{lstlisting}
-  \caption{A simplified view of the \dejafu{} dependency relations.}
-  \label{fig:deprel-simp}
-\end{figure}
+  \end{minted}
+  \caption{A simplified view of the \dejafu{} dependency relations.}\label{lst:deprel-simp}
+\end{listing}
 
 For our dependency relation to be correct, we require some consistency
 rules:
 
 \begin{description}
 \item[Commutativity (1)]
-  $\mathrm{depends}~x~y = \mathrm{depends}~y~x$
+  $\mathrm{dependency}~x~y = \mathrm{dependency}~y~x$
 \item[Commutativity (2)]
   $\mathrm{dependentActions}~x~y = \mathrm{dependentActions}~y~x$
 \item[Consistency (1)]
-  $\mathrm{depends}~x~(t,y) \Rightarrow \mathrm{depends'}~x~(t, \mathrm{rewind}~y)$
+  $\mathrm{dependency}~x~(t,y) \Rightarrow \mathrm{dependency'}~x~(t, \mathrm{rewind}~y)$
 \item[Consistency (2)]
   $\mathrm{simplifyLookahead} = \mathrm{simplifyAction} \circ \mathrm{rewind}$
 \end{description}
@@ -759,11 +742,11 @@ rules:
 We establish these conditions through the syntactic structure of the
 implementation.  Each function is a straightforward enumeration of
 cases with attached side-conditions, which makes commutativity
-apparent.  The more pessimistic \verb|depends'| function is similar to
-the more accurate \verb|depends| function, but with less information
-available, which makes consistency apparent.  We also include these
-properties in the \dejafu{} testsuite to ensure they are not
-inadvertently broken.
+apparent.  The more pessimistic \verb|dependency'| function is similar
+to the more accurate \verb|dependency| function, but with less
+information available, which makes consistency apparent.  We also
+include these properties in the \dejafu{} testsuite to ensure they are
+not inadvertently broken.
 
 Recall that we divide thread actions into \emph{synchronised}, which
 impose a memory barrier; \emph{unsynchronised}, which do not; and
@@ -840,12 +823,12 @@ of the execution dependent with everything else in the program!
 
 Consider this small example program:
 
-\begin{lstlisting}
+\begin{minted}{haskell}
 main = do
   v <- newEmptyMVar
   fork (myThreadId >> putMVar v "hello world")
   tryReadMVar v
-\end{lstlisting}
+\end{minted}
 
 There are two possible results: \verb|Nothing|, and
 \verb|Just "hello world"|, we would like to see both of these.
@@ -855,12 +838,12 @@ main thread, we may not see the second execution.  Introducing a
 dependency between the last action of the execution and everything
 else solves this.  Now consider this example:
 
-\begin{lstlisting}
+\begin{minted}{haskell}
 main = do
   v <- newEmptyMVar
   fork (myThreadId >> myThreadId >> putMVar v "hello world")
   tryReadMVar v
-\end{lstlisting}
+\end{minted}
 
 The forked thread now performs two calls to \verb|myThreadId|.  If the
 \verb|tryReadMVar| happens after the second, we get the same result as

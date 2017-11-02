@@ -21,17 +21,17 @@ we're computing multiple things at once.
 \paragraph{Basic threading}
 A thread can be started using the \verb|forkIO| function:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 forkIO :: IO () -> IO ThreadId
-\end{verbatim}
+\end{minted}
 
 This starts executing its argument in a separate thread.  It also gives us back
 a \verb|ThreadId| value, which can be used to kill the thread.  A thread can get
 its own \verb|ThreadId| with the \verb|myThreadId| function:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 myThreadId :: IO ThreadId
-\end{verbatim}
+\end{minted}
 
 \paragraph{Capabilities}
 In a real machine, there are multiple processors and cores.  It may be that a
@@ -46,17 +46,17 @@ possibility of executing truly in parallel.
 We can fork a thread to a particular OS thread with the \verb|forkOn|
 function:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 forkOn :: Int -> IO () -> IO ThreadId
-\end{verbatim}
+\end{minted}
 
 The capability number is interpreted modulo the total number of OS
 threads, which can be queried and set:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 getNumCapabilities :: IO Int
 setNumCapabilities :: Int -> IO ()
-\end{verbatim}
+\end{minted}
 
 \paragraph{Scheduling}
 The GHC scheduler is good, but sometimes we have domain knowledge which lets us
@@ -64,10 +64,10 @@ do better.  There are two ways to influence how threads are scheduled: we can
 yield control to another thread, or delay the current thread for a period of
 time:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 yield       :: IO ()
 threadDelay :: Int -> IO ()
-\end{verbatim}
+\end{minted}
 
 \section{Shared Variables and the Memory Model}
 \label{sec:concurrent_haskell-mmodel}
@@ -80,27 +80,27 @@ An \verb|IORef| is a mutable location in memory holding a Haskell
 value.  It is similar to a normal reference variable in impure
 languages:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 newIORef   :: a -> IO (IORef a)
 readIORef  :: IORef a -> IO a
 writeIORef :: IORef a -> a -> IO ()
-\end{verbatim}
+\end{minted}
 
 \paragraph{The \texttt{MVar} type}
 An \verb|MVar| is a mutable location in memory with two possible
 states: \emph{full}, holding a Haskell value, and \emph{empty},
 holding no value.  An \verb|MVar| can be created in either state:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 newMVar      :: a -> IO (MVar a)
 newEmptyMVar :: IO (MVar a)
-\end{verbatim}
+\end{minted}
 
 Writing to a full \verb|MVar| blocks until it is empty, and reading or taking
 from an empty \verb|MVar| blocks until it is full.  There are also non-blocking
 functions which return an indication of success:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 putMVar     :: MVar a -> a -> IO ()
 readMVar    :: MVar a -> IO a
 takeMVar    :: MVar a -> IO a
@@ -108,7 +108,7 @@ takeMVar    :: MVar a -> IO a
 tryPutMVar  :: MVar a -> a -> IO Bool
 tryReadMVar :: MVar a -> IO (Maybe a)
 tryTakeMVar :: MVar a -> IO (Maybe a)
-\end{verbatim}
+\end{minted}
 
 The blocking behaviour of \verb|MVar|s means that computations can
 become deadlocked.  For example, deadlock occurs if every thread tries
@@ -139,35 +139,35 @@ synchronised, and act as a \emph{barrier} to re-ordering.  Reading or writing to
 an \verb|MVar| does; executing an STM transaction does; throwing an asynchronous
 exeception does; and the atomic \verb|IORef| operations do:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 atomicWriteIORef  :: IORef a -> a -> IO ()
 atomicModifyIORef :: IORef a -> (a -> (a, b)) -> IO b
-\end{verbatim}
+\end{minted}
 
 \paragraph{Compare-and-swap}
 Modern processor architectures provide an atomic \emph{compare-and-swap}
 instruction, which is typically used in implementing high-performance lock-free
 algorithms.  The \package{atomic-primops} package exposes this to Haskell code:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 readForCAS :: IORef a -> IO (Ticket a)
 peekTicket :: Ticket a -> a
-\end{verbatim}
+\end{minted}
 
 A \verb|Ticket| is a proof that a value has been observed inside an
 \verb|IORef| at some prior point.  Given this proof, the programmer
 can efficiently and atomically change the value inside the
 \verb|IORef| later if it has not been modified:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 casIORef :: IORef a -> Ticket a -> a -> IO (Bool, Ticket a)
-\end{verbatim}
+\end{minted}
 
 There is also a variant of \verb|atomicModifyIORef| using compare-and-swap:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 atomicModifyIORefCAS :: IORef a -> (a -> (a, b)) -> IO b
-\end{verbatim}
+\end{minted}
 
 Both \verb|casIORef| and \verb|atomicModifyIORefCAS| are partially
 synchronised operations which act as a barrier to re-ordering on that
@@ -194,11 +194,11 @@ actions.
 Transaction variables, or \verb|TVar|s, are yet another type of shared variable,
 but with the difference that operating on them has a transactional effect:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 newTVar   :: a -> STM (TVar a)
 readTVar  :: TVar a -> STM a
 writeTVar :: TVar a -> a -> STM ()
-\end{verbatim}
+\end{minted}
 
 Transactions are atomic, so all reads will see a consistent state, and
 in the presence of writes, intermediate states cannot be observed by
@@ -209,24 +209,24 @@ If we read a \verb|TVar| and don't like the value it has, the
 transaction can be aborted, and the thread will block until any of the
 referenced \verb|TVar|s have been mutated:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 retry :: STM a
-\end{verbatim}
+\end{minted}
 
 We can also try executing a transaction, and do something else if it
 retries:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 orElse :: STM a -> STM a -> STM a
-\end{verbatim}
+\end{minted}
 
 \paragraph{Executing transactions}
 Transactions compose.  We can take small transactions and build bigger
 transactions from them, and the whole is still executed atomically.
 
-\begin{verbatim}
+\begin{minted}{haskell}
 atomically :: STM a -> IO a
-\end{verbatim}
+\end{minted}
 
 This means we can do complex state operations involving multiple shared
 variables without worrying!
@@ -242,10 +242,10 @@ exceptions.
 \paragraph{Throwing and catching}
 The basic functions for dealing with exceptions are:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 catch :: Exception e => IO a -> (e -> IO a) -> IO a
 throw :: Exception e => e -> IO a
-\end{verbatim}
+\end{minted}
 
 Where \verb|throw| causes the computation to jump back to the nearest
 enclosing \verb|catch| capable of handling the particular exception.
@@ -256,10 +256,10 @@ exception.
 
 Asynchronous exceptions can be thrown to another thread:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 throwTo    :: Exception e => ThreadId -> e -> IO ()
 killThread :: ThreadId -> IO ()
-\end{verbatim}
+\end{minted}
 
 These functions block until the target thread is in an appropriate state to
 receive the exception.  Asynchronous exceptions can be caught with \verb|catch|,
@@ -277,27 +277,27 @@ There are two functions to set the masking state.  These each execute a
 computation in the new state, and pass it a function to run a subcomputation
 with the original masking state:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 mask                :: ((forall a. IO a -> IO a) -> IO b) -> IO b
 uninterruptibleMask :: ((forall a. IO a -> IO a) -> IO b) -> IO b
-\end{verbatim}
+\end{minted}
 
 When a thread is started, it inherits the masking state of its parent.  As the
 parent may be masked, we can fork a thread with a function to run a
 subcomputation with exceptions unmasked:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 forkIOWithUnmask :: ((forall a. IO a -> IO a) -> IO ()) -> IO ThreadId
 forkOnWithUnmask :: Int -> ((forall a. IO a -> IO a) -> IO ()) -> IO ThreadId
-\end{verbatim}
+\end{minted}
 
 \paragraph{Software transactional memory}
 STM can also use exceptions.  If an exception propagates uncaught to the top of
 a transaction, that transaction is aborted.
 
-\begin{verbatim}
+\begin{minted}{haskell}
 throwSTM :: Exception e => e -> STM a
 catchSTM :: Exception e => STM a -> (e -> STM a) -> STM a
-\end{verbatim}
+\end{minted}
 
 The \verb|orElse| function does not catch exceptions.

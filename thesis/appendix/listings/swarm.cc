@@ -26,6 +26,8 @@ namespace systematic {
     knob()->RegisterInt("swarm_k",
       "max number of scheduling points", "100");
   }
+
+
   bool SwarmScheduler::Enabled() {
     return knob()->ValueBool("enable_swarm_scheduler");
   }
@@ -108,6 +110,16 @@ namespace systematic {
     }
   }
 
+
+
+  void SwarmScheduler::AssignWeightTo(uint32 uid) {
+    std::uniform_int_distribution<uint8> weightDist(1, 50);
+    uint8 weight = weightDist(random);
+    std::cout << "Assigning thread " << uid <<
+      " weight " << uint32(weight) << std::endl;
+    weights[uid] = weight;
+  }
+
   std::pair<systematic::Thread* const, systematic::Action*>
   SwarmScheduler::PickNextRandom(State *state) {
     auto enabled = state->enabled();
@@ -128,14 +140,6 @@ namespace systematic {
     auto it = enabled->begin();
     std::advance(it, chosen);
     return *it;
-  }
-
-  void SwarmScheduler::AssignWeightTo(uint32 uid) {
-    std::uniform_int_distribution<uint8> weightDist(1, 50);
-    uint8 weight = weightDist(random);
-    std::cout << "Assigning thread " << uid <<
-      " weight " << uint32(weight) << std::endl;
-    weights[uid] = weight;
   }
 
   void SwarmScheduler::PersistWeights() {

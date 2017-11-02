@@ -3,9 +3,7 @@
 -- This is basically the same as 'dependent'', but can make use of the
 -- additional information in a 'ThreadAction' to make better decisions
 -- in a few cases.
-dependent :: DepState
-          -> ThreadId -> ThreadAction
-          -> ThreadId -> ThreadAction
+dependent :: DepState -> ThreadId -> ThreadAction -> ThreadId -> ThreadAction
           -> Bool
 dependent ds t1 a1 t2 a2 = case (a1, a2) of
   -- @SetNumCapabilities@ and @GetNumCapabilities@ are NOT dependent
@@ -29,10 +27,8 @@ dependent ds t1 a1 t2 a2 = case (a1, a2) of
   (STM _ _, BlockedSTM _)      -> checkSTM
   (BlockedSTM _, STM _ _)      -> checkSTM
   (BlockedSTM _, BlockedSTM _) -> checkSTM
-
   _ -> case (,) <$> rewind a1 <*> rewind a2 of
-    Just (l1, l2) ->
-      dependent' ds t1 a1 t2 l2 && dependent' ds t2 a2 t1 l1
+    Just (l1, l2) -> dependent' ds t1 a1 t2 l2 && dependent' ds t2 a2 t1 l1
     _ -> dependentActions ds (simplifyAction a1) (simplifyAction a2)
 
   where
@@ -46,9 +42,7 @@ dependent ds t1 a1 t2 a2 = case (a1, a2) of
 --
 -- Termination of the initial thread is handled specially in the DPOR
 -- implementation.
-dependent' :: DepState
-           -> ThreadId -> ThreadAction
-           -> ThreadId -> Lookahead
+dependent' :: DepState -> ThreadId -> ThreadAction -> ThreadId -> Lookahead
            -> Bool
 dependent' ds t1 a1 t2 l2 = case (a1, l2) of
   -- Worst-case assumption: all IO is dependent.

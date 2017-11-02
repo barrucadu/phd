@@ -20,18 +20,18 @@ laws (or properties) which should hold for all input values.  This is unlike
 typical unit testing, which can be thought of as checking specific pairs of
 input--output values.  For example, a sort function should preserve length:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 prop_sort_len xs = length xs == length (sort xs)
-\end{verbatim}
+\end{minted}
 
 Often we do not want to check a property for arbitrary input values.
 Perhaps we know something about how the functions we are testing are
 expected to be used, or we are only interested in how they behave in a
 certain case.  For this, we can use implication:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 prop_ord_insert x xs = ordered xs ==> ordered (insert x xs)
-\end{verbatim}
+\end{minted}
 
 Implication is typically provided as part of property DSL of a tool,
 rather than being a normal boolean function.  This allows the tool to
@@ -43,9 +43,9 @@ of all lists of length two do.  An alternative approach is to use a custom value
 generator.  For example, suppose we have a suitable function for producing
 ordered lists, we could restate the implication property as:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 prop_ord_insert x = forAll orderedList (\xs -> ordered (insert x xs))
-\end{verbatim}
+\end{minted}
 
 By only generating input values which satisfy the precondition, we can avoid
 skewing the distribution, and improve our confidence that the property does
@@ -136,9 +136,9 @@ sometimes pass and sometimes fail.  Existential properties are more
 commonly supported by enumerative tools.  This is an example of an
 existential property:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 prop_gt_5 = exists (\x -> x > 5)
-\end{verbatim}
+\end{minted}
 
 Higher-order properties are properties where some of the inputs are,
 themselves, functions.  To test such a property requires the tool to
@@ -146,9 +146,9 @@ be able to generate functions.  Higher-order properties are invaluable
 in the testing of higher-order functions.  This is an example of a
 higher-order property:
 
-\begin{verbatim}
+\begin{minted}{haskell}
 prop_map_fuse xs f g = map g (map f xs) == map (g . f) xs
-\end{verbatim}
+\end{minted}
 
 \paragraph{Output}
 Despite not affecting the expressiveness of the tool, presenting
@@ -161,14 +161,14 @@ Generalising counterexamples directly can be more efficient than a
 QuickCheck-style shrinking process\cite{pike2014}.  This is an example
 of a generalised counterexample:
 
-\begin{verbatim}
+\begin{minted}{text}
 > check $ \xs -> nub xs == (xs::[Int])
 *** Failed! Falsifiable (after 3 tests):
 [0,0]
 
 Generalization:
 x:x:_
-\end{verbatim}
+\end{minted}
 
 \noindent where the \verb|nub| function removes duplicates from a
 list.
