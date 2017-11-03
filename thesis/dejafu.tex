@@ -210,7 +210,7 @@ warden that everyone has visited.  \lstref{100perfect} shows an
 implementation of these behaviours.
 
 \begin{listing}
-\begin{subfigure}{\textwidth}
+\begin{sublisting}{\textwidth}
 \begin{minted}{haskell}
 leader :: MonadConc m => Int -> TVar (STM m) Int -> m ()
 leader numPrisoners days = atomically $ do
@@ -227,12 +227,12 @@ prison numPrisoners = do
   leader numPrisoners days
 \end{minted}
 \caption{The good enough solution: just wait a long time and gamble.}\label{lst:100good}
-\end{subfigure}
+\end{sublisting}
 
-% [layout hack]: no gap between the figures otherwise
+% [layout hack]: no gap between the listings otherwise
 \vspace{2.5em}
 
-\begin{subfigure}{\textwidth}
+\begin{sublisting}{\textwidth}
 \begin{minted}{haskell}
 data Light = IsOn | IsOff
 
@@ -265,7 +265,7 @@ prison numPrisoners = do
   leader numPrisoners light
 \end{minted}
 \caption{The perfect solution: nominate a leader, who waits until he is certain that everyone has been in the room.}\label{lst:100perfect}
-\end{subfigure}
+\end{sublisting}
 \caption{Two solutions for the 100 prisoners problem.}\label{lst:100sols}
 \end{listing}
 
@@ -994,11 +994,343 @@ core DPOR algorithm, which establishes property (2).
 \section{Case Studies}
 \label{sec:dejafu-casestudies}
 
-\blindtext
+Three case studies are discussed, two of which are from pre-existing
+libraries which have been modified to use the \verb|MonadConc|
+abstraction.  A known bug is reproduced in the \package{auto-update}
+library.  Then, there is a bug which arose unintentionally in the
+implementation of a library for expressing parallel search problems.
+Finally, one of the schedulers in the \package{monad-par} package is
+tested.
 
 \subsection{The auto-update Package}
+
+\begin{listing}
+  \begin{minted}{haskell}
+data UpdateSettings a = UpdateSettings
+    { updateFreq           :: Int
+    , updateSpawnThreshold :: Int
+    , updateAction         :: IO a
+    }
+
+defaultUpdateSettings :: UpdateSettings ()
+defaultUpdateSettings = UpdateSettings
+    { updateFreq           = 1000000
+    , updateSpawnThreshold = 3
+    , updateAction         = return ()
+    }
+
+mkAutoUpdate :: UpdateSettings a -> IO (IO a)
+mkAutoUpdate us = do
+    currRef      <- newIORef Nothing
+    needsRunning <- newEmptyMVar
+    lastValue    <- newEmptyMVar
+
+    void $ forkIO $ forever $ do
+        takeMVar needsRunning
+
+        a <- catchSome $ updateAction us
+
+        writeIORef currRef $ Just a
+        void $ tryTakeMVar lastValue
+        putMVar lastValue a
+
+        threadDelay $ updateFreq us
+
+        writeIORef currRef Nothing
+        void $ takeMVar lastValue
+
+    return $ do
+        mval <- readIORef currRef
+        case mval of
+            Just val -> return val
+            Nothing -> do
+                void $ tryPutMVar needsRunning ()
+                readMVar lastValue
+
+catchSome :: IO a -> IO a
+catchSome act = catch act $
+  \e -> return $ throw (e :: SomeException)
+  \end{minted}
+  \caption{The implementation of the auto-update package.}\label{lst:example-autoupdate}
+\end{listing}
+
+The \textbf{auto-update} library runs tasks periodically, but only if
+needed.  For example, a single worker thread may get the time every
+second and store it to a shared \verb|CRef|, rather than have many
+threads starting within a second of each other all get the time
+independently.  Despite the core functionality being simple, a race
+condition was noticed by users inspecting the code in October 2014.
+
+The entire implementation, excluding comments and imports, is
+reproduced in \lstref{example-autoupdate}.  The \verb|mkAutoUpdate|
+function spawns a worker thread, which performs the update action at
+the given frequency, only if the \verb|needsRunning| flag has been
+set.  It returns an action to attempt to read the current result, if
+necessary blocking until there is one.  The transformation to the
+\verb|MonadConc| typeclass is straightforward.
+
+The race condition occurs if the reading thread is pre-empted by the
+worker thread after putting into \verb|needsRunning|, and does not run
+again until after the delay has passed.  In this case the worker
+thread can become blocked on taking for a second time from
+\verb|needsRunning|.  The reader thread will be unable to read from
+\verb|lastValue| as the worker thread emptied it as the last action it
+performed.  The race condition can be exhibited with the following
+test:
+
+\begin{minted}{haskell}
+test :: MonadConc m => m ()
+test = join (mkAutoUpdate defaultUpdateSettings)
+\end{minted}
+
+This test was chosen as it is one of the simplest things a user may
+wish to do with the library: to create the worker, and to then read
+the computed value.  The output of testing shows the different results
+that were found, with a sample trace leading to each one:
+
+\begin{minted}{text}
+> autocheck test
+[fail] Never Deadlocks (checked: 5)
+        [deadlock] S0--------S1---------S0-
+[pass] No Exceptions (checked: 55)
+[fail] Consistent Result (checked: 54)
+        () S0--------S1------P0--
+
+        [deadlock] S0--------S1---------S0-
+\end{minted}
+
+The \verb|autocheck| function is used to search for deadlocks,
+uncaught exceptions in the main thread, and nondeterminism in
+results. In this display, ``S$n$'' indicates that thread $n$ began
+executing after the prior one terminated, blocked, or yielded; and
+``P$n$'' indicates that thread $n$ pre-empted the prior one.
+
+To read this trace, it is helpful to look at the ``S'' points, rather
+than to count the steps.  Using this tactic, we see that a deadlock
+occurs if thread 0 (the initial thread) runs until it blocks (which is
+the \verb|readMVar lastValue| call), then thread 1 (the worker thread)
+runs until it blocks (the second time \verb|takeMVar needsRunning| is
+reached).  At this point the initial thread is runnable, as it was
+unblocked by the write to \verb|lastValue|.  The initial thread is
+scheduled, and immediately blocks because the worker thread took the
+value.  Both threads are now blocked, and so the computation is
+deadlocked.
+
+This deadlock may arise in any use of the library, as it depends only
+on the timing of the delay, and not on the computation performed.  If
+the call to \verb|threadDelay| completes before the reading thread has
+resumed execution, this situation will arise.  Despite this bug being
+rather simple, not requiring any pre-emptions at all to trigger, it
+arose in practice.  How easy it is to make mistakes when implementing
+concurrent programs!
+
 \subsection{Search Party}
+
+The \textbf{Search Party}\footnote{\url{https://github.com/barrucadu/search-party}}
+library supports speculative parallelism in generate-and-test search
+problems.  It is motivated by the consideration that if multiple
+acceptable solutions exist, it may not matter which one is returned.
+In early versions of the library, only single results could be
+returned, but support for returning all results was later added,
+incorrectly, introducing a bug.
+
+The library provides a collection of combinators used to express a
+generate-and-test problem, which are executed in using a concurrent
+producer/consumer pattern.  One worker thread is created for each
+capability, which share a list of work items and communicate results
+back to the main thread.
+
+A key piece of worker loop is as follows:
+
+\begin{minted}{haskell}
+case maybea of
+  Just a -> do
+    atomically $ do
+      val <- tryTakeTMVar res
+      case val of
+        Just (Just as) -> putTMVar res $ Just (a:as)
+        _ -> putTMVar res $ Just [a]
+    unless shortcircuit $
+      process remaining res
+  Nothing -> process remaining res
+\end{minted}
+
+Here \verb|maybea| is a value indicating whether the computation just
+evaluated was successful.  A \verb|TMVar| (used by the
+\verb|tryTakeTMVar| and \verb|putTMVar| functions) is a \verb|TVar|
+containing a \verb|Maybe| value, which aborts the transaction if it
+fails.  The result is a similar type to the \verb|MVar|, but
+composable.  The intended behaviour of this code that, if a
+computation is successful, its result is added to the list in the
+\verb|res| \verb|TMVar|.  This \verb|TMVar| is exposed indirectly to
+the user of the library, as it is blocked upon when the result of the
+search is requested.
+
+Upon introducing this new functionality, tests for it were added to
+the testsuite:\footnote{The \texttt{representative} function picks
+  only one trace for each unique result.}
+
+\begin{minted}{haskell}
+checkResultLists :: Eq a => Predicate [a]
+checkResultLists = representative (alwaysTrue2 check) where
+  check (Right as) (Right bs) = as `elem` permutations bs
+  check a b = a == b
+\end{minted}
+
+This \dejafu{} predicate checks that all result lists are equal, up to
+ordering.  Given this predicate, we can see the problem:
+
+\begin{minted}{text}
+> let test xs = takeStream (length xs) =<< xs @! const True
+> dejafu (test [0..2]) ("Result Lists", checkResultLists)
+[fail] Result Lists (checked: 38)
+        [] S0------S1-----S0-------
+
+        [0] S0------S1-----S0---P3------------S0-------
+
+        [0,1] S0------S1-----S0---P3------------S0--P3------S0--------
+
+        [1] S0------S1-----S0---P2-P3------------S0-------
+\end{minted}
+%>> - emacs does some silly highlighting after the << above
+
+The \verb|@!| operator is a concurrent filter, with the order of
+results nondeterministic.  The problem was a lack of any indication
+that a list-producing computation had finished.  As results were
+written directly to the \verb|TMVar|, partial result lists could be
+read depending on how the worker threads and the main thread were
+interleaved.
+
+In this case, fixing the failure did not require any interactive
+debugging.  Only one place had been modified in introducing the new
+functionality, and the bug was found by re-reading the code with the
+possibility of error in mind.  However, the ability to produce a test
+case which reliably reproduces the problem gives confidence that it
+will not be accidentally reintroduced.
+
+\FloatBarrier
 \subsection{The Par Monad}
+
+\begin{listing}
+  \begin{sublisting}{\textwidth}
+    \begin{minted}{haskell}
+makeScheds :: Int -> IO [Sched]
+makeScheds main = do
+   workpools <- replicateM numCapabilities $ R.newQ
+   rngs <- replicateM numCapabilities $ Random.create >>= newHotVar
+   idle <- newHotVar []
+   sessionFinished <- newHotVar False
+   sessionStacks   <- mapM newHotVar
+     (replicate numCapabilities [Session baseSessionID sessionFinished])
+   activeSessions  <- newHotVar S.empty
+   sessionCounter  <- newHotVar (baseSessionID + 1)
+   let allscheds = [ Sched { no=x, idle, isMain=(x==main), workpool=wp,
+                             scheds=allscheds, rng=rng, sessions=stck
+                             sessionCounter, activeSessions
+                           }
+                   | x   <- [0 .. numCapabilities-1]
+                   | wp  <- workpools
+                   | rng <- rngs
+                   | stck <- sessionStacks
+                   ]
+   return allscheds
+    \end{minted}
+    \caption{Original}\label{lst:example-parmonad-sched-orig}
+  \end{sublisting}
+
+  % [layout hack]: no gap between the listings otherwise
+  \vspace{2.5em}
+
+  \begin{sublisting}{\textwidth}
+    \begin{minted}{haskell}
+makeScheds :: (MonadConc m, MonadIO m) => Int -> m [Sched m]
+makeScheds main = do
+   numCapabilities <- getNumCapabilities
+   workpools <- replicateM numCapabilities $ liftIO R.newQ
+   let rng i = liftIO (Random.initialize (V.singleton $ fromIntegral i))
+   rngs <- mapM (\i -> rng i >>= newHotVar) [0..numCapabilities]
+   idle <- newHotVar []
+   sessionFinished <- newHotVar False
+   sessionStacks   <- mapM newHotVar
+     (replicate numCapabilities [Session baseSessionID sessionFinished])
+   activeSessions  <- newHotVar S.empty
+   sessionCounter  <- newHotVar (baseSessionID + 1)
+   let allscheds = [ Sched { no=x, idle, isMain=(x==main), workpool=wp,
+                             scheds=allscheds, rng=rng, sessions=stck
+                             sessionCounter, activeSessions
+                           }
+                   | x   <- [0 .. numCapabilities-1]
+                   | wp  <- workpools
+                   | rng <- rngs
+                   | stck <- sessionStacks
+                   ]
+   return allscheds
+    \end{minted}
+    \caption{\dejafu{}}\label{lst:example-parmonad-sched-dejafu}
+  \end{sublisting}
+  \caption{The monad-par ``direct'' scheduler initialisation.}\label{lst:example-parmonad-sched}
+\end{listing}
+
+The \package{monad-par} library\cite{marlow2011} provides a
+traditional-looking concurrency abstraction, giving the programmer
+threads and mutable state, however it maintains determinism by
+restricting its shared variables to one write, and read operations
+block until a value has been written.  These shared \verb|IVar|
+variables are used to implement futures, rather than general mutable
+state.  The package uses a work-stealing scheduler running on multiple
+operating system threads, fully evaluating values on their own threads
+before inserting them into an \verb|IVar|.  Despite its limitations,
+the library can be effective in speeding up pure code.
+
+The library provides several different schedulers.  We ported the
+``direct'' scheduler to the \verb|MonadConc| typeclass so it could be
+tested.  This resulted in two files needing change.  This was a
+straightforward and compiler-driven refactoring.  Changing function
+types to reference \verb|MonadConc| rather than \verb|IO| led to
+compiler errors showing where the next changes needed to be made.  We
+iterated this process of fixing errors and recompiling until the
+library compiled once more.
+
+Some simplifications were made in the conversion process:
+
+\begin{itemize}
+\item The scheduler uses the \package{mwc-random} library to fairly
+  control the worker threads.  By default, the initial seed is an
+  effectively random value.  As systematic testing requires that the
+  scheduler be the only source of nondeterminism, we fixed the random
+  seed.
+\item Behaviour of the scheduler can be configured using cpp, but we
+  only ported the default configuration.
+\end{itemize}
+
+\lstref{example-parmonad-sched} shows the original and converted
+scheduler initialisation code.  As can be seen, they are similar, even
+though this is a core component of a rather sophisticated library,
+where the types have been changed.  \tblref{example-parmonad-diff}
+breaks down the changes across both files.  Code changes are broken
+down into ``renames,'' where the \textbf{concurrency} library simply
+provides a different name for a function, and ``logic,'' where that
+was not the case.  The logic changes were all places where a call to
+\verb|liftIO| or \verb|lift| was now necessary, and inserting uses of
+\verb|getNumCapabilities|.
+
+\begin{table}
+  \centering
+  \begin{tabular}{l|rr} \toprule
+    & Direct.hs & DirectInternal.hs \\ \midrule
+    Language extensions & 1 & 0 \\
+    Module imports & 6 & 1 \\
+    Type definitions & 7 & 13 \\
+    Type signatures & 32 & 7 \\
+    Function renames & 13 & 5 \\
+    Logic changes & 16 & 0 \\ \midrule
+    \emph{Total} & 75 & 26 \\ \bottomrule
+  \end{tabular}
+  \caption{Breakdown of changes to port the monad-par ``direct'' scheduler.}\label{tbl:example-parmonad-diff}
+\end{table}
+
+No deadlock or nondeterminism was discovered, with a variety of
+initial random seeds tried.
 
 \section{\dejafu{} in the Wild}
 \label{sec:dejafu-evaluation}
