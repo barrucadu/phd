@@ -4,7 +4,10 @@
 *.bcf
 *.fdb_latexmk
 *.fls
+*.lof
 *.log
+*.lol
+*.lot
 *.out
 *.pdf
 *.toc

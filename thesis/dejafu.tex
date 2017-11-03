@@ -102,7 +102,7 @@ instance Monad n => MonadConc (ConcT r n) where
   takeMVar var   = toConc (ATakeMVar var)
   -- other operations omitted
   \end{minted}
-  \caption{The implementation of \lstref{monadconc} we use for testing.}\label{lst:mvarops}
+  \caption{A fragment of the \texttt{MonadConc} testing implementation.}\label{lst:mvarops}
 \end{listing}
 
 The type for our testing implementation is called \verb|ConcT r n|, which is a
@@ -455,7 +455,7 @@ newtype Scheduler state = Scheduler
     -> (Maybe ThreadId, state)
   }
   \end{minted}
-  \caption{The \texttt{Scheduler} type.}\label{lst:scheduler}
+  \caption{The \dejafu{} \texttt{Scheduler} type.}\label{lst:scheduler}
 \end{listing}
 
 \paragraph{Success and Failure}
@@ -596,7 +596,7 @@ two threads and two \verb|CRef|s.
     \end{tikzpicture}
     \caption{Partial Store Order}
   \end{subfigure}
-  \caption{Write buffering for two threads and two \texttt{CRef}s.}
+  \caption{Example of write buffering for two threads and two \texttt{CRef}s.}
   \label{fig:wb}
 \end{figure}
 
@@ -956,7 +956,7 @@ data DPOR = DPOR
   -- sets.
   } deriving (Eq, Show)
   \end{minted}
-  \caption{The DPOR state is a stack of scheduling decisions.}\label{lst:dpor}
+  \caption[The \dejafu{} DPOR state.]{The DPOR state is a stack of scheduling decisions.}\label{lst:dpor}
 \end{listing}
 
 There are some basic well-formedness properties associated with a

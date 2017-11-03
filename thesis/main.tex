@@ -74,11 +74,21 @@
 \setlength\footnotemargin{8.5pt}
 
 % Code
-\usepackage{listings}
 \usepackage{minted}
+\renewcommand{\listoflistings}{%
+  \cleardoublepage
+  \phantomsection
+  \addcontentsline{toc}{chapter}{\listoflistingscaption}%
+  \listof{listing}{\listoflistingscaption}%
+}
 \DeclareCaptionSubType{listing}
 \usemintedstyle{tango}
 \setminted{fontsize=\footnotesize,linenos}
+
+\usepackage{etoolbox}
+\makeatletter
+\pretocmd{\chapter}{\addtocontents{lol}{\protect\addvspace{10\p@}}}{}{}
+\makeatother
 
 % Quotes
 \usepackage{xparse}
