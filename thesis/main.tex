@@ -33,6 +33,7 @@
 \usepackage{subcaption}
 \usepackage{tikz}
 \usepackage{wasysym}
+\usepackage{placeins}
 \usepackage{hyperref}
 \hypersetup{
  colorlinks,
@@ -47,8 +48,8 @@
 
 % Headings
 \usepackage{titlesec}
-\titleformat{\section}[hang]{\normalfont\large}{\thesection.}{1em}{}
-\titleformat{\subsection}[hang]{\normalfont\large}{\thesubsection.}{1em}{}
+\titleformat{\section}[hang]{\FloatBarrier\normalfont\large}{\thesection.}{1em}{}
+\titleformat{\subsection}[hang]{\FloatBarrier\normalfont\large}{\thesubsection.}{1em}{}
 \titleformat*{\paragraph}{\bfseries}
 
 % Fonts
@@ -74,12 +75,8 @@
 
 % Code
 \usepackage{listings}
-\lstset{
-  basicstyle=\ttfamily\footnotesize,
-  showstringspaces=false
-}
-
 \usepackage{minted}
+\DeclareCaptionSubType{listing}
 \usemintedstyle{tango}
 \setminted{fontsize=\footnotesize,linenos}
 

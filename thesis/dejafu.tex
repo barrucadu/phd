@@ -60,8 +60,7 @@ implementations.  There is one implementation using the \verb|IO| type and the
 standard functions; there is another using our own type, based on continuations
 which we can inspect.
 
-\begin{listing}[t]
-  \centering
+\begin{listing}
   \begin{minted}{haskell}
 class (Monad m, {- other constraints omitted -}) => MonadConc m where
   type MVar m :: * -> *
@@ -90,8 +89,7 @@ two ways of constructing an empty \verb|MVar|.  One way takes a name, which is
 displayed in debugging information, the other does not.  Each is defined in
 terms of the other, and so the programmer must supply at least one.
 
-\begin{listing}[t]
-  \centering
+\begin{listing}
   \begin{minted}{haskell}
 instance Monad n => MonadConc (ConcT r n) where
   type MVar (ConcT r n) = MVar r
@@ -172,7 +170,16 @@ trace.  So, given some way of setting up the prison, we can ask
 \dejafu{} to execute it and then examine the returned traces to
 discover if the prisoners are successful.
 
-\begin{table}[t]
+\subsection{The ``Good Enough'' Solution}
+
+One school of thought says to just wait for three years, because by
+then it's unlikely that any single prisoner had never visited the
+room.  In fact, w would expect each prisoner to have been to the room
+ten times by then.  \lstref{100good} shows an implementation of this
+strategy, and \tblref{100rand} shows how the prisoners fare over 100
+random executions.
+
+\begin{table}
   \centering
   \begin{tabular}{l|rrrrrrrr} \toprule
     Prisoners          &   1 &   2    &   3    &   4    &   5    &   6    &   7    &   8 \\
@@ -183,18 +190,28 @@ discover if the prisoners are successful.
   \caption{The behaviour of the good enough solution.}\label{tbl:100rand}
 \end{table}
 
-\subsection{The ``Good Enough'' Solution}
+After waiting $10 n$ days, where $n$ is the number of prisoners, the
+chance that any one prisoner has been consistently missed is
+$\left(1 - \frac{1}{n}\right)^{10n}$.  This is roughly 0.004\% for 100
+prisoners, and converges to $\frac{1}{e^{10}}$.
 
-One school of thought says to just wait for three years, because by
-then it's unlikely that any single prisoner had never visited the
-room.  In fact, w would expect each prisoner to have been to the room
-ten times by then.  \lstref{100good} shows an implementation of this
-strategy, and \tblref{100rand} shows how the prisoners fare over 100
-random executions.
+\subsection{The Perfect Solution}
 
-\begin{listing}[t]
-  \centering
-  \begin{minted}{haskell}
+Perhaps our prisoners are more cautious, and a 0.004\% chance of death
+is too much.  They want to be certain of their success.  A slow but
+simple strategy is for the prisoners to nominate a leader.  Only the
+leader can declare to the warden that everyone has visited the room.
+Whenever a prisoner other than the leader visits the room, if the
+light is on, they do nothing; otherwise, if this is their first time
+in the room with the light off, they turn it on, otherwise they leave
+it.  Whenever the leader enters the room, they turn the light off.
+When the leader has turned the light off 99 times, they tell the
+warden that everyone has visited.  \lstref{100perfect} shows an
+implementation of these behaviours.
+
+\begin{listing}
+\begin{subfigure}{\textwidth}
+\begin{minted}{haskell}
 leader :: MonadConc m => Int -> TVar (STM m) Int -> m ()
 leader numPrisoners days = atomically $ do
   numDays <- readTVar days
@@ -208,34 +225,15 @@ prison numPrisoners = do
   days <- atomically (newTVar 0)
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader days))
   leader numPrisoners days
-  \end{minted}
-  \caption{The good enough solution: just wait a long time and gamble.}\label{lst:100good}
-\end{listing}
+\end{minted}
+\caption{The good enough solution: just wait a long time and gamble.}\label{lst:100good}
+\end{subfigure}
 
-After waiting $10 n$ days, where $n$ is the number of prisoners, the
-chance that any one prisoner has been consistently missed is
-$\left(1 - \frac{1}{n}\right)^{10n}$.  This is roughly 0.004\% for 100
-prisoners, and converges to $\frac{1}{e^{10}}$.
+% [layout hack]: no gap between the figures otherwise
+\vspace{2.5em}
 
-\subsection{The Perfect Solution}
-
-Perhaps our prisoners are more cautious, and a 0.004\% chance of death
-is too much.  They want to be certain of their success.
-
-A slow but simple strategy is for the prisoners to nominate a leader.
-Only the leader can declare to the warden that everyone has visited
-the room.  Whenever a prisoner other than the leader visits the room,
-if the light is on, they do nothing; otherwise, if this is their first
-time in the room with the light off, they turn it on, otherwise they
-leave it.  Whenever the leader enters the room, they turn the light
-off.  When the leader has turned the light off 99 times, they tell the
-warden that everyone has visited.
-
-\lstref{100perfect} shows an implementation of these behaviours.
-
-\begin{listing}[t]
-  \centering
-  \begin{minted}{haskell}
+\begin{subfigure}{\textwidth}
+\begin{minted}{haskell}
 data Light = IsOn | IsOff
 
 leader :: MonadConc m => Int -> TVar (STM m) Light -> m ()
@@ -265,8 +263,10 @@ prison numPrisoners = do
   light <- atomically (newTVar IsOff)
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader light))
   leader numPrisoners light
-  \end{minted}
-  \caption{The perfect solution: nominate a leader, who waits until he is certain that everyone has been in the room.}\label{lst:100perfect}
+\end{minted}
+\caption{The perfect solution: nominate a leader, who waits until he is certain that everyone has been in the room.}\label{lst:100perfect}
+\end{subfigure}
+\caption{Two solutions for the 100 prisoners problem.}\label{lst:100sols}
 \end{listing}
 
 We can satisfy ourselves that this works for all cases by using
@@ -275,7 +275,7 @@ combination of dynamic partial-order reduction and schedule bounding.
 \tblref{100slow} shows how the number of attempts and average room
 visits grows as the number of prisoners increases.
 
-\begin{table}[t]
+\begin{table}
   \centering
   \begin{tabular}{l|rrr} \toprule
     Prisoners          & 1 & 2 &    3 \\
@@ -312,7 +312,7 @@ schedule a thread which is going to yield.  \tblref{100fast} shows how
 the number of schedules and average room visits grows with this
 change.
 
-\begin{table}[t]
+\begin{table}
   \centering
   \begin{tabular}{l|rrrrrr} \toprule
     Prisoners          & 1 & 2 & 3   &  4   &    5 &      6 \\
@@ -332,6 +332,7 @@ studies\cite{thomson2014} have found that many concurrency bugs can be
 exhibited with only two or three threads.  Furthermore, most
 real-world concurrent programs don't have every single thread
 operating on the same bit of shared state.
+
 \section{Executing Concurrent Programs}
 \label{sec:dejafu-execution}
 
@@ -342,8 +343,7 @@ effect and has a continuation.  This is the \verb|Action| type.  Each thread of
 execution is terminated by a distinguished \emph{stop} primitive, which has no
 continuation and signals successful completion.
 
-\begin{listing}[t]
-  \centering
+\begin{listing}
   \begin{minted}{haskell}
 newtype M n r a = M { runM :: (a -> Action n r) -> Action n r }
 
@@ -398,8 +398,7 @@ reference fall out of scope, the referenced value can be garbage collected;
 whereas if we model references as keys into a heap, then such data can never be
 freed, as we cannot tell when it is safe to delete something from our heap.
 
-\begin{listing}[t]
-  \centering
+\begin{listing}
 \begin{minted}{haskell}
 pure id <*> v
   = M (\c -> AReturn (c id)) <*> v
@@ -446,8 +445,7 @@ scheduling: in the former, the state is a list of scheduling decisions designed
 to put the system into an unseen state; in the latter, the state is a random
 number generator.
 
-\begin{listing}[t]
-  \centering
+\begin{listing}
   \begin{minted}{haskell}
 newtype Scheduler state = Scheduler
   { scheduleThread
@@ -498,75 +496,6 @@ exception in the thread performing the transaction.  If it evaluates to an
 abort, we block the thread performing the transaction until at least one
 \verb|TVar| read in the transaction is mutated by another thread.
 
-\begin{figure}[t]
-  \centering
-  \begin{subfigure}[t]{0.3\textwidth}
-    \centering
-    \begin{tikzpicture}
-      \node (t1) at (-1,0) {$T_1$};
-      \node (t2) at (1,0)  {$T_2$};
-      \node (v) [draw,shape=circle] at (-1,-4) {$v$};
-      \node (w) [draw,shape=circle] at (1,-4)  {$w$};
-
-      \draw [->] (t1.south) -- (v.north);
-      \draw [->] (t1.south) -- (w.north west);
-      \draw [->] (t2.south) -- (v.north east);
-      \draw [->] (t2.south) -- (w.north);
-    \end{tikzpicture}
-    \caption{Sequential Consistency}
-  \end{subfigure}
-  \begin{subfigure}[t]{0.3\textwidth}
-    \centering
-    \begin{tikzpicture}
-      \node (t1) at (-1,0) {$T_1$};
-      \node (t2) at (1,0)  {$T_2$};
-      \node (v) [draw,shape=circle] at (-1,-4) {$v$};
-      \node (w) [draw,shape=circle] at (1,-4)  {$w$};
-
-      \node (bt1) [draw] at (-1,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $v$ \end{tabular}};
-      \node (bt2) [draw] at (1,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $v$ \end{tabular}};
-
-      \draw [->] (t1) -- (bt1);
-      \draw [->] (t1) -- (bt1);
-      \draw [->] (t2) -- (bt2);
-      \draw [->] (t2) -- (bt2);
-
-      \draw [->] (bt1.south) -- (v);
-      \draw [->] (bt1.south) -- (w);
-      \draw [->] (bt2.south) -- (v);
-      \draw [->] (bt2.south) -- (w);
-    \end{tikzpicture}
-    \caption{Total Store Order}
-  \end{subfigure}
-  \begin{subfigure}[t]{0.3\textwidth}
-    \centering
-    \begin{tikzpicture}
-      \node (t1) at (-1,0) {$T_1$};
-      \node (t2) at (1,0)  {$T_2$};
-      \node (v) [draw,shape=circle] at (-1,-4) {$v$};
-      \node (w) [draw,shape=circle] at (1,-4)  {$w$};
-
-      \node (bt1v) [draw] at (-1.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $v$ \\\midrule $v$ \end{tabular}};
-      \node (bt1w) [draw] at (-0.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $w$ \end{tabular}};
-      \node (bt2v) [draw] at (0.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $v$ \\\midrule $v$ \end{tabular}};
-      \node (bt2w) [draw] at (1.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $w$ \end{tabular}};
-
-      \draw [->] (t1) -- (bt1v);
-      \draw [->] (t1) -- (bt1w);
-      \draw [->] (t2) -- (bt2v);
-      \draw [->] (t2) -- (bt2w);
-
-      \draw [->] (bt1v.south) -- (v);
-      \draw [->] (bt1w.south) -- (w);
-      \draw [->] (bt2v.south) -- (v);
-      \draw [->] (bt2w.south) -- (w);
-    \end{tikzpicture}
-    \caption{Partial Store Order}
-  \end{subfigure}
-  \caption{Write buffering for two threads and two \texttt{CRef}s.}
-  \label{fig:wb}
-\end{figure}
-
 \subsection{Relaxed Memory}
 
 There are three memory models supported in \dejafu{}:
@@ -602,6 +531,75 @@ committed, but only the oldest write in a buffer may be committed.  \figref{wb}
 shows the arrangement of buffers for the three memory models in a system with
 two threads and two \verb|CRef|s.
 
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node (t1) at (-1,0) {$T_1$};
+      \node (t2) at (1,0)  {$T_2$};
+      \node (v) [draw,shape=circle] at (-1,-4) {$v$};
+      \node (w) [draw,shape=circle] at (1,-4)  {$w$};
+
+      \draw [->] (t1.south) -- (v.north);
+      \draw [->] (t1.south) -- (w.north west);
+      \draw [->] (t2.south) -- (v.north east);
+      \draw [->] (t2.south) -- (w.north);
+    \end{tikzpicture}
+    \caption{Sequential Consistency}
+  \end{subfigure}
+  \begin{subfigure}{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node (t1) at (-1,0) {$T_1$};
+      \node (t2) at (1,0)  {$T_2$};
+      \node (v) [draw,shape=circle] at (-1,-4) {$v$};
+      \node (w) [draw,shape=circle] at (1,-4)  {$w$};
+
+      \node (bt1) [draw] at (-1,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $v$ \end{tabular}};
+      \node (bt2) [draw] at (1,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $v$ \end{tabular}};
+
+      \draw [->] (t1) -- (bt1);
+      \draw [->] (t1) -- (bt1);
+      \draw [->] (t2) -- (bt2);
+      \draw [->] (t2) -- (bt2);
+
+      \draw [->] (bt1.south) -- (v);
+      \draw [->] (bt1.south) -- (w);
+      \draw [->] (bt2.south) -- (v);
+      \draw [->] (bt2.south) -- (w);
+    \end{tikzpicture}
+    \caption{Total Store Order}
+  \end{subfigure}
+  \begin{subfigure}{0.3\textwidth}
+    \centering
+    \begin{tikzpicture}
+      \node (t1) at (-1,0) {$T_1$};
+      \node (t2) at (1,0)  {$T_2$};
+      \node (v) [draw,shape=circle] at (-1,-4) {$v$};
+      \node (w) [draw,shape=circle] at (1,-4)  {$w$};
+
+      \node (bt1v) [draw] at (-1.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $v$ \\\midrule $v$ \end{tabular}};
+      \node (bt1w) [draw] at (-0.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $w$ \end{tabular}};
+      \node (bt2v) [draw] at (0.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $v$ \\\midrule $v$ \end{tabular}};
+      \node (bt2w) [draw] at (1.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $w$ \end{tabular}};
+
+      \draw [->] (t1) -- (bt1v);
+      \draw [->] (t1) -- (bt1w);
+      \draw [->] (t2) -- (bt2v);
+      \draw [->] (t2) -- (bt2w);
+
+      \draw [->] (bt1v.south) -- (v);
+      \draw [->] (bt1w.south) -- (w);
+      \draw [->] (bt2v.south) -- (v);
+      \draw [->] (bt2w.south) -- (w);
+    \end{tikzpicture}
+    \caption{Partial Store Order}
+  \end{subfigure}
+  \caption{Write buffering for two threads and two \texttt{CRef}s.}
+  \label{fig:wb}
+\end{figure}
+
 We divide concurrency operations into three categories: \emph{synchronised}
 operations impose a \emph{memory barrier}, which commits all buffered writes;
 \emph{partially synchronised} operations commit one or more buffered writes to
@@ -630,28 +628,11 @@ schedule bounding to test programs, by default.  Controlled random
 scheduling using a fixed number of executions is also available.  To
 make the tool easier to use, we provide a collection of different
 testing functions, with varying levels of detail exposed, hoping that
-the defaults will suffice for most users.  \lstref{autocheck} shows
-the simplest case: the \verb|autocheck| function, which looks for
-deadlocks, uncaught exceptions in the main thread, and nondeterminism.
-At the other end of the scale is the \verb|dejafuDiscard| function
-(\lstref{dejafuDiscard}), which exposes all the controls.
-
-\begin{listing}[t]
-  \centering
-  \begin{minted}{haskell}
-autocheck :: (Eq a, Show a) => (forall t. ConcST t a) -> IO Bool
-  \end{minted}
-  \caption{The type of the \texttt{autocheck} function.}\label{lst:autocheck}
-\end{listing}
-
-\begin{listing}[t]
-  \centering
-  \begin{minted}{haskell}
-dejafuDiscard :: Show a => (Either Failure a -> Maybe Discard) -> Way -> MemType
-              -> (forall t. ConcST t a) -> (String, Predicate a) -> IO Bool
-  \end{minted}
-  \caption{The type of the \texttt{dejafuDiscard} function.}\label{lst:dejafuDiscard}
-\end{listing}
+the defaults will suffice for most users.  At one end of the scale we
+have the \verb|autocheck| function, which looks for deadlocks,
+uncaught exceptions in the main thread, and nondeterminism.  At the
+other end of the scale is the \verb|dejafuDiscard| function which
+exposes all the controls.
 
 A \dejafu{} test has the following components:
 
@@ -702,8 +683,7 @@ make use of this extra information to improve dependency detection
 where possible.  \lstref{deprel-simp} shows a simplified view of our
 relations.  \appref{deprel} shows the full dependency relation.
 
-\begin{listing}[t]
-  \centering
+\begin{listing}
   \begin{minted}{haskell}
 dependency :: ThreadId -> ThreadAction -> ThreadId -> ThreadAction -> Bool
 dependency tid1 ta1 tid2 ta2

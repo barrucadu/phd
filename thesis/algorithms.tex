@@ -245,9 +245,9 @@ techniques.  The exact value is dependent on the initial seed, but we would
 expect it to become stable as the number of executions is
 increased\cite{thomson2016}.
 
-\begin{figure}[t]
+\begin{figure}
   \centering
-  \begin{subfigure}[t]{0.3\textwidth}
+  \begin{subfigure}{0.3\textwidth}
     \centering
     \begin{tikzpicture}[thick]
       \draw (0,0)      circle (1) node[above,shift={(-0.3,1)}] {Rand};
@@ -264,7 +264,7 @@ increased\cite{thomson2016}.
     \end{tikzpicture}
     \caption{Basic algorithms}\label{fig:bugs-base}
   \end{subfigure}
-  \begin{subfigure}[t]{0.3\textwidth}
+  \begin{subfigure}{0.3\textwidth}
     \centering
     \begin{tikzpicture}[thick]
       \draw (0,0)      circle (1) node[above,shift={(-0.3,1)}] {$x=1$};
@@ -281,7 +281,7 @@ increased\cite{thomson2016}.
     \end{tikzpicture}
     \caption{Weight re-use}\label{fig:bugs-swarmx}
   \end{subfigure}
-  \begin{subfigure}[t]{0.3\textwidth}
+  \begin{subfigure}{0.3\textwidth}
     \centering
     \begin{tikzpicture}[thick]
       \draw (0,0)      circle (1) node[above,shift={(-0.3,1)}] {$d=1$};
@@ -321,7 +321,7 @@ re-using the swarm weights and of introducing weight change points, we omit
 $x=1000$ because it performed worse than the other cases; we see that these
 variations have little effect.
 
-\begin{figure}[t]
+\begin{figure}
   \centering
   \input{gen/bugs.tex}
   \caption{The number of bugs found by each algorithm across all benchmarks.  This plot is intended to be viewed with colour.}\label{fig:totalbugs}
@@ -342,7 +342,7 @@ values.  We can see that PCT and Swarm are almost identical, and both
 significantly improve upon random scheduling when it comes to
 finding \emph{unique} bugs.
 
-\begin{figure}[t]
+\begin{figure}
   \centering
   \begin{subfigure}{0.49\textwidth}
     \centering
@@ -357,7 +357,7 @@ finding \emph{unique} bugs.
   \caption{The average number of executions to expose a bug across all benchmarks.  These plots are intended to be viewed with colour.}\label{fig:freqbugs}
 \end{figure}
 
-\begin{table}[t]
+\begin{table}
   \centering
   \begin{tabular}{lrr} \toprule
     Algorithm & Any Bug & A Unique Bug \\ \midrule
