@@ -31,7 +31,7 @@ official tutorial at \url{https://www.haskell.org/tutorial/}
 
 \section*{Evaluation and Execution}
 
-\figref{when} defines the \verb|when| function, which executes an IO action when
+\Cref{fig:when} defines the \verb|when| function, which executes an IO action when
 the condition is true.  We can use it by calling it from \verb|main|, the entry
 point to a Haskell program.
 
@@ -74,7 +74,7 @@ can be read as doing nothing.
 
 \section*{Types and Classes}
 
-\figref{compare} defines the \verb|compare| function, which compares two values.
+\Cref{fig:compare} defines the \verb|compare| function, which compares two values.
 It is \emph{polymorphic}: it can compare two values of any type which has an
 instance of the \verb|Ord| \emph{typeclass}.
 
@@ -126,7 +126,7 @@ There are three mechanisms for doing so:
   \hrulefill
 \end{figure}
 
-\figref{list} shows the declaration of a few list data types.  Let us start by
+\Cref{fig:list} shows the declaration of a few list data types.  Let us start by
 looking at \verb|List|.  Here \verb|List| is a \emph{type constructor}, with
 \verb|List a| where \verb|a| is some type being an actual type.  There are two
 constructors: \verb|Nil|, representing empty lists; and \verb|Cons|,
@@ -161,7 +161,7 @@ that expects a \verb|List Int| and vice versa.
 
 \section*{Functors, Applicatives, and Monads}
 
-These three classes, shown in \figref{famonad}, are ubiquitous in Haskell
+These three classes, shown in \cref{fig:famonad}, are ubiquitous in Haskell
 programming.  Monads turn out to be a very convenient abstraction for modelling
 side-effects.  The \verb|>>=| (read ``bind'') operator can be thought of as
 doing some monadic computation, and then doing something further with the
@@ -192,7 +192,7 @@ Every monad is an applicative, and every applicative is a functor
 \section*{Other Assorted Syntax}
 
 \paragraph{Conditionals}
-We could have written \verb|when| (in \figref{when}) using \emph{guards} or a
+We could have written \verb|when| (in \cref{fig:when}) using \emph{guards} or a
 \emph{case expression}:
 
 \begin{multicols}{2}

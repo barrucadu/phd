@@ -45,8 +45,8 @@ of \dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu/issues/126}}.
 \section{Abstracting over \texttt{IO}}
 \label{sec:dejafu-monadconc}
 
-Recall from \secref{sct-fundamentals} that there are three ways of implementing
-a concurrency testing tool:
+Recall from \cref{sec:sct-fundamentals} that there are three ways of
+implementing a concurrency testing tool:
 
 \begin{itemize}
 \item Override the concurrency primitives of the programming language.
@@ -81,7 +81,7 @@ class (Monad m, {- other constraints omitted -}) => MonadConc m where
 \end{listing}
 
 We call our typeclass \verb|MonadConc| for monads which can do concurrency,
-\lstref{monadconc} shows a fragment.  When defining an instance of this class,
+\cref{lst:monadconc} shows a fragment.  When defining an instance of this class,
 the programmer must supply concrete types for the abstract types in the
 interface.  They must also supply implementations of, at least, all undefined
 operations.  Some operations have default definitions: for example, there are
@@ -107,7 +107,7 @@ instance Monad n => MonadConc (ConcT r n) where
 
 The type for our testing implementation is called \verb|ConcT r n|, which is a
 monad that has access to \emph{references} of type \verb|r| in a monad of type
-\verb|n|.  \lstref{mvarops} shows the implementation of \lstref{monadconc} for
+\verb|n|.  \Cref{lst:mvarops} shows the implementation of \cref{lst:monadconc} for
 this type.  Each concurrency operation is of the same form: we take the
 arguments and wrap them up inside a data structure whose final argument is a
 continuation, which is then converted into a \verb|ConcT| value.
@@ -116,7 +116,7 @@ A concurrent computation is just a large value, where we can inspect each
 ``step'' of the computation by looking at the data constructor used.
 Constructors mostly correspond to operations in the \verb|MonadConc| class
 (there are also a few extra).  We call these constructors \emph{primitive
-  actions}.  A full listing is available in \appref{primops-conc}.
+  actions}.  A full listing is available in \cref{app:primops-conc}.
 
 We make a few departures from the semantics of the \verb|IO| monad where
 necessary:
@@ -175,8 +175,8 @@ discover if the prisoners are successful.
 One school of thought says to just wait for three years, because by
 then it's unlikely that any single prisoner had never visited the
 room.  In fact, w would expect each prisoner to have been to the room
-ten times by then.  \lstref{100good} shows an implementation of this
-strategy, and \tblref{100rand} shows how the prisoners fare over 100
+ten times by then.  \Cref{lst:100good} shows an implementation of this
+strategy, and \cref{tbl:100rand} shows how the prisoners fare over 100
 random executions.
 
 \begin{table}
@@ -206,7 +206,7 @@ light is on, they do nothing; otherwise, if this is their first time
 in the room with the light off, they turn it on, otherwise they leave
 it.  Whenever the leader enters the room, they turn the light off.
 When the leader has turned the light off 99 times, they tell the
-warden that everyone has visited.  \lstref{100perfect} shows an
+warden that everyone has visited.  \Cref{lst:100perfect} shows an
 implementation of these behaviours.
 
 \begin{listing}
@@ -272,7 +272,7 @@ prison numPrisoners = do
 We can satisfy ourselves that this works for all cases by using
 \dejafu{}'s systematic concurrency testing functionality, which is a
 combination of dynamic partial-order reduction and schedule bounding.
-\tblref{100slow} shows how the number of attempts and average room
+\Cref{tbl:100slow} shows how the number of attempts and average room
 visits grows as the number of prisoners increases.
 
 \begin{table}
@@ -308,7 +308,7 @@ however.
 maximum number of times a thread can yield, so that it can test
 constructs like spinlocks.  This is called \emph{fair bounding}.  The
 default bound is 5, but if we set it to 0 \dejafu{} will never
-schedule a thread which is going to yield.  \tblref{100fast} shows how
+schedule a thread which is going to yield.  \Cref{tbl:100fast} shows how
 the number of schedules and average room visits grows with this
 change.
 
@@ -368,7 +368,7 @@ instance Fail.MonadFail (M n r) where
   \caption{The \dejafu{} continuation monad.}\label{lst:m}
 \end{listing}
 
-\lstref{m} gives the definition and typeclass instances of the \dejafu{}
+\Cref{lst:m} gives the definition and typeclass instances of the \dejafu{}
 continuation monad.  The \verb|Functor| instance allows applying a function to
 the input of the continuation.  The \verb|Applicative| instance allows injecting
 a pure value into the \verb|M| type, by constructing a continuation which
@@ -416,7 +416,7 @@ pure id <*> v
 \dejafu{} is only able to make scheduling decisions at the level of primitive
 actions, which means that if evaluating a primitive action does not terminate,
 \dejafu{} will hang.  We deliberately break the \verb|Applicative| identity law,
-that \verb|pure id <*> v = v| for all \verb|v| (\lstref{areturn}), to make some
+that \verb|pure id <*> v = v| for all \verb|v| (\cref{lst:areturn}), to make some
 programs more defined than they otherwise would be.  Consider this small
 program:
 
@@ -437,7 +437,7 @@ limit\footnote{\url{https://github.com/barrucadu/dejafu/issues/27}\\\url{https:/
 The choice of which thread to execute is made by a scheduler function, which is
 supplied by the user.  The scheduler is called even if there is only one
 runnable thread, to keep things simple.  A scheduler, shown in
-\lstref{scheduler}, is a stateful function which is given the previous action
+\cref{lst:scheduler}, is a stateful function which is given the previous action
 and the runnable threads, which possibly returns a thread to run.  If no thread
 is returned, the computation is aborted.  This is used to implement schedule
 bounding.  The state is used to implement partial-order reduction and random
@@ -475,7 +475,7 @@ Transactions allow the atomic execution of a sequence of operations involving
 
 We express transactions in a similar way to concurrent programs: as a
 continuation monad over a primitive action type.  A complete listing of actions
-is available in \appref{primops-stm}.  As \dejafu{} drives the execution of a
+is available in \cref{app:primops-stm}.  As \dejafu{} drives the execution of a
 concurrent program, it is possible to have arbitrarily complex effects which
 appear atomic to the program under test.  In particular, we ensure atomicity by
 executing concurrency primitive actions sequentially, ensuring that no two
@@ -527,7 +527,7 @@ writes to a \verb|CRef|, the write is appended to its buffer.  When a thread
 reads from a \verb|CRef|, it reads the value of the newest write in its buffer,
 or the most recently committed value if the buffer is empty.  After a write is
 committed, it is removed from its buffer.  Any non-empty buffer may have a write
-committed, but only the oldest write in a buffer may be committed.  \figref{wb}
+committed, but only the oldest write in a buffer may be committed.  \Cref{fig:wb}
 shows the arrangement of buffers for the three memory models in a system with
 two threads and two \verb|CRef|s.
 
@@ -680,8 +680,8 @@ on \emph{action types}, a simplification of thread actions.  Thread
 actions contain more information than lookahead values, which contain
 more information than action types.  We use this layered approach to
 make use of this extra information to improve dependency detection
-where possible.  \lstref{deprel-simp} shows a simplified view of our
-relations.  \appref{deprel} shows the full dependency relation.
+where possible.  \Cref{lst:deprel-simp} shows a simplified view of our
+relations.  \Cref{app:deprel} shows the full dependency relation.
 
 \begin{listing}
   \begin{minted}{haskell}
@@ -927,7 +927,7 @@ the testing framework generating every schedule, as that is precisely
 what DPOR tries to avoid.
 
 \paragraph{Prefix Validity}
-Executions are stored internally as a stack, shown in \lstref{dpor}.
+Executions are stored internally as a stack, shown in \cref{lst:dpor}.
 The sequence of thread IDs corresponding to this stack represents a
 complete execution of the program.  There is a unique initial state,
 where only the initial thread is runnable and nothing has been done.
@@ -1062,7 +1062,7 @@ independently.  Despite the core functionality being simple, a race
 condition was noticed by users inspecting the code in October 2014.
 
 The entire implementation, excluding comments and imports, is
-reproduced in \lstref{example-autoupdate}.  The \verb|mkAutoUpdate|
+reproduced in \cref{lst:example-autoupdate}.  The \verb|mkAutoUpdate|
 function spawns a worker thread, which performs the update action at
 the given frequency, only if the \verb|needsRunning| flag has been
 set.  It returns an action to attempt to read the current result, if
@@ -1303,10 +1303,10 @@ Some simplifications were made in the conversion process:
   only ported the default configuration.
 \end{itemize}
 
-\lstref{example-parmonad-sched} shows the original and converted
+\Cref{lst:example-parmonad-sched} shows the original and converted
 scheduler initialisation code.  As can be seen, they are similar, even
 though this is a core component of a rather sophisticated library,
-where the types have been changed.  \tblref{example-parmonad-diff}
+where the types have been changed.  \Cref{tbl:example-parmonad-diff}
 breaks down the changes across both files.  Code changes are broken
 down into ``renames,'' where the \textbf{concurrency} library simply
 provides a different name for a function, and ``logic,'' where that

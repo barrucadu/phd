@@ -113,7 +113,7 @@ tryTakeMVar :: MVar a -> IO (Maybe a)
 The blocking behaviour of \verb|MVar|s means that computations can
 become deadlocked.  For example, deadlock occurs if every thread tries
 to take from the same \verb|MVar|, with no threads writing to it.
-This can be detected, as we shall see in \chpref{dejafu}.  As there
+This can be detected, as we shall see in \cref{chp:dejafu}.  As there
 are no blocking \verb|IORef| primitives, use of them cannot cause a
 deadlock.
 

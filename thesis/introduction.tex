@@ -23,7 +23,7 @@ certainty questions like:
 \item \emph{How much testing is enough?}
 \end{itemize}
 
-Haskell is used in this thesis.  \appref{haskell} gives a brief introduction to
+Haskell is used in this thesis.  \Cref{app:haskell} gives a brief introduction to
 Haskell, along with a syntax reference and list of common library functions.
 
 \section{Parallelism vs Concurrency}
@@ -52,7 +52,7 @@ the ability to restrict the execution of individual threads to given processor
 cores.
 
 This thesis is mostly concerned with concurrency, but parallelism does rear its
-head in the discussion of \emph{relaxed memory} in \chpref{dejafu}.
+head in the discussion of \emph{relaxed memory} in \cref{chp:dejafu}.
 
 \section{Goals and Contributions of this Thesis}
 \label{sec:intro-contributions}
@@ -83,30 +83,31 @@ easier for programmers to write correct concurrent programs.
 This thesis is divided into four broad parts:
 
 \begin{itemize}
-\item \partref{review} discusses the context of the work.
-  \chpref{concurrent_haskell} gives an introduction to concurrency in Haskell.
-  \chpref{sct} discusses the theory behind \emph{testing} concurrent programs.
-  Finally, \chpref{property_testing} gives an introduction to property testing
-  in Haskell.
+\item \Cref{part:review} discusses the context of the work.
+  \Cref{chp:concurrent_haskell} gives an introduction to concurrency
+  in Haskell.  \Cref{chp:sct} discusses the theory behind
+  \emph{testing} concurrent programs.  Finally,
+  \cref{chp:property_testing} gives an introduction to property
+  testing in Haskell.
 
-\item \partref{testing} is about \dejafu{}, our tool for testing concurrent
-  Haskell programs.  \chpref{dejafu} gives an account of the \dejafu{} tool,
-  covering the scope, implementation, and some case studies.  Finally,
-  \chpref{algorithms} discusses an alternative scheduling algorithm for testing
-  concurrent programs.
+\item \Cref{part:testing} is about \dejafu{}, our tool for testing
+  concurrent Haskell programs.  \Cref{chp:dejafu} gives an account of
+  the \dejafu{} tool, covering the scope, implementation, and some
+  case studies.  Finally, \cref{chp:algorithms} discusses an
+  alternative scheduling algorithm for testing concurrent programs.
 
-\item \partref{properties} is about CoCo, our tool for discovering properties of
-  concurrent functions.  \chpref{coco} gives an account of the CoCo tool,
-  covering the scope, implementation, and some case studies.  Finally,
-  \chpref{coco_and_dejafu} discusses using the properties discovered by CoCo as
-  test cases in \dejafu{}.
+\item \Cref{part:properties} is about CoCo, our tool for discovering
+  properties of concurrent functions.  \Cref{chp:coco} gives an
+  account of the CoCo tool, covering the scope, implementation, and
+  some case studies.  Finally, \cref{chp:coco_and_dejafu} discusses
+  using the properties discovered by CoCo as test cases in \dejafu{}.
 
-\item Lastly, in \partref{end} we evaluate the work and discuss our conclusions
-  in \chpref{conclusions} and suggest possible future work in
-  \chpref{future_work}.
+\item \Cref{part:end} evaluates the work and discusses our conclusions
+  in \cref{chp:conclusions} and suggests possible future work in
+  \cref{chp:future_work}.
 \end{itemize}
 
-Chapters~\ref{chp:concurrent_haskell} and~\ref{chp:property_testing} should be
+\Cref{chp:concurrent_haskell,chp:property_testing} should be
 accessible to anyone with the assumed knowledge detailed in
-\appref{haskell}\footnote{Or to the particularly motivated beginner who also has
-  an introductory Haskell tutorial open.}.
+\cref{app:haskell}\footnote{Or to the particularly motivated beginner
+  who also has an introductory Haskell tutorial open.}.

@@ -95,15 +95,14 @@
 \NewDocumentEnvironment{bquote}{m}{\begin{displayquote}}{\par\noindent(#1)\end{displayquote}}
 
 % Cross references
-\newcommand{\fancyref}[2]{\hyperref[#2]{#1~\ref*{#2}}}
-\newcommand{\partref}[1]{\fancyref{Part}{part:#1}}
-\newcommand{\chpref}[1]{\fancyref{Chapter}{chp:#1}}
-\newcommand{\secref}[1]{\fancyref{Section}{sec:#1}}
-\newcommand{\appref}[1]{\fancyref{Appendix}{app:#1}}
-\newcommand{\figref}[1]{\fancyref{Figure}{fig:#1}}
-\newcommand{\tblref}[1]{\fancyref{Table}{tbl:#1}}
-\newcommand{\lstref}[1]{\fancyref{Listing}{lst:#1}}
+\usepackage[nameinlink]{cleveref}
+
 \newcommand{\sref}[1]{(\hyperref[sec:#1]{\S\ref*{sec:#1}})}
+
+\crefname{sublisting}{listing}{listings}
+\Crefname{sublisting}{Listing}{Listings}
+\crefname{appchp}{appendix}{appendices}
+\Crefname{appchp}{Appendix}{Appendices}
 
 % Maths
 \newcommand{\dependent}{\nleftrightarrow}
@@ -200,6 +199,7 @@
 \input{future_work.tex}
 
 \begin{appendices}
+\crefalias{chapter}{appchp}
 \chapter{Haskell Quick Reference}
 \label{app:haskell}
 \import{appendix/}{haskell_quick_reference.tex}

@@ -113,7 +113,7 @@ ones.  Unlike saving and re-using the random seed, this allows different
 executions with the same weights to result in different scheduling decisions.
 Weights can be re-used for a fixed number of executions by also recording how
 many executions there have been, and throwing away the recorded values every $x$
-executions, for some predetermined $x$.  \appref{swarm} contains our C++
+executions, for some predetermined $x$.  \Cref{app:swarm} contains our C++
 implementation of swarm scheduling, including re-use of weights across
 executions.  \dejafu{} has a Haskell implementation of swarm scheduling and of
 controlled random scheduling, where the latter is implemented as a special case
@@ -309,17 +309,17 @@ We conducted our experiments in an Ubuntu 12.04 virtual machine, using a
 modified version of Maple based on the last commit from 2012\footnote{The same
 environment as~\cite{thomson2016}, available
 at \url{https://github.com/mc-imperial/sctbench}}.  Other than the
-implementation of swarm scheduling, available in \appref{swarm}, the code is
+implementation of swarm scheduling, available in \cref{app:swarm}, the code is
 unchanged.
 
-The Venn diagrams in \figref{bugs} show the relative bug-finding ability of each
-algorithm.  \figref{bugs-base} summarises the bugs found by controlled random
-scheduling, PCT $d=3$, and swarm scheduling $(d,x)=(0,1)$ (which we now call
-``Swarm'' for brevity); showing that swarm scheduling performs comparably with
-PCT.  Figures~\ref{fig:bugs-swarmx} and~\ref{fig:bugs-swarmd} show the effect of
-re-using the swarm weights and of introducing weight change points, we omit
-$x=1000$ because it performed worse than the other cases; we see that these
-variations have little effect.
+The Venn diagrams in \cref{fig:bugs} show the relative bug-finding ability of
+each algorithm.  \Cref{fig:bugs-base} summarises the bugs found by controlled
+random scheduling, PCT $d=3$, and swarm scheduling $(d,x)=(0,1)$ (which we now
+call ``Swarm'' for brevity); showing that swarm scheduling performs comparably
+with PCT.  \Cref{fig:bugs-swarmx,fig:bugs-swarmd} show the effect of re-using
+the swarm weights and of introducing weight change points, we omit $x=1000$
+because it performed worse than the other cases; we see that these variations
+have little effect.
 
 \begin{figure}
   \centering
@@ -328,16 +328,16 @@ variations have little effect.
 \end{figure}
 
 As the techniques we have considered are nondeterministic, it is interesting to
-consider their average-case behaviour.  \figref{totalbugs} shows the aggregate
+consider their average-case behaviour.  \Cref{fig:totalbugs} shows the aggregate
 behaviour of the algorithms across all benchmarks as the number of executions
 increases; we can see that Swarm initially outperforms PCT, but PCT catches up
 as the number of executions increases.  This observation is consistent
-with~\cite{thomson2016}.  The plots in \figref{freqbugs} show the average number
+with~\cite{thomson2016}.  The plots in \cref{fig:freqbugs} show the average number
 of executions to find a bug across all benchmarks; as expected, we can see that
 the average number of executions to find \emph{any} bug rapidly converges,
 however the average number of schedules to find a \emph{unique} bug does not.
 This is due to two factors: (1) the number of bugs is finite; and (2) some bugs
-may be out of reach of a particular algorithm.  \tblref{freqs} shows the final
+may be out of reach of a particular algorithm.  \Cref{tbl:freqs} shows the final
 values.  We can see that PCT and Swarm are almost identical, and both
 significantly improve upon random scheduling when it comes to
 finding \emph{unique} bugs.
