@@ -648,7 +648,7 @@ A \dejafu{} test has the following components:
   is closest to the behaviour of an x86 processor\cite{owens2009},
   which is what the user probably has.
 \item The \verb|MonadConc| action to test.
-\item A named predicates, where a predicate is a function from the
+\item A named predicated, where a predicate is a function from the
   final list of results and traces to an indication of success or
   failure with an optional list of failing traces to display to the
   user.
@@ -1295,10 +1295,10 @@ Some simplifications were made in the conversion process:
 
 \begin{itemize}
 \item The scheduler uses the \package{mwc-random} library to fairly
-  control the worker threads.  By default, the initial seed is an
-  effectively random value.  As systematic testing requires that the
-  scheduler be the only source of nondeterminism, we fixed the random
-  seed.
+  distribute work to the worker threads.  By default, the initial seed
+  is an effectively random value.  As systematic testing requires that
+  the scheduler be the only source of nondeterminism, we fixed the
+  random seed.
 \item Behaviour of the scheduler can be configured using cpp, but we
   only ported the default configuration.
 \end{itemize}
