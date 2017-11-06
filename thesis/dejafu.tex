@@ -685,15 +685,15 @@ relations.  \Cref{app:deprel} shows the full dependency relation.
 
 \begin{listing}
   \begin{minted}{haskell}
-dependency :: ThreadId -> ThreadAction -> ThreadId -> ThreadAction -> Bool
-dependency tid1 ta1 tid2 ta2
+dependent :: ThreadId -> ThreadAction -> ThreadId -> ThreadAction -> Bool
+dependent tid1 ta1 tid2 ta2
   | ...       = True
   | ...       = False
-  | otherwise = dependency' tid1 ta1 tid2 (rewind ta2) &&
-                dependency' tid2 ta2 tid1 (rewind ta1)
+  | otherwise = dependent' tid1 ta1 tid2 (rewind ta2) &&
+                dependent' tid2 ta2 tid1 (rewind ta1)
 
-dependency' :: ThreadId -> ThreadAction -> ThreadId -> Lookahead -> Bool
-dependency' tid1 ta tid2 lh
+dependent' :: ThreadId -> ThreadAction -> ThreadId -> Lookahead -> Bool
+dependent' tid1 ta tid2 lh
   | ...       = True
   | ...       = False
   | otherwise = dependentActions (simplifyAction    ta)
@@ -710,11 +710,11 @@ rules:
 
 \begin{description}
 \item[Commutativity (1)]
-  $\mathrm{dependency}~x~y = \mathrm{dependency}~y~x$
+  $\mathrm{dependent}~x~y = \mathrm{dependent}~y~x$
 \item[Commutativity (2)]
   $\mathrm{dependentActions}~x~y = \mathrm{dependentActions}~y~x$
 \item[Consistency (1)]
-  $\mathrm{dependency}~x~(t,y) \Rightarrow \mathrm{dependency'}~x~(t, \mathrm{rewind}~y)$
+  $\mathrm{dependent}~x~(t,y) \Rightarrow \mathrm{dependent'}~x~(t, \mathrm{rewind}~y)$
 \item[Consistency (2)]
   $\mathrm{simplifyLookahead} = \mathrm{simplifyAction} \circ \mathrm{rewind}$
 \end{description}
@@ -722,39 +722,16 @@ rules:
 We establish these conditions through the syntactic structure of the
 implementation.  Each function is a straightforward enumeration of
 cases with attached side-conditions, which makes commutativity
-apparent.  The more pessimistic \verb|dependency'| function is similar
-to the more accurate \verb|dependency| function, but with less
+apparent.  The more pessimistic \verb|dependent'| function is similar
+to the more accurate \verb|dependent| function, but with less
 information available, which makes consistency apparent.  We also
 include these properties in the \dejafu{} testsuite to ensure they are
 not inadvertently broken.
 
-Recall that we divide thread actions into \emph{synchronised}, which
-impose a memory barrier; \emph{unsynchronised}, which do not; and
-\emph{partially synchronised}, which synchronise a single \verb|CRef|.
-The \verb|dependentActions| function is defined in terms of this
-synchronisation, and corresponds to the dependency relation for a core
-concurrent language as would typically be used to introduce a new DPOR
-algorithm.  The cases are:
-
-\begin{enumerate}
-\item Any two operations (excluding commits) on the same \verb|CRef|
-  are dependent, other than two reads.
-\item A write to a \verb|CRef| and a commit are \emph{not} dependent
-  if the write buffer corresponding to the \verb|CRef| is not
-  empty\cite{linden2013}.
-\item A read of a \verb|CRef| is dependent with any action which
-  imposes a memory barrier, if there are buffered writes.
-\item A commit to a \verb|CRef| is dependent with any action which
-  imposes a memory barrier.
-\item Two actions involving the same \verb|CRef| where at least one
-  would synchronise it are dependent.
-\item Two actions involving the same \verb|MVar| are dependent.
-\end{enumerate}
-
-So, through the lens of \verb|dependentActions|, Haskell is a small
+Through the lens of \verb|dependentActions|, Haskell is a small
 concurrent language with synchronised and unsynchronised shared
 variables and memory barriers.  The other cases which are handled by
-\verb|deprel| and \verb|deprel'| are: lifted \verb|IO| actions,
+\verb|dependent| and \verb|dependent'| are: lifted \verb|IO| actions,
 exceptions, STM transactions, and getting and setting the number of
 capabilities.
 
