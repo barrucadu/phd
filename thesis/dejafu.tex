@@ -1332,14 +1332,176 @@ was not the case.  The logic changes were all places where a call to
 No deadlock or nondeterminism was discovered, with a variety of
 initial random seeds tried.
 
-\section{\dejafu{} in the Wild}
+\section{Evaluation}
 \label{sec:dejafu-evaluation}
 
-\blindtext
+A tool is effectively useless if it is too difficult to use.  The main
+obstacle to the use of \dejafu{} is existing libraries which use
+\verb|IO|; a programmer cannot simply use \verb|liftIO| everywhere,
+without sacrificing completeness in all but trivial examples.
+Ideally, existing libraries would be modified to support the
+\verb|MonadConc| abstraction.  However, this does not seem a likely
+short-term goal, and so a more promising way to approach the problem
+is to provide feature complete alternatives to existing libraries.  As
+adapting code to \verb|MonadConc| is often straightforward, as seen in
+the Par monad case study, this is a viable short-term solution.
+
+A second, more tractable, problem is integration with existing testing
+frameworks; using \dejafu{} for little stand-alone programs is all
+well and good, but to take off, it must be easy to use in the testing
+context people are already familiar with.
+
+\todo{Mention Tweag stuff when G\"{a}el gets back to me.}
 
 \subsection{Richness of the Abstraction}
-\subsection{Porting Code}
-\subsection{Integration with Existing Tools}
+
+As we noted earlier, there are three main areas which we do not
+currently aim to support with \dejafu{}:
+
+\begin{itemize}
+\item Blocking a thread until a file descriptor becomes available, as
+  this introduces an additional source of nondeterminism.
+\item Throwing an exception to a thread if it becomes deadlocked, as
+  we cannot reliably detect deadlock involving only a subset of
+  threads without support from the garbage collector.
+\item Querying which capability (OS thread) a Haskell thread is
+  running on, as this introduces an additional source of
+  nondeterminism.
+\end{itemize}
+
+Introducing additional sources of nondeterminism into an SCT model is
+difficult.  Simply introducing additional threads to model the
+nondeterminism can cause an explosion of schedules tested, which is
+unsatisfactory.  In this way, \verb|MonadConc| will always be limited
+to what \dejafu{} can reasonably support.
+
+However we also push back the barrier of what \dejafu{} supports.
+Bound threads, Haskell threads which always run on the same unique OS
+thread, were once out of scope as well.  This made it impossible to
+use some C libraries with \verb|MonadConc|.  Now we have a prototype
+implementation\footnote{\url{https://github.com/barrucadu/dejafu/issues/126}}
+which shows promise, and which we intend to release.
+
+\dejafu{} does not aim to support the above three areas because we
+believe that the desire for this functionality does not outweigh the
+implementation cost.  If that belief changes, we will look for a way.
+
+\subsection{Porting and Writing Code}
+
+We saw in the \textbf{monad-par} example that porting complex code to
+the \verb|MonadConc| abstraction is not necessarily a difficult
+process.  However, this is not always the case.  Recently a user tried
+to port a logging abstraction they made to \verb|MonadConc|.  The
+original code looked like this:
+
+\begin{minted}{haskell}
+instance MonadLogger (LoggerT STM) where -- ...
+instance MonadLogger (LoggerT IO) where -- ...
+\end{minted}
+
+Expressing this with \verb|MonadConc| and \verb|MonadSTM| is less
+straightforward, as constraints do not factor into instance selection.
+So these two instances overlap:
+
+\begin{minted}{haskell}
+instance MonadSTM  m => MonadLogger (LoggerT m) where -- ...
+instance MonadConc m => MonadLogger (LoggerT m) where -- ...
+\end{minted}
+
+After some work, we introduced new types to disambiguate between the
+two cases, and ended up with something like this:
+
+\begin{minted}{haskell}
+instance MonadSTM  m => MonadLogger (LoggerT (IsSTM  m)) where -- ...
+instance MonadConc m => MonadLogger (LoggerT (IsConc m)) where -- ...
+\end{minted}
+
+Where \verb|IsSTM| and \verb|IsConc| are new types we introduced, with
+their own \verb|MonadSTM| and \verb|MonadConc| instances.  The amount
+of effort required to arrive at this solution led to the user
+questioning whether classes like their \verb|MonadLogger| were even a
+useful abstraction at all\footnote{\url{https://www.reddit.com/r/haskell/comments/7b1fbk/do_mtlstyle_effect_classes_really_pull_their/}}!
+This is a good topic to think about, but it should not be prompted by
+the effort of trying to use \dejafu{}.
+
+So while porting code to the \verb|MonadConc| typeclass is often
+simple when dealing with datatype and function definitions, it can be
+more complicated when dealing with typeclasses.  It is not clear what
+can be done to improve this matter.
+
+\subsection{Library Alternatives}
+
+There are popular Haskell libraries specifically for concurrency.  One
+of these is the \package{async} library, for expressing asynchronous
+computations.  This library is intended to be a higher-level and safer
+way of expressing asynchronous computations than using threading and
+mutable state directly.  It provides two main functions to execute an
+action asynchronously:
+
+\begin{minted}{haskell}
+async     :: IO a -> IO (Async a)
+withAsync :: IO a -> (Async a -> IO b) -> IO b
+\end{minted}
+
+Both of these fork the computation into a separate thread, returning
+an \verb|Async| value, which can be blocked on to retrieve the result,
+or used to kill the thread.  In addition, \verb|withAsync| kills the
+thread if the inner action (which is run in the original thread)
+completes first, to help prevent resource leaks.
+
+There is a further abstraction atop \verb|Async|, called
+\verb|Concurrently|, which has Functor, Applicative, and Alternative
+instances, and represents an action which can be concurrently composed
+with other actions.  The concurrency is achieved by having the
+Applicative \verb|(<*>)| operator execute each action asynchronously.
+There was once a Monad instance for \verb|Concurrently|, but it was
+inconsistent with the Applicative
+instance\footnote{\url{https://github.com/simonmar/async/pull/26}}.
+
+This law-breaking could have been discovered through testing, but only
+probabilistically.  If \textbf{async} were written using
+\verb|MonadConc|, the relevant laws could have been specified as unit
+tests and checked.  The bug might then have been caught before it
+showed up in user code.  Indeed, the \dejafu{} testsuite contains this
+invalid Monad instance and checks that the failure is caught.
+
+The \textbf{concurrency} package, which provides \verb|MonadConc|,
+includes an alternative to \textbf{async} using \verb|MonadConc|.
+There is a test suite using \dejafu{}.  The test suite for
+\textbf{async} itself just runs most tests a single time, although one
+of them is run 1000 times.  Using \dejafu{} here to automatically seek
+out interesting schedules is a much more principled approach then
+repetition and hope.  Not all features of \textbf{async} are
+supported, however.  As we do not currently support bound threads,
+those functions that use them have been omitted.
+
+This is just one library, and providing an alternative library people
+will have to switch to is far from optimal.  However, until library
+authors start to use \dejafu{} and \verb|MonadConc| directly, such
+alternatives will be needed to answer the question ``Why should I use
+this if I can't use it with anything I use already?''
+
+\subsection{Tool Integration}
+
+There are two popular libraries for unit testing in Haskell,
+\package{HUnit} and \package{tasty}.  From the perspective of the
+user, the libraries are similar, but from the perspective of the
+implementer, they have different approaches to integration.  The
+\package{hunit-dejafu} and \package{tasty-dejafu} packages provide
+integration with both.
+
+These packages provide a common set of testing functions, an analogue
+of Test.DejaFu but constructing values representing individual tests
+which the frameworks can run, rather than executing and printing
+results directly.  The \package{test-framework} library is also in
+common use, however it supports integration with \textbf{HUnit}, and
+so needs no special support. of its own.
+
+The \textbf{tasty} library is more featureful than \textbf{HUnit},
+supporting progress reporting, giving a message on success as well as
+failure, and command-line arguments.  The \textbf{tasty-dejafu}
+package is similar to the \textbf{hunit-dejafu} package and does not
+make use of these additional features.
 
 \section{Conclusions and Future Work}
 \label{sec:dejafu-conclusions}
