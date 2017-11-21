@@ -6,7 +6,8 @@ testing stems from the difficulty of writing good tests.  In this
 chapter we give an overview of using property testing tools.  We first
 give a general introduction to specifying and using properties as
 tests~\sref{property_testing-intro}, then discuss specific
-tools~\sref{property_testing-tools}.
+tools~\sref{property_testing-tools}.  Finally, we summarise tools for
+\emph{generating} properties~\sref{property_testing-gen}.
 
 Readers already familiar with property testing may wish to skip this
 chapter.
@@ -169,6 +170,8 @@ of a generalised counterexample:
 Generalization:
 x:x:_
 \end{minted}
+% [syntax highlighting hack]
+%$
 
 \noindent where the \verb|nub| function removes duplicates from a
 list.
@@ -202,3 +205,99 @@ Although QuickCheck was arguably the first tool to popularise this style of
 testing, and did so in Haskell, it is increasingly gaining recognition by
 programmers of other languages as a good way to overcome the pitfalls and
 difficulties of traditional unit testing techniques.
+
+\section{Property Discovery}
+\label{sec:property_testing-gen}
+
+As we have seen, properties can be used as expressive and declarative
+test cases.  However, coming up with properties can be difficult.  To
+help the programmer, tools exist to discover properties.  These tools
+are based on testing or examples, and so any properties found are
+merely conjectures supported by a finite amount of evidence.  Despite
+that, such properties are surprisingly accurate in practice, and often
+lead to a deeper understanding of the program under test.
+
+\paragraph{In Haskell}
+QuickSpec\cite{claessen2010,smallbone2017} and
+Speculate\cite{braquehais2017} are tools for Haskell which
+automatically discover equational laws of pure functions.  Both are
+based on generating and testing candidate expressions.  Speculate,
+unlike QuickSpec, can discover inequalities and conditional equations.
+Neither supports functions with effects or generating lambda-terms.
+
+When provided with the integers \verb|0| and \verb|1| and the
+functions \verb|id|, \verb|abs|, and \verb|(+)|, Speculate prints the
+following properties:
+
+\begin{minted}{text}
+           id x == x
+          x + 0 == x
+    abs (abs x) == abs x
+          x + y == y + x
+    abs (x + x) == abs x + abs x
+abs (x + abs x) == x + abs x
+abs (1 + abs x) == 1 + abs x
+    (x + y) + z == x + (y + z)
+\end{minted}
+
+QuickSpec discovers similar properties.  Speculate then goes on to
+discover inequalities and conditional laws, in \cref{lst:speculate}.
+
+\begin{listing}
+\begin{minipage}[t]{0.45\textwidth}
+\begin{minted}{text}
+          x <= abs x
+          0 <= abs x
+          x <= x + 1
+          x <= x + abs y
+          x <= abs (x + x)
+          x <= 1 + abs x
+          0 <= x + abs x
+      x + y <= x + abs y
+abs (x + 1) <= 1 + abs x
+\end{minted}
+\end{minipage}
+\begin{minipage}[t]{0.55\textwidth}
+\begin{minted}{text}
+    x <= y ==> x <= abs y
+abs x <= y ==> x <= y
+ abs x < y ==> x <  y
+    x <= 0 ==> x <= abs y
+abs x <= y ==> 0 <= y
+ abs x < y ==> 1 <= y
+    x == 1 ==> 1 == abs x
+     x < 0 ==> 1 <= abs x
+    y <= x ==> abs (x + abs y) == x + abs y
+    x <= 0 ==>       x + abs x == 0
+abs x <= y ==>     abs (x + y) == x + y
+abs y <= x ==>     abs (x + y) == x + y
+\end{minted}
+\end{minipage}
+\caption{Inequalities and conditional equations for arithmetic.}\label{lst:speculate}
+\end{listing}
+
+\paragraph{In Java}
+The Daikon\cite{ernst2007} tool discovers \emph{likely invariants} of
+C, C++, Java, and Perl programs.  It observes variables in memory
+during the execution of a program, and applies machine learning
+techniques to discover properties that seem to hold.  These properties
+may include: pre- and post-conditions of statements, and equational
+relationships between variables at a given program point and functions
+from a library.  Daikon does not synthesise and test program terms,
+however.  It is only able to discover invariants which exist in the
+original program.  In contrast, the other tools described can discover
+properties that do not appear in the original program at all.
+
+\paragraph{In Anything}
+The Bach\cite{smith2017} tool uses a database of examples of
+input/output values from functions to synthesise properties using a
+Datalog-based oracle.  As it is based on examples, it is not tied to
+any particular programming language.  Bach could even be used to
+discover properties of hardware components!  Properties are of the
+form $G \implies P$, where both $G$ and $P$ are conjunctions of
+equalities $f(x) = y$, where $f$ is some function in the database, and
+$x$ and $y$ may be constants or variables.  It uses a notion of
+\emph{evidence} to decide whether an inferred property holds: negative
+evidence consists of counterexamples; positive evidence consists of
+witnesses.  Bach crucially requires functions to have at most one
+output for each distinct input, to construct negative evidence.
