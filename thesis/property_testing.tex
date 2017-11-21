@@ -159,22 +159,23 @@ minimum.  However, shrinking and enumeration are not the only ways to
 produce small counterexamples.  Both SmartCheck\cite{pike2014} and
 Lazy SmallCheck\cite{runciman2008} can generalise counter\-examples.
 Generalising counterexamples directly can be more efficient than a
-QuickCheck-style shrinking process\cite{pike2014}.  This is an example
-of a generalised counterexample:
+QuickCheck-style shrinking process\cite{pike2014}.  \Cref{lst:gencntr}
+is an example of a generalised counterexample.
 
-\begin{minted}{text}
+\begin{listing}
+\centering
+\begin{cminted}{text}
 > check $ \xs -> nub xs == (xs::[Int])
 *** Failed! Falsifiable (after 3 tests):
 [0,0]
 
 Generalization:
 x:x:_
-\end{minted}
+\end{cminted}
 % [syntax highlighting hack]
 %$
-
-\noindent where the \verb|nub| function removes duplicates from a
-list.
+\caption{A generalised counterexample of an incorrect property.}\label{lst:gencntr}
+\end{listing}
 
 \paragraph{Beyond Haskell}
 While this is a thesis using Haskell, the interest in property-based testing is
@@ -227,9 +228,14 @@ Neither supports functions with effects or generating lambda-terms.
 
 When provided with the integers \verb|0| and \verb|1| and the
 functions \verb|id|, \verb|abs|, and \verb|(+)|, Speculate prints the
-following properties:
+properties in \cref{lst:arith_props}.  QuickSpec discovers similar
+properties to \cref{lst:arith_props0}, but not the inequalities and
+equational laws.
 
-\begin{minted}{text}
+\begin{listing}
+\begin{sublisting}{\textwidth}
+\centering
+\begin{cminted}{text}
            id x == x
           x + 0 == x
     abs (abs x) == abs x
@@ -238,12 +244,14 @@ following properties:
 abs (x + abs x) == x + abs x
 abs (1 + abs x) == 1 + abs x
     (x + y) + z == x + (y + z)
-\end{minted}
+\end{cminted}
+\caption{Equational laws.}\label{lst:arith_props0}
+\end{sublisting}
 
-QuickSpec discovers similar properties.  Speculate then goes on to
-discover inequalities and conditional laws, in \cref{lst:speculate}.
+% [layout hack]: no gap between the listings otherwise
+\vspace{2.5em}
 
-\begin{listing}
+\begin{sublisting}{\textwidth}
 \begin{minipage}[t]{0.45\textwidth}
 \begin{minted}{text}
           x <= abs x
@@ -273,7 +281,9 @@ abs x <= y ==>     abs (x + y) == x + y
 abs y <= x ==>     abs (x + y) == x + y
 \end{minted}
 \end{minipage}
-\caption{Inequalities and conditional equations for arithmetic.}\label{lst:speculate}
+\caption{Inequalities and conditional equations.}\label{lst:arith_props1}
+\end{sublisting}
+\caption{Properties of arithmetic, discovered by Speculate.}\label{lst:arith_props}
 \end{listing}
 
 \paragraph{In Java}

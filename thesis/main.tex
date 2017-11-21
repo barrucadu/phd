@@ -85,6 +85,11 @@
 \usemintedstyle{tango}
 \setminted{fontsize=\footnotesize}
 
+\usepackage{xpatch,letltxmacro}
+\LetLtxMacro{\cminted}{\minted}
+\let\endcminted\endminted
+\xpretocmd{\cminted}{\RecustomVerbatimEnvironment{Verbatim}{BVerbatim}{}}{}{}
+
 \usepackage{etoolbox}
 \makeatletter
 \pretocmd{\chapter}{\addtocontents{lol}{\protect\addvspace{10\p@}}}{}{}
