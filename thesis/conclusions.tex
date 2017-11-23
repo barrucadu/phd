@@ -1,1 +1,47 @@
 \blindtext
+
+\section{Evaluation}
+\label{sec:conclusions-evaluation}
+
+\paragraph{Quality of a concurrency test set}
+Being able to deterministically test concurrent programs is a
+necessary step towards finding concurrency bugs more easily than
+verification and with less disruption to users than waiting for bug
+reports.  However, any testing regimen is only as good as the tests
+that get written.  How do we come to believe that a testsuite is
+strong evidence for the correctness of some code?
+
+For sequential programs, we can use the traditional metric of code
+coverage.  The continuous measure of coverage is difficult to
+interpret, but the binary measure is not: code which is not covered at
+all usually has more bugs than code which is covered by even
+low-quality tests\cite{ahmed2016}.
+
+For concurrent programs, what metric do we use?  If it is some notion
+of coverage, what even is the space being covered?  There are a few
+candidates:
+
+\begin{itemize}
+\item Schedule-sensitive branches are often unintentional and
+  erroneous points of synchronisation between concurrent
+  threads\cite{huang2015ssb}.  A good concurrency testsuite should try
+  all cases in a schedule-sensitive branch.
+
+\item Shared state which is not guarded by appropriate synchronisation
+  can lead to invalid or corrupt data.  If we have functions which
+  operate on some mutable state of the same type, then a good
+  concurrency testsuite will check what happens when those states are
+  shared and the functions executed concurrently.  If the state is a
+  product type, a good concurrency testsuite will also check what
+  happens when the states are only partially shared.
+\end{itemize}
+
+However, correct usage of a concurrent API often relies on assumptions
+stated in documentation, cautioning users where they must incorporate
+additional synchronisation.  An automated metric cannot read
+documentation, and so may highlight forbidden interactions as needing
+tests.
+
+Finding an easily understood metric, like code coverage, which is both
+automatic and useful in revealing legal but untested interactions, is
+an open question.
