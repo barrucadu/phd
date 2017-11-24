@@ -1,6 +1,72 @@
-\begin{itemize}
-\item \todo{MCR}
-\item \todo{Time: \url{https://github.com/barrucadu/dejafu/issues/130}}
-\item \todo{Conditional equations}
-\item \todo{Term rewriting}
-\end{itemize}
+\paragraph{Maximal causality reduction for \dejafu{}}
+The MCR algorithm\cite{huang2015} explores a provably minimal number
+of schedules required for completeness.  Typically this is orders of
+magnitude fewer than dynamic partial-order reduction.
+
+MCR is tricky to implement in Haskell as it requires local
+determinism: the future actions of a thread are determined solely by
+the prior actions of the same thread and shared variables it has read.
+Haskell breaks local determinism with asynchronous exceptions, where
+one thread can kill another.  Furthermore, the concurrency model which
+MCR is described in terms of is a core concurrent language of locks
+and shared variables, whcih is much simpler than Haskell.
+
+It may be possible to implement a Haskell-MCR by translating Haskell
+execution traces into a simpler form suitable for MCR.  For example,
+asynchronous exceptions can be modelled by giving each thread an
+``exception variable'', where throwing an exception to a thread writes
+to that variable, and the thread checks the variable before each
+action.
+
+There is an open source MCR implementation for concurrent
+Java\footnote{\url{https://github.com/parasol-aser/JMCR}}.
+
+\paragraph{Accurately modelling delays in \dejafu{}}
+There has been some interest in using \dejafu{} to test distributed
+systems where timing issues are
+important\footnote{\url{https://github.com/barrucadu/dejafu/issues/130}}.
+However, \dejafu{} currently has no notion of time.  A thread delaying
+is treated just the same as a thread yielding, it has no further
+effect on how threads are scheduled during testing.
+
+Incorporating time into a concurrency testing framework is difficult,
+as it comes down to forbidding executions which a human would consider
+unreasonable, but unreasonableness is not something that can be easily
+measured, unlike the number of pre-emptive context switches, yields,
+or execution length.
+
+Perhaps the field of model checking has something to suggest here.  Or
+perhaps there is some way to quantify and impose a bound on
+unreasonableness.  Whatever the approach, solving this problem would
+make \dejafu{} more useful for systems whose correctness depends on
+real timing constraints.
+
+\paragraph{Conditional properties in CoCo}
+Speculate\cite{braquehais2017} discovers conditional equations and
+inequalities automatically, which greatly expands the range of
+properties which can be found.  This is useful as we see how our
+functions behave in different situations, rather than just in general.
+
+CoCo has a limited form of conditional properties, where it can use
+preconditions on the seed, which must be supplied by the programmer.
+However, it would be much more useful if CoCo could synthesise
+preconditions, as Speculate does, to discover interesting cases
+itself.
+
+\paragraph{Term rewriting for CoCo}
+Both QuickSpec\cite{smallbone2017} and Speculate\cite{braquehais2017}
+use term rewriting to prune the discovered properties and to avoid
+testing many cases.  This is difficult to do with concurrency, as
+effects may be non-local, as is the case with relaxed
+memory\cite{zhang2015} where writes to shared variables may be
+delayed.  Such behaviours make the effect of composing two terms far
+less predictable.  Even so, it may still be possible in some cases to
+use something like term rewriting to prune properties.
+
+\paragraph{Measuring the quality of test suites}
+As we have discussed in \cref{sec:conclusions-evaluation}, it is not
+clear what a good metric for the quality of a set of concurrency tests
+is.  Perhaps some existing metric can be applied to concurrency.
+Perhaps a new metric needs to be devised.  Whichever the case, being
+able to identify cases where a testsuite is lacking can greatly help
+with improving the overall quality of a piece os software.
