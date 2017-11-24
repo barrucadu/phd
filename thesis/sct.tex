@@ -189,10 +189,10 @@ deterministic}\cite{huang2015}.  That is, only the previous actions of a thread
 (and not actions of other threads) determine the next action of the thread,
 although if that action is a read then it is allowed to get its value from the
 latest write.  This is not the case for Haskell, where one thread may be killed
-by another by throwing an exception to it.  It may be possible to encode Haskell
+by another by throwing an exception to it.  However, it may be possible to encode Haskell
 exceptions in an MCR-friendly way by giving each thread an ``exception
 variable'', and inserting reads to this variable before every normal action, but
-this does not fully solve matters, as even blocked threads may be interrupted by
+some difficulty remains, as even blocked threads may be interrupted by
 exceptions in Haskell.
 
 Like DPOR, MCR can be extended to support the relaxed memory models TSO and
