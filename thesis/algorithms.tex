@@ -1,12 +1,15 @@
-The complete-within-a-bound approach of DPOR may not be feasible in large
-programs.  We can sacrifice completeness, and instead explore the space of
-schedules \emph{randomly}.  We may not find all bugs.  However we still want to
-find \emph{most of them}.  Benchmarks show that some scheduling algorithms tend
-to be better at this than others; not all algorithms are created equal.  In this
-chapter we discuss a number of scheduling algorithms~\sref{algorithms-usual},
-propose a new one based on a \emph{weighted} random selection of
-threads~\sref{algorithms-swarm}, and show that it performs favourably in a
-comparison of standard benchmark programs~\sref{algorithms-eval}.
+The complete-within-a-bound approach of DPOR may not be feasible in
+large programs.  We can sacrifice completeness, and instead explore
+the space of schedules \emph{randomly}.  We may not find all bugs.
+However we still want to find \emph{most of them}.  Benchmarks show
+that some scheduling algorithms tend to be better at this than others;
+not all algorithms are created equal.  In this chapter we discuss a
+number of scheduling algorithms~\sref{algorithms-usual}, propose a new
+one based on a \emph{weighted} random selection of
+threads~\sref{algorithms-swarm}, and show that it performs favourably
+in a comparison of standard benchmark programs~\sref{algorithms-eval}.
+Finally we evaluate our new algorithm and draw
+conclusions~\sref{algorithms-conclusion}.
 
 \section{Concurrency Testing with Randomised Scheduling}
 \label{sec:algorithms-usual}
@@ -371,3 +374,45 @@ finding \emph{unique} bugs.
 Although it is disappointing that Swarm does not improve upon PCT, that it is
 able to perform comparably without needing the programmer to first determine the
 maximum length of an execution (as is unavoidable in PCT) is encouraging.
+
+\section{Evaluation and Conclusions}
+\label{sec:algorithms-conclusion}
+
+We have proposed Swarm, a new random scheduling algorithm for finding
+faults in concurrent programs.  Although random scheduling is
+necessarily incomplete, it can be faster than complete approaches for
+large programs, and retains a strong bug-finding ability.
+
+Swarm is motivated by the assumption that executions which schedule
+threads unfairly is likely to expose bugs.  When writing a concurrent
+program, it is easy to imagine every thread as progressing at roughly
+the same rate, but this is not necessarily true.  Our results suggest
+that our assumption holds.
+
+\paragraph{PCT}
+Our results suggest that Swarm performs almost identically to PCT.  As
+PCT requires the user to first estimate the maximum length of an
+execution, whereas Swarm does not, we believe Swarm is a better
+choice.
+
+However, we must mention that the PCT implementation in Maple is
+flawed: PCT does not specify how to handle threads which yield.  If a
+thread yields, it may do so because it is waiting for some condition
+to become true.  So if the highest-priority runnable thread keeps
+yielding, it is not necessarily a good idea to keep immediately
+scheduling it.  The version of PCT we use in Maple sets the priority
+of a thread which yields to the lowest priority.  This avoids the
+problem, but also penalises yielding threads.  It is possible that a
+different strategy for handling yields would lead to different
+results.
+
+\paragraph{Randomised stride}
+Another algorithm with a similar motivation is the randomised stride
+algorithm\cite{abdelrasoul2017}, which outperforms PCT (and so our
+Swarm algorithm).  This is a recent algorithm which did not exist when
+we began this work.  Like PCT, randomised stride derives its power
+from knowledge of the underlying program: in this case, an estimate of
+the length of each thread.  Although Swarm performs worse than
+randomised stride, we believe it still has a place in the concurrency
+testing arsenal as an effective algorithm which does not require first
+estimating or measuring some parameter of the program under test.
