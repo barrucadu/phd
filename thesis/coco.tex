@@ -465,7 +465,53 @@ ones.  We only keep the most general.
 \section{Soundness and Completeness}
 \label{sec:coco-correctness}
 
-\todo{write}
+Correctness for CoCo states that only true properties are reported,
+and that all true properties where the terms involved fit into the
+size bound are reported.  As with \dejafu{}, we do not concern
+ourselves here with the formal correctness of the CoCo implementation.
+
+\paragraph{Soundness}
+There are two potential sources of unsoundness in CoCo.  Firstly,
+properties are only checked for a finite number of cases; and secondly
+\dejafu{} is used to find the possible results of a term, which is
+incomplete by default.
+
+We can increase confidence in the correctness of CoCo properties by
+increasing the number of test cases, but the fundamental problem
+remains.  CoCo is not a model checker, and it is always possible that
+the next input tried after we ceased testing would have been a
+counterexample.  For finite types, however, we can consider all
+inputs.
+
+The incompleteness of \dejafu{} can be solved with additional time.
+\dejafu{} offers a complete mode.  CoCo does not use it because it is
+typically slower than the incomplete testing, but as the terms we
+generate are small this may not be a problem in practice.  CoCo could
+be changed to use the complete testing, which would ensure that all
+possible behaviours of a term, for each set of inputs considered, are
+found.
+
+\paragraph{Completeness}
+If we assume that CoCo is sound (and so never incorrectly says a
+property is true or false), there are two remaining potential sources
+of incompleteness.  Firstly, some schemas are discarded when
+generating new ones; and secondly, properties are thrown away which
+are judged to be consequences of another.
+
+A property between two terms cannot be discovered if either term is
+simply not generated.  When generating new schemas, CoCo tries all
+appropriately sized pairings of previously generated schemas and keeps
+the type-correct ones.  If our type checker is incorrect, then valid
+schemas may be thrown away.  Currently we do not support class
+polymorphism at all, so terms which are only well-typed due to
+typeclass use will be discarded.
+
+We do not require CoCo to report properties which are implied by
+another.  As many terms correspond to the same schema, and many
+projections correspond to the same pair of terms, in general there
+will be many such redundant properties.  We use a simple syntactic
+criteria to determine whether one property implies another, rather
+than attempting any logical analysis.
 
 \section{Case Studies}
 \label{sec:coco-cases}
