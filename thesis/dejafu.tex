@@ -1328,7 +1328,38 @@ frameworks; using \dejafu{} for little stand-alone programs is all
 well and good, but to take off, it must be easy to use in the testing
 context people are already familiar with.
 
-\todo{Mention Tweag stuff when G\"{a}el gets back to me.}
+\paragraph{Users}
+Although \dejafu{} is a small one-man project, it does have some users
+and contributors.  Seven users have opened issues on the GitHub issue
+tracker\footnote{\url{https://github.com/barrucadu/dejafu/issues}}; a
+further three have asked me for help over IRC and email; and five have
+made small
+contributions\footnote{\url{https://github.com/barrucadu/dejafu/graphs/contributors}}.
+Two features came directly from user requests, motivated by
+performance concerns in large test cases: random scheduling; and the
+ability to discard uninteresting results as they are discovered,
+before evaluating the predicate at the end.
+
+Tweag I/O\footnote{\url{http://www.tweag.io/}}, a research and
+development company based in Paris, are using \dejafu{} as part of
+their work on the SAGE
+project\footnote{\url{http://www.sagestorage.eu/}} on developing
+storage systems for future supercomputers.  They cannot share specific
+details of their work for commercial reasons, but one developer had
+this to say:
+
+\begin{bquote}{Email correspondence about a slow test}
+  Regarding the test case: we have an implementation of a distributed
+  storage cluster, with possibly many nodes and parallel requests.
+  The storage system itself is composed of several layers, which can
+  be stacked on top of one another.  There is a lot of asynchronicity
+  involved.  As per the tests themselves, I am testing parallel
+  requests over different objects, etc.
+
+  I'd like to add that dejafu tests are by far the most reliable tests
+  in our suite, in my experience - I am yet to see a concurrency bug
+  that they didn't spot, while some other tests missed them!
+\end{bquote}
 
 \subsection{Richness of the Abstraction}
 
