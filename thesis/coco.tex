@@ -8,9 +8,10 @@ this~\sref{coco-concerns}, and then demonstrate the use of the tool
 with an illustrative example~\sref{coco-example}.  We explain how
 properties are discovered~\sref{coco-hiw} and argue the correctness of
 our approach~\sref{coco-correctness}.  We then present two further
-examples~\sref{coco-cases}.  Finally, we present conclusions and
-evaluate the approach~\sref{coco-conclusions}.  CoCo is built on top
-of \dejafu{}.
+examples~\sref{coco-cases}.  Next we discuss how CoCo properties can
+be incorporated into a \dejafu{} testsuite.  Finally, we present
+conclusions and evaluate the approach~\sref{coco-conclusions}.  CoCo
+is built on top of \dejafu{}.
 
 This chapter is derived from our previous work \todo{cite when formally
   published}.
@@ -815,6 +816,22 @@ We could pursue this issue further by examining the terms with
 \dejafu{} when given a negative quantity, or we could change the type
 of the function to forbid that case.  Ideally, illegal states should
 be unrepresentable.
+
+\section{Using CoCo Properties in \dejafu{}}
+\label{sec:coco-dejafu}
+
+The CoCo output is not syntactically valid Haskell.  \texttt{@} is not
+a legal identifier, and the signatures are implicit.  So properties
+cannot simply be copied into a testsuite.
+
+\paragraph{Pretty-printing}
+\todo{\ldots}
+
+\paragraph{Signatures}
+\todo{\ldots}
+
+\paragraph{Checking properties}
+\todo{\ldots}
 
 \section{Evaluation and Conclusions}
 \label{sec:coco-conclusions}

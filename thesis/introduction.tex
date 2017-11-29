@@ -80,7 +80,7 @@ easier for programmers to write correct concurrent programs.
 \section{Roadmap}
 \label{sec:intro-roadmap}
 
-This thesis is divided into four broad parts:
+This thesis is divided into three parts:
 
 \begin{itemize}
 \item \Cref{part:review} discusses the context of the work.
@@ -91,16 +91,14 @@ This thesis is divided into four broad parts:
   testing in Haskell.
 
 \item \Cref{part:testing} is about \dejafu{}, our tool for testing
-  concurrent Haskell programs.  \Cref{chp:dejafu} gives an account of
-  the \dejafu{} tool, covering the scope, implementation, and some
-  case studies.  Finally, \cref{chp:algorithms} discusses an
+  concurrent Haskell programs, and CoCo, our tool for discovering
+  properties of concurrent programs.  \Cref{chp:dejafu} gives an
+  account of the \dejafu{} tool, covering the scope, implementation,
+  and some case studies.  \Cref{chp:algorithms} discusses an
   alternative scheduling algorithm for testing concurrent programs.
-
-\item \Cref{part:properties} is about CoCo, our tool for discovering
-  properties of concurrent functions.  \Cref{chp:coco} gives an
-  account of the CoCo tool, covering the scope, implementation, and
-  some case studies.  Finally, \cref{chp:coco_and_dejafu} discusses
-  using the properties discovered by CoCo as test cases in \dejafu{}.
+  Finally, \cref{chp:coco} gives an account of the CoCo tool, covering
+  the scope, implementation, some case studies, and shows how it
+  connects to \dejafu{}.
 
 \item \Cref{part:end} evaluates the work and discusses our conclusions
   in \cref{chp:conclusions} and suggests possible future work in
