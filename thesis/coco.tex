@@ -825,13 +825,77 @@ a legal identifier, and the signatures are implicit.  So properties
 cannot simply be copied into a testsuite.
 
 \paragraph{Pretty-printing}
-\todo{\ldots}
+CoCo properties are represented as a pair of expressions and the
+operator (equality or strict refinement) connecting them.  The visual
+form of the operators is hard-coded, but how the expressions are
+displayed is controlled by a pretty-printer.  There is a default
+pretty-printer, used throughout this chapter, which favours a concise
+output.  There is also the option to produce \dejafu{}-compatible
+output, giving properties which can be checked by \dejafu{} directly,
+or by the \package{hunit-dejafu} and \package{tasty-dejafu} packages.
+
+\begin{listing}
+  \centering
+  \begin{cminted}{haskell}
+-- default, not valid Haskell
+readMVar @  ===  readMVar @ >> readMVar @
+
+-- dejafu
+check $ sigL (\h0 -> readMVar h0) === sigL (\h0 -> readMVar h0 >> readMVar h0)
+
+-- hunit/tasty
+testProperty "name" $
+  sigL (\h0 -> readMVar h0) === sigL (\h0 -> readMVar h0 >> readMVar h0)
+  \end{cminted}
+  \caption{The different CoCo pretty-printing modes.}\label{lst:coco_ppr}
+\end{listing}
+
+\Cref{lst:coco_ppr} shows the three pretty-printing modes.  The
+``dejafu'' and ``hunit/tasty'' modes are valid Haskell, and can be
+used as a regression test to ensure the property holds (after
+supplying a signature).  The two alternative views of properties are
+more verbose, and so less convenient to read than the default output
+when examining a list of properties.  Furthermore, it is little work
+to transform a CoCo property into a form checkable by \dejafu{}.
 
 \paragraph{Signatures}
-\todo{\ldots}
+\dejafu{} has a notion of signatures, similar to CoCo signatures.  A
+\dejafu{} signature is a simplified form of a CoCo signature: it has
+an initialisation function, an observation function, an interference
+function, and a single expression to evaluate.  \Cref{lst:coco_ppr}
+uses signature functions, which take the expression and produce a
+signature.  These functions are called \texttt{sigL} because the
+general form of a CoCo invocation provides two signatures to compare,
+discovering properties of a single signature is a special case of
+this.  So these properties use the ``left signature'', if two
+signatures were being compared, there would also be reference to a
+\texttt{sigR} (the ``right signature'').
+
+CoCo provides a function, \texttt{cocoToDejaFu}, to convert a CoCo
+signature into a \dejafu{} signature.
 
 \paragraph{Checking properties}
-\todo{\ldots}
+\dejafu{} can check properties, and also produce a list of
+counterexamples for failing properties.  Properties are evaluated in
+the same way as CoCo: the behaviours of each term are found with
+\dejafu{}'s systematic concurrency testing functionality, and then
+these sets of behaviours are compared to check if the property holds.
+By default, properties are checked with more variable-assignments than
+CoCo, to increase confidence in the result.  The user can also specify
+the number of seed values and variable-assignments to try, to have
+even more confidence.
+
+In general it is faster for \dejafu{} to check a property than for
+CoCo to find it, as to find a property with terms of size $n$ and $m$,
+CoCo must first generate and evaluate many expressions smaller than
+$n$ and $m$.  \dejafu{} just needs to evaluate the two terms in the
+property.
+
+Similarly to typical property-testing tools like
+QuickCheck\cite{claessen2000}, \dejafu{} uses typeclass polymorphism
+to enable testing properties which take arguments.  If \texttt{f x} is
+testable, and \texttt{x} is of some type which can be enumerated by
+LeanCheck, then \verb|\x -> f x| is testable.
 
 \section{Evaluation and Conclusions}
 \label{sec:coco-conclusions}
