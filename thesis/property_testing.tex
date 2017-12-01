@@ -68,16 +68,14 @@ input values.  \Cref{tbl:proptools} summarises the differences between
 several tools for Haskell.
 
 \begingroup
-\newcommand{\Y}{\CIRCLE}
-\newcommand{\N}{\Circle}
+\newcommand{\YY}{\CIRCLE}
+\newcommand{\NN}{\Circle}
 \newcommand{\YN}{\LEFTcircle}
-\newcommand{\Q}{\N$^p$}
-\newcommand{\VBS}{\rotatebox{90}{\scriptsize BSD3}}
-\newcommand{\VGP}{\rotatebox{90}{\scriptsize GPLv3}}
+\newcommand{\QQ}{\NN$^p$}
 
 \begin{table}
 \centering
-\begin{tabularx}{\textwidth}{lXXXXXXXXXX}
+\begin{tabular}{lccccccccccc}
 &\rotatebox{90}{QuickCheck\hphantom{a}}
 &\rotatebox{90}{SmartCheck}
 &\rotatebox{90}{SmallCheck}
@@ -90,25 +88,26 @@ several tools for Haskell.
 &\rotatebox{90}{Reach}
 \\ \toprule
 \textbf{Input value generation}          &&&&&&&&&&\\
-~~random                              &\Y&\Y&\N&\N&\N&\Y&\N&\Y&\Y&\N\\
-~~enumerative                         &\N&\N&\Y&\Y&\Y&\Y&\Y&\Y&\Y&\N\\
-~~mixed random \& enumerative         &\N&\N&\N&\N&\N&\Y&\N&\Y&\Y&\N\\ \midrule
+~~random                              &\YY&\YY&\NN&\NN&\NN&\YY&\NN&\YY&\YY&\NN\\
+~~enumerative                         &\NN&\NN&\YY&\YY&\YY&\YY&\YY&\YY&\YY&\NN\\
+~~mixed random \& enumerative         &\NN&\NN&\NN&\NN&\NN&\YY&\NN&\YY&\YY&\NN\\ \midrule
 \textbf{Property DSL}          &&&&&&&&&&\\
-~~existential                 &\N&\N&\Y&\Y&\Y&\Q&\Q&\Q&\N&\N\\
-~~higher order                &\Y&\Y&\Y&\Y&\Y&\Q&\Q&\Q&\N&\N\\ \midrule
+~~existential                 &\NN&\NN&\YY&\YY&\YY&\QQ&\QQ&\QQ&\NN&\NN\\
+~~higher order                &\YY&\YY&\YY&\YY&\YY&\QQ&\QQ&\QQ&\NN&\NN\\ \midrule
 \textbf{Output}          &&&&&&&&&&\\
-~~generalized counterexamples            &\N&\Y&\N&\YN&\N&\N&\N&\N&\N&\N\\
+~~generalized counterexamples            &\NN&\YY&\NN&\YN&\NN&\NN&\NN&\NN&\NN&\NN\\
 \bottomrule
 \multicolumn{11}{l}{
 \footnotesize
 Legend:\hspace{1em}
-\Y{} Yes/Good.\hspace{1em}
-\N{} No/Poor.\hspace{1em}
+\YY{} Yes/Good.\hspace{1em}
+\NN{} No/Poor.\hspace{1em}
 \YN{} Partial/Median.\hspace{1em}
 $^p$ Potential support} \\
-\end{tabularx}
+\end{tabular}
 \caption[Summary of differences in Haskell property-testing tools.]{Summary of differences between property-based testing tools for Haskell.}\label{tbl:proptools}
 \end{table}
+\endgroup
 
 \paragraph{Input value generation}
 Inputs can either be generated randomly or enumerated.  Randomisation
