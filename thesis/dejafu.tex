@@ -264,7 +264,7 @@ prison numPrisoners = do
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader light))
   leader numPrisoners light
 \end{minted}
-\caption{The perfect solution: nominate a leader, who waits until he is certain that everyone has been in the room.}\label{lst:100perfect}
+\caption{The perfect solution: nominate a leader, who waits until they are certain that everyone has been in the room.}\label{lst:100perfect}
 \end{sublisting}
 \caption{Two solutions for the 100 prisoners problem.}\label{lst:100sols}
 \end{listing}
