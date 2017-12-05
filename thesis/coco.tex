@@ -940,10 +940,28 @@ improve matters in both execution time and maximum resident memory
 usage.  \Cref{tbl:coco_scale} shows how the three examples we have
 seen perform with the optimisations disabled.  All optimisations are
 on by default.  The most significant improvement by far is
-\textbf{O5}, caching of term behaviours, but the other optimisations
+\textbf{O4}, caching of term behaviours, but the other optimisations
 all play their part as well.  Furthermore, \dejafu{} implements its
 own optimisations which reduce the time to discover all behaviours of
 a term.
+
+Optimisations \textbf{O1} and \textbf{O2} aim to remove uninteresting
+properties from the CoCo output.  Even though \textbf{O1} was not
+motivated by performance, it reduces execution time in the stack and
+semaphore examples.  This is unsurprising, as eliminating terms
+reduces the amount of evaluation work to be done.  Optimisations
+\textbf{O3} and \textbf{O4} were motivated by poor performance, and
+are clear wins here.
+
+Despite these optimisations, the semaphore example still takes around
+15 minutes to run.  This is because CoCo currently does no pruning of
+\emph{non-monadic} redundant schemas.  As the semaphore example uses
+arithmetic, it will generate redundant terms like \verb|x + 0|, and
+\verb|x - 0|.  Such redundant terms will not appear in generated
+properties, as monadic terms involving these redundant terms will be
+equivalent to a smaller term, and so pruning will eliminate them.  So
+these redundant pure schemas are truly redundant, and should be
+eliminated by a new optimisation to reduce the term blow-up.
 
 \begin{table}
   \centering
@@ -952,11 +970,10 @@ a term.
     \begin{tabular}{lSSS} \toprule
       & {Time (s)} & {Max Residency (kB)} & {Properties} \\ \midrule
       \emph{All On}   &  1.58 & 3.710 & 8 \\
-      \textbf{O1} Off &  1.60 & 3.657 & 8 \\
-      \textbf{O2} Off &  1.54 & 3.710 & 8 \\
-      \textbf{O3} Off &  1.54 & 3.710 & 8 \\
-      \textbf{O4} Off &  1.57 & 3.792 & 9 \\
-      \textbf{O5} Off & 26.62 & 2.114 & 8 \\
+      \textbf{O1} Off &  1.54 & 3.710 & 8 \\
+      \textbf{O2} Off &  1.57 & 3.792 & 9 \\
+      \textbf{O3} Off &  1.60 & 3.657 & 8 \\
+      \textbf{O4} Off & 26.62 & 2.114 & 8 \\
       \emph{All Off}  & 26.21 & 8.027 & 9 \\ \bottomrule
     \end{tabular}
     \caption{The \texttt{MVar} example~\sref{coco-example}}\label{tbl:coco_scale_mvar}
@@ -970,11 +987,10 @@ a term.
     \begin{tabular}{lSSS} \toprule
       & {Time (s)} & {Max Residency (MB)} & {Properties} \\ \midrule
       \emph{All On}   &   118 & 22.30 &  7 \\
-      \textbf{O1} Off &   121 & 25.04 &  7 \\
-      \textbf{O2} Off &   111 & 22.75 &  7 \\
-      \textbf{O3} Off &   142 & 25.08 & 21 \\
-      \textbf{O4} Off &   111 & 25.26 & 12 \\
-      \textbf{O5} Off & 32341 & 22.71 &  7 \\
+      \textbf{O1} Off &   142 & 25.08 & 21 \\
+      \textbf{O2} Off &   111 & 25.26 & 12 \\
+      \textbf{O3} Off &   121 & 25.04 &  7 \\
+      \textbf{O4} Off & 32341 & 22.71 &  7 \\
       \emph{All Off}  & 54352 & 57.31 & 29 \\ \bottomrule
     \end{tabular}
     \caption{The stack example~\sref{coco-cases}}\label{tbl:coco_scale_stack}
@@ -988,11 +1004,10 @@ a term.
     \begin{tabular}{lSSS} \toprule
       & {Time (s)} & {Max Residency (MB)} & {Properties} \\ \midrule
       \emph{All On}   &    945 & 250.6 & 55 \\
-      \textbf{O1} Off &    983 & 254.3 & 55 \\
-      \textbf{O2} Off &    946 & 250.6 & 55 \\
-      \textbf{O3} Off &    965 & 250.6 & 55 \\
-      \textbf{O4} Off &    994 & 261.7 & 59 \\
-      \textbf{O5} Off &  99490 & 242.6 & 55 \\
+      \textbf{O1} Off &    965 & 250.6 & 55 \\
+      \textbf{O2} Off &    994 & 261.7 & 59 \\
+      \textbf{O3} Off &    983 & 254.3 & 55 \\
+      \textbf{O4} Off &  99490 & 242.6 & 55 \\
       \emph{All Off}  & 102759 & 408.7 & 59 \\ \bottomrule
     \end{tabular}
     \caption{The semaphore example~\sref{coco-cases}}\label{tbl:coco_scale_sem}
@@ -1000,11 +1015,10 @@ a term.
 
   \raggedright \footnotesize
   \begin{description}
-  \item[O1] is to only evaluate the most general term for each schema
-  \item[O2] is to only use smallest schemas when generating monadic binds
-  \item[O3] is to exclude neutral schemas when generating larger schemas
-  \item[O4] is to prune properties which are simple consequences of another
-  \item[O5] is to cache the behaviours of terms
+  \item[O1] is to exclude neutral schemas when generating larger schemas
+  \item[O2] is to prune properties which are simple consequences of another
+  \item[O3] is to only evaluate the most general term for each schema
+  \item[O4] is to cache the behaviours of terms
   \end{description}
 
   \caption{How optimisations alter CoCo's scaling behaviour.}\label{tbl:coco_scale}
