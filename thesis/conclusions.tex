@@ -51,3 +51,25 @@ an open question.
 
 \paragraph{The interpretation game}
 \todo{\ldots}
+
+\section{Contributions}
+\label{sec:conclusions-contributions}
+
+\paragraph{Systematic concurrency testing with rich semantics}
+\dejafu{} and CoCo are Haskell tools for testing Haskell programs, but
+the techniques they use are not limited to Haskell.  Systematic
+concurrency testing techniques are typically described in the
+literature for small languages with simple concurrency abstractions.
+Even real programming languages tend to have simple concurrency
+abstractions.  For example, Maple\cite{yu2012} is able to test
+arbitrary pthread programs by considering just 19 primitive actions,
+whereas the expression of Haskell concurrency in \dejafu{} requires 33
+(not counting STM).
+
+In contrast, Haskell has an unusually rich concurrency abstraction.
+There are many different operations with partially overlapping
+behaviour.  It is not clear that a typical SCT algorithm would work
+effectively in this context.  \dejafu{} provides a convincing
+demonstration that SCT can be applied to languages with a rich
+concurrency abstraction.  This is an important stepping-stone to
+implementing SCT tools for other similarly rich languages.
