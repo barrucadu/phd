@@ -954,14 +954,40 @@ reduces the amount of evaluation work to be done.  Optimisations
 are clear wins here.
 
 Despite these optimisations, the semaphore example still takes around
-15 minutes to run.  This is because CoCo currently does no pruning of
-\emph{non-monadic} redundant schemas.  As the semaphore example uses
-arithmetic, it will generate redundant terms like \verb|x + 0|, and
-\verb|x - 0|.  Such redundant terms will not appear in generated
-properties, as monadic terms involving these redundant terms will be
-equivalent to a smaller term, and so pruning will eliminate them.  So
-these redundant pure schemas are truly redundant, and should be
-eliminated by a new optimisation to reduce the term blow-up.
+15 minutes to run.  This is because CoCo does not recognise cases
+where one schema is an instance of another.  \Cref{lst:redundant}
+shows an example.
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+signal @ x
+signal @ 0
+signal @ 1
+\end{cminted}
+\caption{Redundant schemas.}\label{lst:redundant}
+\end{listing}
+
+Such schemas arise when the signature includes constants.  The ``most
+general term'' optimisation does not apply here, as these are three
+\emph{different} schemas, it just so happens that two of the schemas
+are instances of another.  Constants in signatures are necessary as
+CoCo does not synthesise preconditions.  If it did, constants could be
+omitted, as any properties which require a specific value for a
+parameter would be found as a precondition.  Property (14) in the
+semaphore example would instead become:
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+x == 0  ==>  wait @ x  ===  wait @ x >> wait @ x
+\end{cminted}
+\caption{A property with a precondition.}\label{lst:precondition}
+\end{listing}
+
+Constants could be removed from the signature, indirectly solving the
+performance problem.  In addition, discovering preconditions would
+make CoCo able to find properties beyond its current reach.
 
 \begin{table}
   \centering
