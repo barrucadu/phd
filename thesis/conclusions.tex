@@ -1,7 +1,22 @@
+\begin{bquote}{E. W. Dijkstra, 1972\nocite{ewd340}}
+  Program testing can be a very effective way to show the presence of
+  bugs, but is hopelessly inadequate for showing their absence.
+\end{bquote}
+
 \blindtext
 
 \section{Evaluation}
 \label{sec:conclusions-evaluation}
+
+Programmers often interpret a test passing as evidence for the absence
+of bugs.  Testing concurrent programs is more difficult than testing
+sequential programs, for three main reasons: there is no clear quality
+metric for concurrency tests; there is an exponential blow-up in
+resource requirements for larger and more interesting test cases; and
+correctly using a concurrency testing tool requires more insight than
+a sequential testing tool.  At worst, this additional difficulty could
+lead programmers to a false sense of confidence in the correctness of
+their concurrent programs, by unwittingly writing poor tests.
 
 \paragraph{Quality of a concurrency test set}
 Being able to deterministically test concurrent programs is a
@@ -47,10 +62,49 @@ automatic and useful in revealing legal but untested interactions, is
 an open question.
 
 \paragraph{The inevitable exponentials}
-\todo{\ldots}
+Concurrent programs are nondeterministic, and this is where the
+difficulty of writing correct concurrent programs comes from.
+Fundamentally, testing a concurrent program requires executing it
+multiple times with different schedules.  This adds significant
+overhead compared to sequential tests, where a single execution
+suffices.  Even worse, the number of executions required in the worst
+case is exponential in a number of different
+factors\cite{musuvathi2007}.
+
+\dejafu{} implements both schedule
+bounding\cite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
+reduction\cite{flanagan2005,godefroid1996} to improve the average
+case, but the worst case remains a possibility.  Empirical studies
+show that small test cases with two threads and two pre-emptive
+context switches suffice for finding many real-world concurrency
+bugs\cite{thomson2014}.  So in theory there is a terrible asymptotic
+worst case, but in practice test cases are often small enough for this
+not to be a significant concern.
 
 \paragraph{The interpretation game}
-\todo{\ldots}
+It can be difficult to look at a passing concurrency test and know
+what it is telling us.  We see this with CoCo, where the programmer
+may need to run the tool with a variety of different interference
+functions to see the full picture.  Properties found with one sort of
+concurrent interference may not generalise to cases with different
+interference.  Similarly, passing concurrency tests in \dejafu{} may
+not generalise to cases where the concurrent environment is different.
+This is a difficulty which would be solved by being able to measure
+the quality of a concurrency test set: a measure would highlight
+weaknesses in passing tests, and help avoid overly generous
+interpretations.
+
+It can be difficult to look at a failing concurrency test and diagnose
+the problem.  We see this with \dejafu{}, where the resulting
+execution traces can expose many low-level details of the
+implementation of library functions.  Which information is truly
+important is not obvious.  Traces may become invalid when library
+dependencies are upgraded, even if the important scheduling points
+remain the same.  The \textsc{Concurrit}\cite{elmas2013} tool offers
+an alternative approach here, where buggy schedules are represented by
+a small collection of constraints capturing the key scheduling
+decisions.  Although intended for reproducing bugs, \textsc{Concurrit}
+constraints could be a much simpler way to present faulty traces.
 
 \section{Contributions}
 \label{sec:conclusions-contributions}
@@ -66,10 +120,10 @@ arbitrary pthread programs by considering just 19 primitive actions,
 whereas the expression of Haskell concurrency in \dejafu{} requires 33
 (not counting STM).
 
-In contrast, Haskell has an unusually rich concurrency abstraction.
-There are many different operations with partially overlapping
-behaviour.  It is not clear that a typical SCT algorithm would work
-effectively in this context.  \dejafu{} provides a convincing
-demonstration that SCT can be applied to languages with a rich
-concurrency abstraction.  This is an important stepping-stone to
-implementing SCT tools for other similarly rich languages.
+Haskell has an unusually rich concurrency abstraction.  There are many
+different operations with partially overlapping behaviour.  It is not
+clear that a typical SCT algorithm would work effectively in this
+context.  \dejafu{} provides a convincing demonstration that SCT can
+be applied to languages with a rich concurrency abstraction.  This is
+an important stepping-stone to implementing SCT tools for other
+similarly rich languages.
