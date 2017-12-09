@@ -3,63 +3,48 @@
   bugs, but is hopelessly inadequate for showing their absence.
 \end{bquote}
 
-\blindtext
+\noindent
+We set out to make it easier for programmers to write correct
+concurrent programs, but have we achieved that?  In this chapter we
+summarise and review our contributions, giving some overall
+evaluation.
 
-\section{Evaluation}
-\label{sec:conclusions-evaluation}
+\paragraph{Systematic concurrency testing with rich semantics}
+\Cref{chp:dejafu} introduces \dejafu{}.  This is a Haskell tool for
+testing Haskell programs, but the underlying techniques are not
+Haskell specific.  However, Haskell has an unusually rich concurrency
+abstraction, whereas SCT techniques are typically described in the
+literature for simple concurrency abstractions.  Even real programming
+languages tend to have simple concurrency abstractions.  For example,
+Maple\cite{yu2012} is able to test arbitrary pthread programs by
+considering just 19 primitive actions, whereas the expression of
+Haskell concurrency in \dejafu{} requires 33 (not counting STM).
 
-Programmers often interpret a test passing as evidence for the absence
-of bugs.  Testing concurrent programs is more difficult than testing
-sequential programs, for three main reasons: there is no clear quality
-metric for concurrency tests; there is an exponential blow-up in
-resource requirements for larger and more interesting test cases; and
-correctly using a concurrency testing tool requires more insight than
-a sequential testing tool.  At worst, this additional difficulty could
-lead programmers to a false sense of confidence in the correctness of
-their concurrent programs, by unwittingly writing poor tests.
+In Haskell, there are many different operations with partially
+overlapping behaviour.  It is not clear that a typical SCT algorithm
+would work effectively in this context.  \dejafu{} provides a
+convincing demonstration that SCT can be applied to languages with
+rich concurrency abstractions.  This is an important stepping-stone to
+implementing SCT tools for other similarly rich languages.
 
-\paragraph{Quality of a concurrency test set}
-Being able to deterministically test concurrent programs is a
-necessary step towards finding concurrency bugs more easily than
-verification and with less disruption to users than waiting for bug
-reports.  However, any testing regimen is only as good as the tests
-that get written.  How do we come to believe that a testsuite is
-strong evidence for the correctness of some code?
+\paragraph{Effective bug finding with randomised scheduling}
+\Cref{chp:algorithms} introduces the swarm scheduling algorithm.
+Benchmark results suggest it performs as well as the PCT
+algorithm\cite{burckhardt2010} in terms of bug-finding ability.
+Crucially, PCT requires the user to supply parameters derived from the
+program under test, whereas swarm scheduling does not.  This
+program-agnosticism makes swarm scheduling simpler to implement and
+use than PCT, while still finding the bugs.
 
-For sequential programs, we can use the traditional metric of code
-coverage.  The continuous measure of coverage is difficult to
-interpret, but the binary measure is not: code which is not covered at
-all usually has more bugs than code which is covered by even
-low-quality tests\cite{ahmed2016}.
-
-For concurrent programs, what metric do we use?  If it is some notion
-of coverage, what even is the space being covered?  There are a few
-candidates:
-
-\begin{itemize}
-\item Schedule-sensitive branches are often unintentional and
-  erroneous points of synchronisation between concurrent
-  threads\cite{huang2015ssb}.  A good concurrency testsuite should try
-  all cases in a schedule-sensitive branch.
-
-\item Shared state which is not guarded by appropriate synchronisation
-  can lead to invalid or corrupt data.  If we have functions which
-  operate on some mutable state of the same type, then a good
-  concurrency testsuite will check what happens when those states are
-  shared and the functions executed concurrently.  If the state is a
-  product type, a good concurrency testsuite will also check what
-  happens when the states are only partially shared.
-\end{itemize}
-
-However, correct usage of a concurrent API often relies on assumptions
-stated in documentation, cautioning users where they must incorporate
-additional synchronisation.  An automated metric cannot read
-documentation, and so may highlight forbidden interactions as needing
-tests.
-
-Finding an easily understood metric, like code coverage, which is both
-automatic and useful in revealing legal but untested interactions, is
-an open question.
+\paragraph{Discovering properties of concurrent programs}
+\Cref{chp:coco} introduces CoCo.  Through program synthesis and
+property-based testing, CoCo can give the programmer new insights into
+their code.  Like \dejafu{}, this is a Haskell tool, but the
+underlying techniques are not Haskell specific.  The insight behind
+CoCo is that we can compare sets of program behaviours to make
+meaningful claims about the relation between the source programs.
+This approach applies not just to concurrent programs, but to
+nondeterministic programs in general.
 
 \paragraph{The inevitable exponentials}
 Concurrent programs are nondeterministic, and this is where the
@@ -89,41 +74,29 @@ functions to see the full picture.  Properties found with one sort of
 concurrent interference may not generalise to cases with different
 interference.  Similarly, passing concurrency tests in \dejafu{} may
 not generalise to cases where the concurrent environment is different.
-This is a difficulty which would be solved by being able to measure
-the quality of a concurrency test set: a measure would highlight
-weaknesses in passing tests, and help avoid overly generous
-interpretations.
 
 It can be difficult to look at a failing concurrency test and diagnose
 the problem.  We see this with \dejafu{}, where the resulting
-execution traces can expose many low-level details of the
-implementation of library functions.  Which information is truly
-important is not obvious.  Traces may become invalid when library
-dependencies are upgraded, even if the important scheduling points
-remain the same.  The \textsc{Concurrit}\cite{elmas2013} tool offers
-an alternative approach here, where buggy schedules are represented by
-a small collection of constraints capturing the key scheduling
-decisions.  Although intended for reproducing bugs, \textsc{Concurrit}
-constraints could be a much simpler way to present faulty traces.
+execution traces can expose low-level details of the implementation of
+library functions.  Traces may become invalid when library
+dependencies change, even if the key scheduling decisions remain the
+same.  Which information is truly important is not obvious.  The
+\textsc{Concurrit}\cite{elmas2013} tool offers an alternative approach
+here, where buggy schedules are represented by a small collection of
+scheduling constraints.  Although intended for reproducing bugs,
+\textsc{Concurrit} constraints could be a much simpler way to present
+faulty traces.
 
-\section{Contributions}
-\label{sec:conclusions-contributions}
+\paragraph{Contributions}
+In summary, we contribute:
 
-\paragraph{Systematic concurrency testing with rich semantics}
-\dejafu{} and CoCo are Haskell tools for testing Haskell programs, but
-the techniques they use are not limited to Haskell.  Systematic
-concurrency testing techniques are typically described in the
-literature for small languages with simple concurrency abstractions.
-Even real programming languages tend to have simple concurrency
-abstractions.  For example, Maple\cite{yu2012} is able to test
-arbitrary pthread programs by considering just 19 primitive actions,
-whereas the expression of Haskell concurrency in \dejafu{} requires 33
-(not counting STM).
-
-Haskell has an unusually rich concurrency abstraction.  There are many
-different operations with partially overlapping behaviour.  It is not
-clear that a typical SCT algorithm would work effectively in this
-context.  \dejafu{} provides a convincing demonstration that SCT can
-be applied to languages with a rich concurrency abstraction.  This is
-an important stepping-stone to implementing SCT tools for other
-similarly rich languages.
+\begin{itemize}
+\item A library (\dejafu{}) for effectively testing concurrent Haskell
+  programs.
+\item A convincing demonstration that SCT techniques work well in a
+  rich setting.
+\item A new scheduling algorithm (swarm scheduling) for randomised
+  testing.
+\item A tool (CoCo) for discovering properties of concurrent Haskell
+  functions.
+\end{itemize}
