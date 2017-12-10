@@ -1,0 +1,233 @@
+\begin{itemize}
+\item \verb|foo = bar| binds a name to a value
+\begin{minted}{haskell}
+five = 5
+\end{minted}
+
+\item Function definitions add argument names after the function name
+\begin{minted}{haskell}
+increment n = n + 1
+\end{minted}
+
+\item Function calls have no parentheses
+\begin{minted}{haskell}
+six = increment five
+\end{minted}
+
+\item Function calls are left associative
+\begin{minted}{haskell}
+seven = increment (increment five)
+\end{minted}
+
+\item Function calls take precendence over operators
+\begin{minted}{haskell}
+incAndAdd x y = increment x + increment y
+\end{minted}
+
+\item Anonymous functions are declared with \verb|\args -> expr|
+\begin{minted}{haskell}
+double = \x -> incAndAdd x x - 2
+\end{minted}
+
+\item Functions are curried, ``multi-argument functions'' are
+  syntactic sugar
+\begin{minted}{haskell}
+incAndAdd x = \y -> increment x + increment y
+\end{minted}
+
+\item Functions are first-class values
+\begin{minted}{haskell}
+compose :: (b -> c) -> (a -> b) -> a -> c
+compose f g x = f (g x)
+\end{minted}
+
+\item Operators are just functions with symbolic names
+\begin{minted}{haskell}
+x +- y = (x + x) - (y + y)
+\end{minted}
+
+\item We can use a \verb|let| expression to introduce local definitions
+\begin{minted}{haskell}
+sumOf3 x y z = let temp = x + y in temp + z
+\end{minted}
+
+\item Or a \verb|where| clause
+\begin{minted}{haskell}
+sumOf3 x y z = temp + z where
+  temp = x + y
+\end{minted}
+
+\item We can annotate a definition or a value with a type using \verb|::|
+\begin{minted}{haskell}
+name :: Name
+name = "Michael Walker"
+\end{minted}
+
+\item \verb|type| gives an existing type a new alias
+\begin{minted}{haskell}
+type Name = String
+\end{minted}
+
+\item \verb|data| defines a new data type
+\begin{minted}{haskell}
+data Colour
+  = RGB Int Int Int
+  | Grey Double
+
+magenta :: Colour
+magenta = RGB 255 0 255
+\end{minted}
+
+\item Records allow us to name the fields in a type
+\begin{minted}{haskell}
+data RGB = RGB
+  { red   :: Int
+  , green :: Int
+  , blue  :: Int
+  }
+
+red :: RGB
+red = RGB { red = 255, green = 0, blue = 0 }
+\end{minted}
+
+\item \verb|->| denotes the type of a function
+\begin{minted}{haskell}
+sum3 :: Int -> Int -> Int -> Int
+sum3 x y z = x + y + z
+\end{minted}
+
+\item \verb|->| is right associative, these types are all equivalent
+\begin{minted}{haskell}
+sum3 :: Int -> Int -> Int -> Int
+sum3 :: Int -> Int -> (Int -> Int)
+sum3 :: Int -> (Int -> Int -> Int)
+sum3 :: Int -> (Int -> (Int -> Int))
+\end{minted}
+
+\item Names that start with an upper case letter in types are concrete
+  types
+\begin{minted}{haskell}
+intId :: Int -> Int
+intId x = x
+\end{minted}
+
+\item Names that start with a lower case letter in types are type
+  variables
+\begin{minted}{haskell}
+id :: a -> a
+id x = x
+\end{minted}
+
+\item We can use type variables when defining types
+\begin{minted}{haskell}
+data Maybe  a   = Just a | Nothing
+data Either a b = Left a | Right b
+\end{minted}
+
+\item \verb|case| expressions let us pattern match on data
+  constructors
+\begin{minted}{haskell}
+fromMaybe :: a -> Maybe a -> a
+fromMaybe def m = case m of
+  Just a  -> a
+  Nothing -> def
+\end{minted}
+
+\item Function definitions can also pattern match on their arguments
+\begin{minted}{haskell}
+maybe :: a -> (a -> b) -> Maybe a -> b
+maybe def f (Just a) = f a
+maybe def f Nothing  = def
+\end{minted}
+
+\item The pattern \verb|_| matches anything
+\begin{minted}{haskell}
+ifThenElse :: Bool -> a -> a -> a
+ifThenElse True t _ = t
+ifThenElse _    _ f = f
+\end{minted}
+
+\item Typeclasses are used to group common behaviour, such as equality
+\begin{minted}{haskell}
+class Eq a where
+  (==) :: a -> a -> Bool
+
+instance Eq Bool where
+  True  == True  = True
+  False == False = True
+  _ == _ = False
+\end{minted}
+
+\item Typeclass constraints can appear in type signatures
+\begin{minted}{haskell}
+eq3 :: Eq a => a -> a -> a -> Bool
+eq3 a b c = a == b && b == c
+\end{minted}
+
+% [layout hack]: ensure the text and the code are on the same page
+\pagebreak
+\item The \verb|Functor| typeclass represents ``contexts'' which can
+  be mapped over
+\begin{minted}{haskell}
+class Functor f where
+  fmap :: (a -> b) -> f a -> f b
+\end{minted}
+
+\item \verb|fmap| is sometimes written \verb|<$>|
+\begin{minted}{haskell}
+(<$>) :: Functor f => (a -> b) -> f a -> f b
+(<$>) = fmap
+\end{minted}
+
+\item The \verb|Applicative| typeclass extends \verb|Functor| with the
+  ability to wrap up a value
+\begin{minted}{haskell}
+class Functor f => Applicative f where
+  pure :: a -> f a
+\end{minted}
+
+\item \ldots{}and to apply a value-in-a-context to a
+  function-in-a-context
+\begin{minted}{haskell}
+class Functor f => Applicative f where
+  (<*>) :: f (a -> b) -> f a -> f b
+  pure  :: a -> f a
+\end{minted}
+
+\item The \verb|Monad| typeclass extends \verb|Applicative| with the
+  ability to collapse contexts
+\begin{minted}{haskell}
+class Applicative m => Monad m where
+  (>>=) :: m a -> (a -> m b) -> m b
+
+join :: Monad m => m (m a) -> m a
+join mma = mma >>= id
+\end{minted}
+
+\item do-notation is a syntactic sugar for sequencing monadic actions
+\begin{minted}{haskell}
+main :: IO ()
+main = do
+  putStrLn "hello"
+  putStrLn "world"
+\end{minted}
+
+\item \verb|<-| is used to bind the result of a monadic action to a
+  name in do-notation
+\begin{minted}{haskell}
+main :: IO ()
+main = do
+  putStrLn "What's your name?"
+  name <- getLine
+  putStrLn ("Hello " ++ name)
+\end{minted}
+
+\item \verb|let| is used to bind an expression to a name in
+  do-notation
+\begin{minted}{haskell}
+main :: IO ()
+main = do
+  let sum = sum3 1 10 100
+  print sum
+\end{minted}
+\end{itemize}
