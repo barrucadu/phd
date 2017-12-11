@@ -37,11 +37,11 @@ program-agnosticism makes swarm scheduling simpler to implement and
 use than PCT, while still finding the bugs.
 
 \paragraph{Discovering properties of concurrent programs}
-\Cref{chp:coco} introduces CoCo.  Through program synthesis and
-property-based testing, CoCo can give the programmer new insights into
-their code.  Like \dejafu{}, this is a Haskell tool, but the
-underlying techniques are not Haskell specific.  The insight behind
-CoCo is that we can compare sets of program behaviours to make
+\Cref{chp:coco} introduces CoCo.  By synthesising program terms and
+performing property-based testing, CoCo can give the programmer new
+insights into their code.  Like \dejafu{}, this is a Haskell tool, but
+the underlying techniques are not Haskell specific.  The underlying
+idea is that we can compare sets of program behaviours to make
 meaningful claims about the relation between the source programs.
 This approach applies not just to concurrent programs, but to
 nondeterministic programs in general.
@@ -56,7 +56,7 @@ suffices.  Even worse, the number of executions required in the worst
 case is exponential in a number of different
 factors\cite{musuvathi2007}.
 
-\dejafu{} implements both schedule
+\dejafu{} implements schedule
 bounding\cite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
 reduction\cite{flanagan2005,godefroid1996} to improve the average
 case, but the worst case remains a possibility.  Empirical studies
@@ -82,10 +82,10 @@ library functions.  Traces may become invalid when library
 dependencies change, even if the key scheduling decisions remain the
 same.  Which information is truly important is not obvious.  The
 \textsc{Concurrit}\cite{elmas2013} tool offers an alternative approach
-here, where buggy schedules are represented by a small collection of
-scheduling constraints.  Although intended for reproducing bugs,
-\textsc{Concurrit} constraints could be a much simpler way to present
-faulty traces.
+here, where executions are represented by a small collection of
+scheduling constraints, rather than a full trace.  Although intended
+for reproducing bugs, \textsc{Concurrit} constraints could be a much
+simpler way to present faulty traces.
 
 \paragraph{Contributions}
 In summary, we contribute:
