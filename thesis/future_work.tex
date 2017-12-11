@@ -1,7 +1,7 @@
 \paragraph{Measuring the quality of test suites}
-Any testing regimen is only as good as its tests.  How do we come to
-believe that a testsuite is strong evidence for the correctness of
-some code?  For sequential programs, we can use the traditional metric
+How do we come to believe that a test suite is strong evidence for the
+correctness of some program?  Any testing regimen is only as good as
+its tests.  For sequential programs, we can use the traditional metric
 of code coverage.  Code which is not covered at all usually has more
 bugs than code which is covered by even low-quality
 tests\cite{ahmed2016}.  For concurrent programs, what metric do we
@@ -11,17 +11,17 @@ covered?  There are a few candidates:
 \begin{itemize}
 \item Schedule-sensitive branches are often unintentional and
   erroneous points of synchronisation between concurrent
-  threads\cite{huang2015ssb}.  A good concurrency testsuite should try
-  all cases in a schedule-sensitive branch.
+  threads\cite{huang2015ssb}.  A good concurrency test suite should
+  try all cases in a schedule-sensitive branch.
 
 \item Shared state which is not guarded by appropriate synchronisation
   can lead to invalid or corrupt data.  If we have functions which
   operate on some mutable state of the same type, then a good
-  concurrency testsuite should check what happens when those states
+  concurrency test suite should check what happens when those states
   are shared and the functions executed concurrently.
 \end{itemize}
 
-Being able to identify cases where a concurrency testsuite is lacking
+Being able to identify cases where a concurrency test suite is lacking
 could greatly help with improving the overall quality of a piece of
 software.
 
@@ -57,7 +57,7 @@ effect on how threads are scheduled during testing.  Incorporating
 time is difficult, as it comes down to forbidding executions which a
 human would consider unreasonable.  Unreasonableness is not something
 that can easily be measured, unlike the number of pre-emptive context
-switches, yields, or execution length.
+switches, yields, or scheduling points.
 
 Perhaps the field of model checking has something to suggest here.  Or
 perhaps there is some way to quantify and impose a bound on
