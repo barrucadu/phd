@@ -1024,7 +1024,7 @@ mkAutoUpdate us = do
         writeIORef currRef Nothing
         void $ takeMVar lastValue
 
-    return $ do
+    pure $ do
         mval <- readIORef currRef
         case mval of
             Just val -> return val
@@ -1034,7 +1034,7 @@ mkAutoUpdate us = do
 
 catchSome :: IO a -> IO a
 catchSome act = catch act $
-  \e -> return $ throw (e :: SomeException)
+  \e -> pure $ throw (e :: SomeException)
   \end{minted}
   \caption{The implementation of the auto-update package.}\label{lst:example-autoupdate}
 \end{listing}
@@ -1218,7 +1218,7 @@ makeScheds main = do
                    | rng <- rngs
                    | stck <- sessionStacks
                    ]
-   return allscheds
+   pure allscheds
     \end{minted}
     \caption{Original}\label{lst:example-parmonad-sched-orig}
   \end{sublisting}
@@ -1249,7 +1249,7 @@ makeScheds main = do
                    | rng <- rngs
                    | stck <- sessionStacks
                    ]
-   return allscheds
+   pure allscheds
     \end{minted}
     \caption{\dejafu{}}\label{lst:example-parmonad-sched-dejafu}
   \end{sublisting}

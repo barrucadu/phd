@@ -523,7 +523,7 @@ than attempting any logical analysis.
 newtype LockStack m a = LockStack (MVar m [a])
 
 push :: MonadConc m => a -> LockStack m a -> m ()
-push a (LockStack v) = modifyMVar v (\as -> return (a:as, ()))
+push a (LockStack v) = modifyMVar v (\as -> pure (a:as, ()))
 
 pop :: MonadConc m => LockStack m a -> m (Maybe a)
 pop (LockStack v) = modifyMVar v (\as -> (drop 1 as, listToMaybe as))

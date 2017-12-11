@@ -37,14 +37,21 @@ incAndAdd x = \y -> increment x + increment y
 
 \item Functions are first-class values
 \begin{minted}{haskell}
-compose :: (b -> c) -> (a -> b) -> a -> c
 compose f g x = f (g x)
 \end{minted}
 
 \item Operators are just functions with symbolic names
 \begin{minted}{haskell}
-x +- y = (x + x) - (y + y)
+f . g = compose f g
 \end{minted}
+
+% [layout hack]: ensure the text and the code are on the same page
+\pagebreak
+\item The \verb|($)| operator is right-associative function application
+\begin{minted}{haskell}
+compose f g x = f $ g x
+\end{minted}
+%$
 
 \item We can use a \verb|let| expression to introduce local definitions
 \begin{minted}{haskell}
@@ -96,6 +103,8 @@ sum3 :: Int -> Int -> Int -> Int
 sum3 x y z = x + y + z
 \end{minted}
 
+% [layout hack]: ensure the text and the code are on the same page
+\pagebreak
 \item \verb|->| is right associative, these types are all equivalent
 \begin{minted}{haskell}
 sum3 :: Int -> Int -> Int -> Int
@@ -122,6 +131,26 @@ id x = x
 \begin{minted}{haskell}
 data Maybe  a   = Just a | Nothing
 data Either a b = Left a | Right b
+\end{minted}
+
+\item The list type constructors are \verb|:| and \verb|[]|
+\begin{minted}{haskell}
+-- sugar: not really a legal data definition!
+data [a] = a : [a] | []
+\end{minted}
+
+\item There are also tuples, each size a different type
+\begin{minted}{haskell}
+-- sugar: not really legal data definitions!
+data (a, b) = (a, b)
+data (a, b, c) = (a, b, c)
+-- ...
+\end{minted}
+
+\item The ``unit'' type looks like an empty tuple
+\begin{minted}{haskell}
+-- sugar: not really a legal data definition!
+data () = ()
 \end{minted}
 
 \item \verb|case| expressions let us pattern match on data
@@ -164,8 +193,6 @@ eq3 :: Eq a => a -> a -> a -> Bool
 eq3 a b c = a == b && b == c
 \end{minted}
 
-% [layout hack]: ensure the text and the code are on the same page
-\pagebreak
 \item The \verb|Functor| typeclass represents ``contexts'' which can
   be mapped over
 \begin{minted}{haskell}
@@ -195,13 +222,13 @@ class Functor f => Applicative f where
 \end{minted}
 
 \item The \verb|Monad| typeclass extends \verb|Applicative| with the
-  ability to collapse contexts
+  ability to compose contexts
 \begin{minted}{haskell}
 class Applicative m => Monad m where
   (>>=) :: m a -> (a -> m b) -> m b
 
-join :: Monad m => m (m a) -> m a
-join mma = mma >>= id
+(>>) :: Monad m => m a -> m b -> m b
+ma >> mb = ma >>= \_ -> mb
 \end{minted}
 
 \item do-notation is a syntactic sugar for sequencing monadic actions
@@ -229,5 +256,24 @@ main :: IO ()
 main = do
   let sum = sum3 1 10 100
   print sum
+\end{minted}
+
+\item The \verb|RankNTypes| language extension allows universally
+  quantified type variables
+\begin{minted}{haskell}
+pair :: (forall x. x -> x) -> a -> b -> (a, b)
+pair f a b = (f a, f b)
+\end{minted}
+
+\item The \verb|TypeFamilies| language extension allows types to be
+  associated with a typeclass
+\begin{minted}{haskell}
+class Tower a where
+  type Next a :: *
+  promote :: a -> Next a
+
+instance Tower Word8 where
+  type Next Word8 = Word16
+  promote = fromIntegral
 \end{minted}
 \end{itemize}
