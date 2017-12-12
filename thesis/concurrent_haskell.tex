@@ -12,68 +12,77 @@ Rust.  Java because it is a popular language which, like Haskell, has
 exceptions.  Rust because its design borrows from the spirit of
 functional languages.
 
-\section{Threads and Mutable Variables}
+\section{Multithreading}
 \label{sec:concurrent_haskell-threads}
 
 Threads let a program do multiple things at once.  Every program has
-at least one thread, which starts where \verb|main| does and runs
-until the program terminates.  A thread is the basic unit of
-concurrency.  It lets us pretend that we're computing multiple things
-at once.
+at least one thread, which runs the main action of the program.  A
+thread is the basic unit of concurrency.  It lets us pretend that
+we're computing multiple things at once.
 
-\paragraph{Basic threading}
-A thread can be started using the \verb|forkIO| function:
-
-\begin{minted}{haskell}
-forkIO :: IO () -> IO ThreadId
-\end{minted}
-
-This starts executing its argument in a separate thread.  It also
-gives us back a \verb|ThreadId| value, which can be used to kill the
-thread.  A thread can get its own \verb|ThreadId| with
-\verb|myThreadId|:
-
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+forkIO     :: IO () -> IO ThreadId
 myThreadId :: IO ThreadId
-\end{minted}
+\end{cminted}
+\caption{Basic threading operations in Haskell.}\label{lst:basic_haskell}
+\end{listing}
+
+A thread can be started using the \verb|forkIO| function, which starts
+executing its argument in a separate thread and also gives us back a
+\verb|ThreadId| value, which can be used to kill the thread.  A thread
+can get its own \verb|ThreadId| using \verb|myThreadId|.
+
+% [layout hack]: avoid the first line (and nothing else) of the
+% following paragraph from ending up on this page.
+\pagebreak
+
+\begin{listing}
+\centering
+\begin{cminted}{java}
+/* forkIO */
+Runnable runnable = /* action */;
+Thread thread = new Thread(runnable);
+thread.start();
+
+/* myThreadId */
+Thread me = Thread.currentThread();
+\end{cminted}
+\caption{Basic threading operations in Java.}\label{lst:basic_java}
+\end{listing}
 
 In Java, threads are created from classes implementing the
 \verb|Runnable| interface.  The \verb|Thread| constructor creates a
 new thread object from a \verb|Runnable|, but it does not start until
-\verb|Thread.start| is called:
+\verb|Thread.start| is called.  The thread object itself fulfils the
+role of the Haskell \verb|ThreadId| type.  A thread can get a
+reference to itself with the \verb|Thread.currentThread| static
+method.
 
-\begin{minted}{java}
-Runnable runnable = /* ... */;
-Thread thread = new Thread(myRunnable);
-thread.start();
-\end{minted}
+\begin{listing}
+\centering
+\begin{cminted}{rust}
+/* forkIO */
+let thread = thread::spawn(/* closure */);
 
-The thread object itself fulfils the role of the Haskell
-\verb|ThreadId| type.  Any point in the program can get a reference to
-the current thread with the \verb|Thread.currentThread| static method:
+/* Java-style */
+let thread = thread::Builder::new().spawn(/* closure */);
 
-\begin{minted}{java}
-Thread me = Thread.currentThread();
-\end{minted}
+/* myThreadId */
+let me = thread::current();
+\end{cminted}
+\caption{Basic threading operations in Rust.}\label{lst:basic_rust}
+\end{listing}
 
 Rust supports both the Haskell and Java thread creation styles.  The
 Haskell-style \verb|thread::spawn| function takes a closure to
 execute, creates and immediately begins executing a thread, and
-returns an identifier:
-
-\begin{minted}{rust}
-let thread = thread::spawn(|| { /* ... */ });
-\end{minted}
-
-Whereas the Java-style \verb|thread::Builder| interface allows
-creating a thread without starting it.  In both cases, the compiler
-gives an error if the closure captures a variable from its outer scope
-without the appropriate move semantics.  Like Haskell and Java, a
-thread can acquire a reference to the current thread:
-
-\begin{minted}{rust}
-let me = thread::current();
-\end{minted}
+returns an identifier.  The alternative Java-style
+\verb|thread::Builder| interface allows creating a thread without
+starting it.  In both cases, the compiler gives an error if the
+closure captures a variable from its outer scope without the
+appropriate move semantics.
 
 \paragraph{Capabilities}
 In a real machine, there are multiple processors and cores.  It may be that a
@@ -85,20 +94,25 @@ system threads is referred to as the number of \emph{capabilities} or
 \emph{Haskell execution contexts}.  Only operating system threads have the
 possibility of executing truly in parallel.
 
-We can fork a thread to a particular OS thread with the \verb|forkOn|
-function:
+% [layout hack]: avoid the first line (and nothing else) of the
+% following paragraph from ending up on this page.
+\pagebreak
 
-\begin{minted}{haskell}
-forkOn :: Int -> IO () -> IO ThreadId
-\end{minted}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+forkOn             :: Int -> IO () -> IO ThreadId
 
-The capability number is interpreted modulo the total number of OS
-threads, which can be queried and set:
-
-\begin{minted}{haskell}
 getNumCapabilities :: IO Int
 setNumCapabilities :: Int -> IO ()
-\end{minted}
+\end{cminted}
+\caption{Operating system threads in Haskell.}\label{lst:caps_haskell}
+\end{listing}
+
+We can fork a thread to run on a particular capability with the
+\verb|forkOn| function, which takes a number identifying the
+capability to use.  This capability number is interpreted modulo the
+total number of capabilities, which can be queried and set.
 
 Neither Java nor Rust provide green threading.  Java does not specify
 how its threads are mapped to OS threads but, on Linux, each Java
@@ -106,15 +120,30 @@ thread is an OS thread.  Rust specifies that its threads are OS
 threads.
 
 \paragraph{Scheduling}
-The GHC scheduler is good, but sometimes we have domain knowledge which lets us
-do better.  There are two ways to influence how threads are scheduled: we can
-yield control to another thread, or delay the current thread for a period of
-time:
+The GHC scheduler is good, but sometimes we have domain knowledge
+which lets us do better.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 yield       :: IO ()
 threadDelay :: Int -> IO ()
-\end{minted}
+\end{cminted}
+\caption{Controlling thread scheduling in Haskell.}\label{lst:schedule_haskell}
+\end{listing}
+
+There are two ways to influence how threads are scheduled: we can
+yield control to another thread, or delay the current thread for a
+period of time.
+
+\begin{listing}
+\centering
+\begin{cminted}{java}
+Thread thread = /* ... */;
+thread.setPriority(/* new priority */);
+\end{cminted}
+\caption{Thread priority in Java.}\label{lst:schedule_java}
+\end{listing}
 
 In Java, we can use the \verb|Thread.yield| and \verb|Thread.sleep|
 methods to affect scheduling.  We can also adjust the \emph{priority}
@@ -122,99 +151,100 @@ of a thread, where the initial priority is inherited from its creator.
 Threads with higher priority are executed in preference to threads
 with lower priority:
 
-\begin{minted}{java}
-Thread thread = /* ... */;
-thread.setPriority(/* ... */);
-\end{minted}
-
-Rust has three ways to control scheduling.  It can yield with
-\verb|thread::yield_now|, or delay with \verb|thread::sleep|, but it
-can also \emph{park} the current thread.  When parked, a thread will
-not execute until it is unparked by another thread.
-
-\begin{minted}{rust}
+\begin{listing}[h!]
+\centering
+\begin{cminted}{rust}
 thread::park() /* execution stops now */
 
 /* from another thread */
 reference_to_thread::unpark();
-\end{minted}
+\end{cminted}
+\caption{Thread parking and unparking in Rust.}\label{lst:schedule_rust}
+\end{listing}
 
-There is also a variant of \verb|thread::park| with a timeout, which
-provides a delay-unless-woken construct.  Haskell threads have no
-notion of priority or parking.
+Rust has three ways to control scheduling.  In addition to yielding
+and delaying, it can also \emph{park} the current thread.  When
+parked, a thread will not execute until it is unparked by another
+thread.  There is a variant of \verb|thread::park| with a timeout,
+which provides a delay-unless-woken construct.  Haskell threads have
+no notion of priority or parking.
 
 \paragraph{Termination}
-Both Java and Rust can use a thread handle to wait until that thread
-terminates.  This is called \emph{joining}.  Joining blocks the
-current thread until the referenced thread terminates.  Haskell cannot
-do this.
+Both Java and Rust can use a thread handle to block until that thread
+terminates.  This is called \emph{joining}.  Haskell provides no join
+operation.
 
-\section{Shared Variables and the Memory Model}
+\section{Shared State and the Memory Model}
 \label{sec:concurrent_haskell-mmodel}
 
 There are two main types of shared variable in GHC Haskell, with different
 semantics.
 
-\paragraph{The \texttt{IORef} type}
+\paragraph{Shared mutable references}
 An \verb|IORef| is a mutable location in memory holding a Haskell
-value.  It is similar to a normal reference variable in impure
-languages:
+value.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 newIORef   :: a -> IO (IORef a)
 readIORef  :: IORef a -> IO a
 writeIORef :: IORef a -> a -> IO ()
-\end{minted}
+\end{cminted}
+\caption{Shared mutable references in Haskell.}\label{lst:smref_haskell}
+\end{listing}
 
 As Java is an impure language with no restriction on sharing, it has
 no need for a type like \verb|IORef|.  Any thread can mutate any
 reference that is in scope.  Rust does impose restrictions on
 mutability and sharing, and provides a few different shared variable
-types.  The closest to \verb|IORef a| is a reference-counting box
-containing an atomically modifiable pointer:
+types.  The closest to \verb|IORef| is a reference-counting box
+containing an atomically modifiable pointer.
 
-\begin{minted}{rust}
-let ptr = &mut /* ... */;
+\begin{listing}
+\centering
+\begin{cminted}{rust}
+let ptr = &mut /* initial value */;
 let shared = Arc::new(AtomicPtr::new(ptr));
-\end{minted}
 
-Threads can modify the pointer by cloning the shared \verb|Arc| value,
-extracting the inner \verb|AtomicPtr|, and updating the value inside:
-
-\begin{minted}{rust}
 let shared_clone = shared.clone();
 let thread = thread::spawn(move|| {
-    shared_clone.store(/* ... */, Ordering::SeqCst);
+    shared_clone.store(/* new value */, Ordering::SeqCst);
 });
-\end{minted}
+\end{cminted}
+\caption{Shared mutable references in Rust.}\label{lst:smref_rust}
+\end{listing}
 
+Threads can modify the pointer by cloning the shared \verb|Arc| value,
+extracting the inner \verb|AtomicPtr|, and updating the value inside.
 All mutation operations take as a parameter the type of memory
 consistency to enforce, which we shall discuss shortly.
 
-\paragraph{The \texttt{MVar} type}
+\paragraph{Shared references under mutual exclusion}
 An \verb|MVar| is a mutable location in memory with two possible
 states: \emph{full}, holding a Haskell value, and \emph{empty},
-holding no value.  An \verb|MVar| can be created in either state:
+holding no value.  An \verb|MVar| can be created in either state.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 newMVar      :: a -> IO (MVar a)
 newEmptyMVar :: IO (MVar a)
-\end{minted}
 
-Writing to a full \verb|MVar| blocks until it is empty, and reading or taking
-from an empty \verb|MVar| blocks until it is full.  There are also non-blocking
-functions which return an indication of success:
+putMVar      :: MVar a -> a -> IO ()
+readMVar     :: MVar a -> IO a
+takeMVar     :: MVar a -> IO a
 
-\begin{minted}{haskell}
-putMVar     :: MVar a -> a -> IO ()
-readMVar    :: MVar a -> IO a
-takeMVar    :: MVar a -> IO a
+tryPutMVar   :: MVar a -> a -> IO Bool
+tryReadMVar  :: MVar a -> IO (Maybe a)
+tryTakeMVar  :: MVar a -> IO (Maybe a)
+\end{cminted}
+\caption{Mutual exclusion in Haskell.}\label{lst:mute_haskell}
+\end{listing}
 
-tryPutMVar  :: MVar a -> a -> IO Bool
-tryReadMVar :: MVar a -> IO (Maybe a)
-tryTakeMVar :: MVar a -> IO (Maybe a)
-\end{minted}
-
+Writing to a full \verb|MVar| blocks until it is empty, and reading or
+taking from an empty \verb|MVar| blocks until it is full.  There are
+also non-blocking functions which return an indication of success.
 The blocking behaviour of \verb|MVar|s means that computations can
 become deadlocked.  For example, deadlock occurs if every thread tries
 to take from the same \verb|MVar|, with no threads writing to it.
@@ -222,36 +252,42 @@ This can be detected, as we shall see in \cref{chp:dejafu}.  As there
 are no blocking \verb|IORef| primitives, use of them cannot cause a
 deadlock.
 
-Java does not provide an exact analogue of \verb|MVar|, but it does
-provide mutexes and semaphores which can be used to control access to
-a shared resource:
-
-\begin{minted}{java}
+\begin{listing}
+\centering
+\begin{cminted}{java}
 Semaphore sem = new Semaphore(/* initial quantity */);
 
 /* from another thread */
 sem.acquire(/* quantity */);
 /* ... */
 sem.release(/* quantity */);
-\end{minted}
+\end{cminted}
+\caption{Mutual exclusion in Java.}\label{lst:mute_java}
+\end{listing}
 
-The Rust ``mutex'' type is more like the Haskell \verb|MVar| type, in
-that it does not merely function as a lock but also guards a
-reference:
+Java does not provide an exact analogue of \verb|MVar|, but it does
+provide mutexes and semaphores which can be used to control access to
+a shared resource.
 
-\begin{minted}{rust}
-let shared = Arc::new(Mutex::new(/* ... */));
+\begin{listing}
+\centering
+\begin{cminted}{rust}
+let shared = Arc::new(Mutex::new(/* initial value */));
 
 let shared_clone = shared.clone();
 let thread = thread::spawn(move|| {
     let mut unlocked = shared_clone.lock();
     /* ... */
 });
-\end{minted}
+\end{cminted}
+\caption{Mutual exclusion in Rust.}\label{lst:mute_rust}
+\end{listing}
 
-Locks are released when the unlocked value falls out of scope.  This
-ensures that a thread cannot unlock a mutex and terminate with the
-mutex still locked.  There is also a non-blocking
+The Rust ``mutex'' type is more like the Haskell \verb|MVar| type, in
+that it does not merely function as a lock but also guards a
+reference.  Locks are released when the unlocked value falls out of
+scope.  This ensures that a thread cannot unlock a mutex and terminate
+with the mutex still locked.  There is also a non-blocking
 \verb|Mutex::try_lock| function.  Unlike Java, there is no way to
 explicitly lock an unlocked mutex.  Mutexes are not exactly the same
 as a Haskell \verb|MVar|, however they can be used in the
@@ -277,21 +313,29 @@ For testing purposes, we support the Total Store Order~(TSO) and Partial Store
 Order~(PSO) models~\sref{dejafu-execution}.  Many other operations are
 synchronised, and act as a \emph{barrier} to re-ordering.  Reading or writing to
 an \verb|MVar| does; executing an STM transaction does; throwing an asynchronous
-exception does; and the atomic \verb|IORef| operations do:
+exception does; and the atomic \verb|IORef| operations do.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 atomicWriteIORef  :: IORef a -> a -> IO ()
 atomicModifyIORef :: IORef a -> (a -> (a, b)) -> IO b
-\end{minted}
+\end{cminted}
+\caption{Atomic operations in Haskell.}\label{lst:atomic_haskell}
+\end{listing}
 
 Java allows controlling the synchronisation on a per-variable basis.
 Operations on normal shared variables may appear out-of-order to
 different threads, however a \verb|volatile| variable will be
 in-order:
 
-\begin{minted}{java}
+\begin{listing}
+\centering
+\begin{cminted}{java}
 public volatile int sequentiallyConsistent = 0;
-\end{minted}
+\end{cminted}
+\caption{Atomic operations in Java.}\label{lst:atomic_java}
+\end{listing}
 
 As we saw in the \verb|IORef| segment, Rust operations which mutate
 atomic values specify the memory consistency desired.  The weakest is
@@ -299,55 +343,56 @@ atomic values specify the memory consistency desired.  The weakest is
 \verb|SeqCst|, which imposes sequential consistency.
 
 \paragraph{Compare-and-swap}
-Modern processor architectures provide an atomic \emph{compare-and-swap}
-instruction, which is typically used in implementing high-performance lock-free
-algorithms.  The \package{atomic-primops} package exposes this to Haskell code:
+Modern processor architectures provide an atomic
+\emph{compare-and-swap} instruction, which is typically used in
+implementing high-performance lock-free algorithms.  The
+\package{atomic-primops} package exposes this to Haskell code.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 readForCAS :: IORef a -> IO (Ticket a)
 peekTicket :: Ticket a -> a
-\end{minted}
+casIORef   :: IORef a -> Ticket a -> a -> IO (Bool, Ticket a)
+\end{cminted}
+\caption{Compare-and-swap in Haskell}\label{lst:cas_haskell}
+\end{listing}
 
 A \verb|Ticket| is a proof that a value has been observed inside an
 \verb|IORef| at some prior point.  Given this proof, the programmer
 can efficiently and atomically change the value inside the
-\verb|IORef| later if it has not been modified:
+\verb|IORef| later if it has not been modified.  The \verb|casIORef|
+function is partially synchronised, acting as a barrier to re-ordering
+on that particular \verb|IORef|, but not for others.
 
-\begin{minted}{haskell}
-casIORef :: IORef a -> Ticket a -> a -> IO (Bool, Ticket a)
-\end{minted}
-
-There is also a variant of \verb|atomicModifyIORef| using compare-and-swap:
-
-\begin{minted}{haskell}
-atomicModifyIORefCAS :: IORef a -> (a -> (a, b)) -> IO b
-\end{minted}
-
-Both \verb|casIORef| and \verb|atomicModifyIORefCAS| are partially
-synchronised operations which act as a barrier to re-ordering on that
-particular \verb|IORef|, but not for others.
-
-Java provides variants of all the primitive types which support
-updating by compare-and-swap.  For example, the \verb|AtomicInteger|
-type:
-
-\begin{minted}{java}
+\begin{listing}
+\centering
+\begin{cminted}{java}
 private AtomicInteger count = new AtomicInteger(0);
 
 public void increment() {
   count.incrementAndGet();
 }
-\end{minted}
+\end{cminted}
+\caption{Compare-and-swap in Java}\label{lst:cas_java}
+\end{listing}
+
+Java provides variants of all the primitive types which support
+compare-and-swap.
+
+\begin{listing}
+\centering
+\begin{cminted}{rust}
+ptr.compare_and_swap(other, another, Ordering::SeqCst);
+ptr.compare_exchange(other, another, Ordering::SeqCst, Ordering::Relaxed);
+\end{cminted}
+\caption{Compare-and-swap in Rust.}\label{lst:cas_rust}
+\end{listing}
 
 The Rust atomic types provide compare-exchange in addition to
 compare-and-swap.  Compare-exchange differs from compare-and-swap in
 that the programmer specifies the desired memory consistency on
 failure:
-
-\begin{minted}{rust}
-ptr.compare_and_swap(other, another, Ordering::SeqCst);
-ptr.compare_exchange(other, another, Ordering::SeqCst, Ordering::Relaxed);
-\end{minted}
 
 \section{Software Transactional Memory}
 \label{sec:concurrent_haskell-stm}
@@ -362,28 +407,30 @@ the idea of atomic \emph{transactions}.  An STM transaction consists
 of one or more operations over a collection of \emph{transaction
   variables}, where a transaction may be aborted part-way through,
 with all its effects rolled back.  Arbitrary effects are not
-permitted, which is enforced by having a distinct type for STM actions
-and not providing a function to turn \verb|IO| actions into \verb|STM|
+permitted, which is enforced by having a distinct type for STM
 actions.
 
 Neither Java nor Rust provide an STM implementation in their standard
 libraries, but there are third-party implementations.  However, as
 Java and Rust are impure, these libraries cannot prevent the
 programmer from performing arbitrary side-effects inside a
-transaction.  If a transaction is rolled back, such side-effects may
-be performed multiple times.  These STM library implementations
-provide atomic transactions for specified operations, but they
-\emph{cannot} provide the same guarantees as STM in Haskell.
+transaction.  These STM library implementations provide atomic
+transactions for specified operations, but they \emph{cannot} provide
+the same guarantees as STM in Haskell.
 
-\paragraph{The \texttt{TVar} type}
-Transaction variables, or \verb|TVar|s, are yet another type of shared variable,
-but with the difference that operating on them has a transactional effect:
+\paragraph{Transactional variables}
+The \verb|TVar| type is yet another type of shared variable, but with
+the difference that operating on them has a transactional effect.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 newTVar   :: a -> STM (TVar a)
 readTVar  :: TVar a -> STM a
 writeTVar :: TVar a -> a -> STM ()
-\end{minted}
+\end{cminted}
+\caption{Transactional variables in Haskell.}\label{lst:tvars_haskell}
+\end{listing}
 
 Transactions are atomic, so all reads will see a consistent state, and
 in the presence of writes, intermediate states cannot be observed by
@@ -392,26 +439,29 @@ another thread.
 \paragraph{Aborting and retrying}
 If we read a \verb|TVar| and don't like the value it has, the
 transaction can be aborted, and the thread will block until any of the
-referenced \verb|TVar|s have been mutated:
+referenced \verb|TVar|s have been mutated.  We can also try executing
+a transaction, and do something else if it retries.
 
-\begin{minted}{haskell}
-retry :: STM a
-\end{minted}
-
-We can also try executing a transaction, and do something else if it
-retries:
-
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+retry  :: STM a
 orElse :: STM a -> STM a -> STM a
-\end{minted}
+\end{cminted}
+\caption{Aborting and retrying transactions in Haskell.}\label{lst:orelse_haskell}
+\end{listing}
 
 \paragraph{Executing transactions}
 Transactions compose.  We can take small transactions and build bigger
 transactions from them, and the whole is still executed atomically.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 atomically :: STM a -> IO a
-\end{minted}
+\end{cminted}
+\caption{Executing transactions in Haskell}\label{lst:atomically_haskell}
+\end{listing}
 
 This means we can do complex state operations involving multiple shared
 variables without worrying!
@@ -425,30 +475,39 @@ exceptions, or thrown from one thread to another, these are \emph{asynchronous}
 exceptions.
 
 \paragraph{Throwing and catching}
-The basic functions for dealing with exceptions are:
+The basic functions for dealing with exceptions are throwing and
+catching.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 catch :: Exception e => IO a -> (e -> IO a) -> IO a
 throw :: Exception e => e -> IO a
-\end{minted}
+\end{cminted}
+\caption{Exceptions in Haskell.}\label{lst:excs_haskell}
+\end{listing}
 
-Where \verb|throw| causes the computation to jump back to the nearest
-enclosing \verb|catch| capable of handling the particular exception.
-If there is none, the thread terminates.  Exceptions belong to a
-typeclass, rather than being a concrete type, so different
-\verb|catch| functions can be nested, to handle different types of
-exception.
+Throwing an exception causes the computation to jump back to the
+nearest enclosing suitable exception handler.  If there is none, the
+thread terminates.  Haskell exceptions belong to a typeclass, rather
+than being a concrete type, so different \verb|catch| functions can be
+nested, to handle different types of exception.
 
-Asynchronous exceptions can be thrown to another thread:
-
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 throwTo    :: Exception e => ThreadId -> e -> IO ()
 killThread :: ThreadId -> IO ()
-\end{minted}
+\end{cminted}
+\caption{Asynchronous exceptions in Haskell.}\label{lst:excsa_haskell}
+\end{listing}
 
-These functions block until the target thread is in an appropriate state to
-receive the exception.  Asynchronous exceptions can be caught with \verb|catch|,
-just like synchronous exceptions thrown with \verb|throw|.
+In addition to \emph{synchronous} exceptions, Haskell has
+\emph{asynchronous} exceptions which can be thrown to another thread.
+These functions block until the target thread is in an appropriate
+state to receive the exception.  Asynchronous exceptions can be caught
+with \verb|catch|, just like synchronous exceptions thrown with
+\verb|throw|.
 
 The Java \verb|Thread.stop| method is like \verb|killThread|, but is
 considered a bad idea and
@@ -469,31 +528,36 @@ in which a thread can have exceptions thrown to it;
 thrown to it if it is blocked; and \emph{uninterruptible}, in which a
 thread cannot have exceptions thrown to it.
 
-There are two functions to set the masking state.  These each execute a
-computation in the new state, and pass it a function to run a subcomputation
-with the original masking state:
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+forkIOWithUnmask    :: ((forall a. IO a -> IO a) -> IO ()) -> IO ThreadId
+forkOnWithUnmask    :: Int -> ((forall a. IO a -> IO a) -> IO ()) -> IO ThreadId
 
-\begin{minted}{haskell}
 mask                :: ((forall a. IO a -> IO a) -> IO b) -> IO b
 uninterruptibleMask :: ((forall a. IO a -> IO a) -> IO b) -> IO b
-\end{minted}
+\end{cminted}
+\caption{Masking exceptions in Haskell.}\label{lst:excm_haskell}
+\end{listing}
 
-When a thread is started, it inherits the masking state of its parent.  As the
-parent may be masked, we can fork a thread with a function to run a
-subcomputation with exceptions unmasked:
-
-\begin{minted}{haskell}
-forkIOWithUnmask :: ((forall a. IO a -> IO a) -> IO ()) -> IO ThreadId
-forkOnWithUnmask :: Int -> ((forall a. IO a -> IO a) -> IO ()) -> IO ThreadId
-\end{minted}
+There are two functions to set the masking state.  These each execute
+a computation in the new state, and pass it a function to run a
+subcomputation with the original masking state.  When a thread is
+started, it inherits the masking state of its parent.  As the parent
+may be masked, we can fork a thread with a function to run a
+subcomputation with exceptions unmasked.
 
 \paragraph{Software transactional memory}
 STM can also use exceptions.  If an exception propagates uncaught to the top of
 a transaction, that transaction is aborted.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 throwSTM :: Exception e => e -> STM a
 catchSTM :: Exception e => STM a -> (e -> STM a) -> STM a
-\end{minted}
+\end{cminted}
+\caption{STM exceptions in Haskell.}\label{lst:excstm_haskell}
+\end{listing}
 
 The \verb|orElse| function does not catch exceptions.
