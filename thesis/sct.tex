@@ -1,41 +1,41 @@
-Testing concurrent programs cannot be done with conventional techniques.  The
-nondeterminism of scheduling means that a test may produce different results in
-different executions.  In this chapter we give an introduction to concurrency
-testing through \emph{controlled scheduling}, which addresses this problem.  We
-first give a high-level overview~\sref{sct-fundamentals}, then have a more
-detailed discussion of specific implementation approaches, both
-complete~\sref{sct-dpor} and incomplete~\sref{sct-bounding}.
+Testing concurrent programs cannot be done with conventional
+techniques.  The nondeterminism of scheduling means that a test may
+produce different results in different executions.  In this chapter we
+give an introduction to concurrency testing through \emph{controlled
+  scheduling}, which addresses this problem.  We first give a
+high-level overview~\sref{sct-fundamentals}, then discuss specific
+implementation approaches, both complete~\sref{sct-dpor} and
+incomplete~\sref{sct-bounding}.
 
-\section{Controlling Program Execution}
+\section{Controlled Scheduling}
 \label{sec:sct-fundamentals}
 
-With a controlled scheduling technique, execution of a program is serialised and
-the controlling scheduler drives the program.  Program schedules are either
-explored \emph{systematically}\cite{coons2013,musuvathi2008,musuvathi2007,flanagan2005}
+With a controlled scheduling technique, execution of a program is
+serialised and the controlling scheduler drives the program.  Program
+schedules are either explored
+\emph{systematically}\cite{coons2013,musuvathi2008,musuvathi2007,flanagan2005}
 (often called ``systematic concurrency testing'' or ``SCT'') or
-randomly\cite{thomson2016,burckhardt2010}.  Non-controlled methods do not
-provide their own scheduler, and instead use delays to affect
-execution\cite{yu2012}.  Controlled scheduling techniques are attractive because
-of their ability to record and replay program executions.
-
-Systematic techniques may be complete, whereas randomised techniques are
-typically not.  This means that random techniques cannot ``complete'', even for
-small programs, and are usually run for some predetermined number of program
+randomly\cite{thomson2016,burckhardt2010}.  Non-controlled methods do
+not provide their own scheduler, and instead use delays and priorities
+to affect execution\cite{yu2012}.  Controlled scheduling techniques
+are attractive because of their ability to record and replay program
 executions.
 
-When exploring schedules, we only care about the relative ordering of visible
-actions, those actions of a thread which may affect another.  Controlled
-scheduling techniques can be implemented by overriding the concurrency
-primitives of the programming language\cite{walker2015}; by instrumenting the
+Controlled scheduling can be implemented by overriding the concurrency
+primitives of the language\cite{walker2015}; by instrumenting the
 source program\cite{claessen2009}; or by instrumenting the compiled
-program\cite{yu2012,musuvathi2006}.
+program\cite{yu2012,musuvathi2006}.  Systematic techniques may be
+complete, whereas random techniques cannot.  Random techniques
+typically cannot ``complete'', even for small programs, and are
+usually run for some predetermined number of program executions.
 
-Typically we assume that all executions are \emph{terminating}: all possible
-sequences of scheduling decisions will lead to a termination by deadlock or
-otherwise.  Another common assumption is that the number of possible schedules
-is \emph{finite}: forbidding finite but arbitrarily long executions, as can be
-created with constructs such as spinlocks.  We can sacrifice completeness to do
-away with these assumptions, as we shall see in \cref{sec:sct-bounding}.
+Typically we assume that all possible executions are
+\emph{terminating}: leading to successful completion or a failure
+state such as deadlock.  Another common assumption is that the number
+of possible executions is \emph{finite}: forbidding finite but
+arbitrarily long executions, as can be created with constructs such as
+spinlocks.  We can sacrifice completeness to do away with these
+assumptions, as we shall see in \cref{sec:sct-bounding}.
 
 \section{Dynamic Partial-order Reduction}
 \label{sec:sct-dpor}
@@ -43,7 +43,7 @@ away with these assumptions, as we shall see in \cref{sec:sct-bounding}.
 Dynamic partial-order reduction (DPOR)\cite{flanagan2005,godefroid1996} is a
 \emph{complete} approach to SCT\@.  It is based on the insight that, when
 constructing schedules, we only need to consider different orderings of a pair
-of visible actions if the order in which they are performed could affect the
+of actions if the order in which they are performed could affect the
 result of the program.  We call this relation between actions
 the \emph{dependency relation}:
 
@@ -64,15 +64,18 @@ the \emph{dependency relation}:
   \end{enumerate}
 \end{bquote}
 
-In other words, independent transitions cannot enable or disable each other, and
-enabled independent transitions commute.  When implementing DPOR, we typically
-identify the conditions necessary for dependency, rather than work with this
-relational definition directly.  These conditions are determined by what sorts
-of things the concurrent language in use can express.
+In other words, independent transitions cannot enable (unblock) or
+disable (block) each other, and enabled independent transitions
+commute.  When implementing DPOR, we typically identify a sufficient
+condition for dependency, rather than work with this relational
+definition directly.  These conditions are determined by what sorts of
+things the concurrent language in use can express.
 
-Typically, the presentation of algorithms assumes a simple core concurrent
-language of just reads and writes.  This gives rise to the following dependency
-relation:
+Typically, the presentation of algorithms assumes a simple core
+concurrent language of just reads and writes.  This gives rise to a
+dependency relation of ``$x$ and $y$ are dependent if and only if they
+are actions in the same thread, or they are actions involving the same
+variable where at least one is a write,'' or:
 
 \begin{align*}
   x \dependent y \iff& \mathrm{thread\_id}(x) = \mathrm{thread\_id}(y)~\lor\\
@@ -80,44 +83,45 @@ relation:
      \land \left(\mathrm{is\_write}(x) \lor \mathrm{is\_write}(y)\right)\right)
 \end{align*}
 
-Where $x \dependent y$ is read as ``$x$ and $y$ are dependent''.  This choice of
-notation would suggest a symbol $\leftrightarrow$ meaning independence, but that
-doesn't seem to be used in the literature.  This dependency relation can be read
-as ``$x$ and $y$ are dependent if and only if they are actions in the same
-thread, or they are actions involving the same variable where at least one is a
-write.''
+Where $x \dependent y$ is read as ``$x$ and $y$ are dependent''.  This
+choice of notation would suggest a symbol $\leftrightarrow$ meaning
+independence, but that doesn't seem to be used in the literature.
 
-The dependency relation for Haskell is rather more complex than this, as there
-are more actions than just reads and writes.  However it can be simplified to a
-few general conditions over different sorts of reads and writes, with some
-remaining special cases for software transactional memory and exceptions.
-Additionally, a Haskell program terminates when the main thread terminates,
-which complicates matters further: a dependency relation isn't enough to express
-this behaviour.  The dependency relation used in \dejafu{} is given
-in~\sref{dejafu-testing}.
+The dependency relation for Haskell is rather more complex, as there
+are more actions than just reads and writes.  However it can be
+simplified to a few general conditions over different sorts of reads
+and writes, with some remaining special cases for software
+transactional memory and exceptions.  Additionally, a Haskell program
+terminates when the main thread terminates, which complicates matters
+further.  The na\"{\i}ve implementation of this, making the final
+action of the main thread dependent with everything, leads to too many
+executions being tried to be of practical use.  We discuss these
+issues further in \cref{sec:dejafu-testing}.
 
 \subsection{Total and Partial Orders}
 
 Characterising the execution of a concurrent program by the ordering of its
-dependent actions gives us a \emph{partial order} over the actions in the entire
+dependent actions gives us a \emph{partial} order over the actions in the entire
 program.  An execution trace may be just one possible \emph{total} order
 corresponding to the same partial order.  The goal of partial-order reduction,
 then, is to eliminate these redundant total orders by intelligently making
 scheduling decisions to permute the order of dependent actions.
 
 \emph{Dynamic} partial-order reduction is so called because it gathers
-information about the dependencies between threads at run-time, to avoid the
-imprecision of static analyses\cite{flanagan2005}.  It works by executing the
-program until completion, making arbitrary choices to resolve scheduler
-nondeterminism, dynamically collecting information about how threads have
-communicated during this specific execution.  This execution trace is then
-examined to add backtracking points along the trace that identify alternative
-scheduling decisions that need to be explored because they might lead to other
-executions which correspond to a different partial-order.  DPOR is complete.
-When it completes, all possible results of the program are guaranteed to have
-been detected.  The algorithm repeats until all backtracking points have been
-explored and no new ones are found, because of this it only works if all
-executions are terminating and the number of distinct executions is finite.
+information about the dependencies between threads at run-time, to
+avoid the imprecision of static analyses\cite{flanagan2005}.  It works
+by executing the program until completion, making arbitrary choices to
+resolve scheduler nondeterminism, dynamically collecting information
+about how threads have communicated during this specific execution.
+This execution trace is then examined to add backtracking points along
+the trace that identify alternative scheduling decisions that need to
+be explored because they might lead to other executions which
+correspond to a different partial-order.  The algorithm repeats until
+all backtracking points have been explored and no new ones are found,
+because of this it only works if all executions are terminating and
+the number of distinct executions is finite.  DPOR is complete.  When
+it terminates, all unique states of the program will have been
+explored.
 
 \subsection{Integration with Relaxed Memory}
 
@@ -133,7 +137,7 @@ relaxation of TSO\cite{sparc}, two writes in the same thread, but to different
 memory locations, may also be reordered.
 
 A simple buffering technique can be used model the nondeterminism of
-unsynchronised writes under TSO and PSO\cite{zhang2015}:
+these unsynchronised operations under TSO and PSO\cite{zhang2015}:
 
 \begin{itemize}
 \item Under TSO, each thread has a queue of buffered writes.
@@ -141,11 +145,13 @@ unsynchronised writes under TSO and PSO\cite{zhang2015}:
 variable.
 \end{itemize}
 
-A buffered write is only visible to the thread which made it, if a thread has no
-buffered write, it reads the most recently committed value of the variable.
-Buffered writes are committed nondeterministically.  To model this, we introduce
-one additional \emph{phantom thread} for each nonempty buffer.  When scheduled,
-a phantom thread commits the top write from its buffer.
+When reading, a thread reads its most recently buffered write.  If a
+thread has no writes buffered to that variable, it reads the most
+recently committed value.  A buffered write is only visible to the
+thread which made it.  Buffered writes are committed
+nondeterministically.  To model this, we introduce one additional
+\emph{phantom thread} for each nonempty buffer.  When scheduled, a
+phantom thread commits the oldest write from its buffer.
 
 SCT techniques assume that there is only one source of nondeterminism: the
 scheduler.  If a second source is added, such as when writes are committed, it
@@ -183,17 +189,17 @@ requirement and given to an SMT solver, such as z3, to produce new schedule
 prefixes.  When executed on benchmark programs, MCR outperforms DPOR by orders
 of magnitude\cite{huang2017}.
 
-MCR imposes one additional restriction however, which may render it unsuitable
-for Haskell.  MCR requires a concurrency model to be \emph{locally
-deterministic}\cite{huang2015}.  That is, only the previous actions of a thread
-(and not actions of other threads) determine the next action of the thread,
-although if that action is a read then it is allowed to get its value from the
-latest write.  This is not the case for Haskell, where one thread may be killed
-by another by throwing an exception to it.  However, it may be possible to encode Haskell
-exceptions in an MCR-friendly way by giving each thread an ``exception
-variable'', and inserting reads to this variable before every normal action, but
-some difficulty remains, as even blocked threads may be interrupted by
-exceptions in Haskell.
+MCR imposes one additional restriction which makes it tricky for
+Haskell.  MCR requires a concurrency model to be \emph{locally
+  deterministic}\cite{huang2015}.  Only the previous actions of a
+thread and values read from shared variables (and not actions of other
+threads) determine the next action of the thread.  This is not the
+case for Haskell, where one thread may be killed by another by
+throwing an exception to it.  However, it may be possible to encode
+Haskell exceptions in an MCR-friendly way by giving each thread an
+``exception variable'', and inserting reads to this variable before
+every normal action, but some difficulty remains, as even blocked
+threads may be interrupted by exceptions in Haskell.
 
 Like DPOR, MCR can be extended to support the relaxed memory models TSO and
 PSO\cite{huang2016}.
@@ -210,26 +216,27 @@ its prefixes will have an associated value of at most $n$.  This value $n$ is
 limited by some pre-determined bound.  Testing proceeds by executing all
 schedules within the bound.
 
-A common schedule bounding approach is pre-emption bounding\cite{musuvathi2007},
-which limits the number of pre-emptive context switches.  Empirical
-evidence\cite{thomson2014} shows that small bounds, and small numbers of
-threads, are effective for finding bugs in many real-world programs.  Another
-common approach is fair bounding\cite{musuvathi2008}, which bounds the
-difference between how many times any two threads may explicitly yield.  This
-prevents infinitely long executions when using constructs such as spinlocks,
-which loop until some condition is true, yielding on every iteration.
+A common schedule bounding approach is pre-emption
+bounding\cite{musuvathi2007}, which limits the number of pre-emptive
+context switches.  Empirical evidence shows that small bounds, and
+small numbers of threads, are effective for finding bugs in many
+real-world programs\cite{thomson2014}.  Another common approach is
+fair bounding\cite{musuvathi2008}, which bounds the difference between
+how many times any two threads may explicitly yield.  This prevents
+infinitely long executions when using constructs such as spinlocks,
+which loop until some condition holds, yielding on every iteration it
+does not.  Bound functions can be combined, where a sequence of
+scheduling decisions is outside the combined bound if it is outside
+either of the constituent bounds.
 
-Bound functions can be combined, where a sequence of scheduling decisions is
-outside the combined bound if it is outside either of the constituent bounds.
-
-Strictly speaking, schedule bounding refers to trying only those schedules with
-a bound value equal to some fixed parameter.  A variant of this is
-\emph{iterative} bounding, where this parameter is increased from zero up to
-some limit\cite{musuvathi2007}.  Another variant is where an inequality, rather
-than an equality, is used.  This explores the same schedules as iterative
-bounding, but doesn't impose the same ordering properties over schedules tried.
-In practice, ``schedule bounding'' typically refers to this third type, unless
-specified otherwise.
+Schedule bounding traditionally refers to trying only those schedules
+with a bound value equal to a fixed parameter.  A variant is
+\emph{iterative} bounding, where the parameter is gradually
+increased\cite{musuvathi2007}.  Another variant is where an
+inequality, rather than an equality, is used.  This explores the same
+schedules as iterative bounding, but doesn't impose the same ordering.
+In practice, ``schedule bounding'' typically refers to this third
+type.
 
 \subsection{Integration with DPOR}
 
@@ -242,12 +249,12 @@ bound.  This is because the introduction of the bound introduces new
 dependencies between actions, which cannot be determined \emph{a
   priori}\cite{coons2013}.
 
-The solution is to add \emph{conservative} backtracking points to account for
-the bound in addition to any normal backtracking points that are identified.
-Where to insert these depends on the bound function.
-
-In the case of pre-emption bounding, it is sufficient to try all possibilities
-at the last context switch before a normal backtracking point\cite{coons2013}.
-This is because context switches influence the number of pre-emptions needed to
-reach a given program state, depending on which thread gets scheduled.  In
-practice this tends not to greatly increase the search space.
+The solution is to add \emph{conservative} backtracking points to
+account for the bound in addition to any normal backtracking points
+that are identified.  Where to insert these depends on the bound
+function.  In the case of pre-emption bounding, it is sufficient to
+try all possibilities at the last context switch before a normal
+backtracking point\cite{coons2013}.  This is because context switches
+influence the number of pre-emptions needed to reach a given program
+state, depending on which thread gets scheduled.  In practice this
+tends not to greatly increase the search space.
