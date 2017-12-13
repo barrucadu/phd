@@ -9,55 +9,57 @@ tests~\sref{property_testing-intro}, then discuss specific
 tools~\sref{property_testing-tools}.  Finally, we summarise tools for
 \emph{generating} properties~\sref{property_testing-gen}.
 
-Readers already familiar with property testing may wish to skip this
-chapter.
-
 \section{Properties as Tests}
 \label{sec:property_testing-intro}
 
-Property-based testing\cite{claessen2000}, sometimes called \emph{parameterised
-  unit testing}, is an approach to testing where the programmer gives general
-laws (or properties) which should hold for all input values.  This is unlike
-typical unit testing, which can be thought of as checking specific pairs of
-input--output values.  For example, a sort function should preserve length:
+Property-based testing\cite{claessen2000}, sometimes called
+\emph{parameterised unit testing}, is an approach to testing where the
+programmer gives general laws (or properties) which should hold for
+all input values.  For example, a sort function should preserve
+length.  This approach is unlike typical unit testing, which can be
+thought of as checking specific pairs of input--output values.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 prop_sort_len xs = length xs == length (sort xs)
-\end{minted}
+\end{cminted}
+\caption{A property asserting that sorting preserves length.}\label{lst:prop_sort_len}
+\end{listing}
 
 Often we do not want to check a property for arbitrary input values.
 Perhaps we know something about how the functions we are testing are
 expected to be used, or we are only interested in how they behave in a
-certain case.  For this, we can use implication:
+certain case.  A simple way to enforce a precondition is to use
+logical implication.  Implication is typically provided as part of the
+property DSL of a tool, rather than being a normal boolean function.
+This allows the tool to ensure that a desired number of generated
+inputs pass the precondition.
 
-\begin{minted}{haskell}
-prop_ord_insert x xs = ordered xs ==> ordered (insert x xs)
-\end{minted}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+prop_ord_insert1 x xs = ordered xs ==> ordered (insert x xs)
+prop_ord_insert2 x    = forAll orderedList (\xs -> ordered (insert x xs))
+\end{cminted}
+\caption{Enforcing a precondition for a property.}\label{lst:prop_ord_insert}
+\end{listing}
 
-Implication is typically provided as part of property DSL of a tool,
-rather than being a normal boolean function.  This allows the tool to
-use the precondition as part of its input generation strategy.
+While implication is a useful technique, it can skew the input
+distribution.  For example, the empty lists and lists of length one
+are ordered, but only 50\% of lists of length two are.  An alternative
+approach is to use a custom value generator.  By only generating input
+values which satisfy the precondition, we can avoid skewing the
+distribution, and improve our confidence that the property does hold
+in general.
 
-While implication is a useful technique, it can skew the input distribution.
-All empty lists and lists of length one satisfy \verb|ordered xs|, but only 50\%
-of all lists of length two do.  An alternative approach is to use a custom value
-generator.  For example, suppose we have a suitable function for producing
-ordered lists, we could restate the implication property as:
-
-\begin{minted}{haskell}
-prop_ord_insert x = forAll orderedList (\xs -> ordered (insert x xs))
-\end{minted}
-
-By only generating input values which satisfy the precondition, we can avoid
-skewing the distribution, and improve our confidence that the property does
-hold.
-
-In the absence of a programmer-supplied generator function, input values are
-generated in a type-directed process.  There is a typeclass, typically called
-\verb|Arbitrary| or \verb|Enumerable| or \verb|Listable| or something, which has
-functions to generate values.  This typeclass will typically have instances for
-most common types, but if a programmer wishes to have input values of custom
-types, they will need to supply a suitable instance.
+In the absence of a programmer-supplied generator function, input
+values are generated in a type-directed process.  A tool will provide
+a typeclass, typically called \verb|Arbitrary| or \verb|Enumerable| or
+\verb|Listable| or something, which has functions to generate values.
+This typeclass will typically have instances for most common types,
+but if a programmer wishes to have input values of other types, they
+will need to supply a suitable instance.
 
 \section{Tools}
 \label{sec:property_testing-tools}
@@ -133,22 +135,28 @@ exists which the property holds for.  Existential properties are
 difficult to implement reliably in a randomised tool, such as
 QuickCheck, because the nondeterminism means that the property may
 sometimes pass and sometimes fail.  Existential properties are more
-commonly supported by enumerative tools.  This is an example of an
-existential property:
+commonly supported by enumerative tools.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 prop_gt_5 = exists (\x -> x > 5)
-\end{minted}
+\end{cminted}
+\caption{Using existential quantification in a property.}\label{lst:prop_gt_5}
+\end{listing}
 
 Higher-order properties are properties where some of the inputs are,
 themselves, functions.  To test such a property requires the tool to
 be able to generate functions.  Higher-order properties are invaluable
-in the testing of higher-order functions.  This is an example of a
-higher-order property:
+in the testing of higher-order functions.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 prop_map_fuse xs f g = map g (map f xs) == map (g . f) xs
-\end{minted}
+\end{cminted}
+\caption{Using higher-order functions in a property.}\label{lst:prop_map_fuse}
+\end{listing}
 
 \paragraph{Output}
 Despite not affecting the expressiveness of the tool, presenting
@@ -158,8 +166,9 @@ minimum.  However, shrinking and enumeration are not the only ways to
 produce small counterexamples.  Both SmartCheck\cite{pike2014} and
 Lazy SmallCheck\cite{runciman2008} can generalise counter\-examples.
 Generalising counterexamples directly can be more efficient than a
-QuickCheck-style shrinking process\cite{pike2014}.  \Cref{lst:gencntr}
-is an example of a generalised counterexample.
+QuickCheck-style shrinking process\cite{pike2014}.  Furthermore, it is
+often possible to produce a generalisation which is simpler than any
+concrete counterexample.
 
 \begin{listing}
 \centering
@@ -171,7 +180,6 @@ is an example of a generalised counterexample.
 Generalization:
 x:x:_
 \end{cminted}
-% [syntax highlighting hack]
 %$
 \caption{A generalised counterexample of an incorrect property.}\label{lst:gencntr}
 \end{listing}
@@ -218,7 +226,7 @@ that, such properties are surprisingly accurate in practice, and often
 lead to a deeper understanding of the program under test.
 
 \paragraph{In Haskell}
-QuickSpec\cite{claessen2010,smallbone2017} and
+QuickSpec\cite{smallbone2017,claessen2010} and
 Speculate\cite{braquehais2017} are tools for Haskell which
 automatically discover equational laws of pure functions.  Both are
 based on generating and testing candidate expressions.  Speculate,
@@ -229,7 +237,7 @@ When provided with the integers \verb|0| and \verb|1| and the
 functions \verb|id|, \verb|abs|, and \verb|(+)|, Speculate prints the
 properties in \cref{lst:arith_props}.  QuickSpec discovers similar
 properties to \cref{lst:arith_props0}, but not the inequalities and
-equational laws.
+conditional equations.
 
 \begin{listing}
 \begin{sublisting}{\textwidth}
