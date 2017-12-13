@@ -6,10 +6,10 @@
 \end{bquote}
 
 \noindent
-Tools are necessary to test concurrency, the standard approach does
-not suffice.  In this chapter we present and evaluate \dejafu{}, our
-library for testing concurrency in Haskell.  We discuss the scope of
-the tool~\sref{dejafu-scope} and present our abstraction over the GHC
+Specialised tools are necessary to test concurrent programs.  In this
+chapter we present and evaluate \dejafu{}, our library for testing
+concurrency in Haskell.  We discuss the scope of the
+tool~\sref{dejafu-scope} and present our abstraction over the GHC
 Haskell concurrency functionality~\sref{dejafu-monadconc}.  We then
 show an example of a small logic puzzle which we can represent as a
 concurrent program~\sref{dejafu-100}.  We explain how programs using
@@ -21,17 +21,17 @@ studies~\sref{dejafu-casestudies}, evaluate the usefulness of
 finally draw conclusions and present further
 work~\sref{dejafu-conclusions}.
 
-This chapter is derived from our previous work \cite{walker2015} and
-\cite{YCS-2016-503}.
+This chapter is derived from our previous work \cite{YCS-2016-503} and
+\cite{walker2015}.
 
 \section{Scope}
 \label{sec:dejafu-scope}
 
-We aim to support most of the functionality of GHC’s concurrency API, as made
-available through the Control.Concurrent and Control.Exception module
-hierarchies, which does not unavoidably require support from the runtime system.
-
-In particular, we do not support:
+We aim to support most of the functionality of GHC’s concurrency API,
+as made available through the Control.Concurrent and Control.Exception
+module hierarchies.  However, we cannot test things which unavoidably
+require support from the runtime system.  In particular, we do not
+support:
 
 \begin{itemize}
 \item Blocking a thread until a file descriptor becomes available, as this
@@ -43,33 +43,21 @@ In particular, we do not support:
   this introduces an additional source of nondeterminism.
 \end{itemize}
 
-We also do not yet support \emph{bound threads}: a Haskell thread which will
-always run on the same, unique, OS thread.  Bound threads are essential for
-using the FFI to call libraries which use thread-local state, to ensure the
-Haskell thread always sees its state and never the state of another thread.  We
-have a prototype implementation, which is not yet present in a released version
-of \dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu/issues/126}}.
+We also do not yet support \emph{bound threads}: a Haskell thread
+which will always run on the same, unique, OS thread.  Bound threads
+are essential for using the foreign function interface (FFI) to call C
+libraries which use thread-local state, to ensure the Haskell thread
+always sees its state and never the state of another thread.  We have
+a prototype implementation, which is planned to be included in the
+next major release of
+\dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu/issues/126}}.
 
 \section{Abstracting over \texttt{IO}}
 \label{sec:dejafu-monadconc}
 
-Recall from \cref{sec:sct-fundamentals} that there are three ways of
-implementing a concurrency testing tool:
-
-\begin{itemize}
-\item Override the concurrency primitives of the programming language.
-\item Instrument the source program.
-\item Instrument the compiled program.
-\end{itemize}
-
-We adopt the first approach in \dejafu{}.  Haskell's typeclass machinery lets us
-specify an interface for concurrency, and to provide different concrete
-implementations.  There is one implementation using the \verb|IO| type and the
-standard functions; there is another using our own type, based on continuations
-which we can inspect.
-
 \begin{listing}
-  \begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 class (Monad m, {- other constraints omitted -}) => MonadConc m where
   type MVar m :: * -> *
   -- other types omitted
@@ -84,21 +72,33 @@ class (Monad m, {- other constraints omitted -}) => MonadConc m where
   readMVar :: MVar m a -> m a
   takeMVar :: MVar m a -> m a
   -- other operations omitted
-  \end{minted}
-  \caption{A fragment of the \texttt{MonadConc} typeclass.}\label{lst:monadconc}
+\end{cminted}
+\caption{A fragment of the \texttt{MonadConc} typeclass.}\label{lst:monadconc}
 \end{listing}
 
-We call our typeclass \verb|MonadConc| for monads which can do concurrency,
-\cref{lst:monadconc} shows a fragment.  When defining an instance of this class,
-the programmer must supply concrete types for the abstract types in the
-interface.  They must also supply implementations of, at least, all undefined
-operations.  Some operations have default definitions: for example, there are
-two ways of constructing an empty \verb|MVar|.  One way takes a name, which is
-displayed in debugging information, the other does not.  Each is defined in
-terms of the other, and so the programmer must supply at least one.
+There are three ways of implementing a concurrency testing tool:
+overriding the concurrency primitives of the language; instrumenting
+the source program; or instrumenting the compiled program.  We adopt
+the first approach in \dejafu{}.  Haskell's typeclass machinery lets
+us specify an interface for concurrency, and to provide different
+concrete implementations.  There is one implementation using the
+\verb|IO| type and the standard functions; there is another using our
+own type, based on continuations which we can inspect.
+
+We call our typeclass \verb|MonadConc| for monads which do
+concurrency.  \Cref{lst:monadconc} shows a fragment.  When defining an
+instance of this class, the programmer must supply concrete types for
+the abstract types in the interface.  They must also supply
+implementations of, at least, all undefined operations.  Some
+operations have default definitions: for example, there are two ways
+of constructing an empty \verb|MVar|.  One way takes a name, which is
+displayed in debugging information, the other does not.  Each is
+defined in terms of the other, and so the programmer must supply at
+least one.
 
 \begin{listing}
-  \begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 instance Monad n => MonadConc (ConcT r n) where
   type MVar (ConcT r n) = MVar r
   -- other types omitted
@@ -109,8 +109,8 @@ instance Monad n => MonadConc (ConcT r n) where
   readMVar var   = toConc (AReadMVar var)
   takeMVar var   = toConc (ATakeMVar var)
   -- other operations omitted
-  \end{minted}
-  \caption{A fragment of the \texttt{MonadConc} testing implementation.}\label{lst:mvarops}
+\end{cminted}
+\caption{A fragment of the \texttt{MonadConc} testing implementation.}\label{lst:mvarops}
 \end{listing}
 
 The type for our testing implementation is called \verb|ConcT r n|, which is a
@@ -120,14 +120,16 @@ this type.  Each concurrency operation is of the same form: we take the
 arguments and wrap them up inside a data structure whose final argument is a
 continuation, which is then converted into a \verb|ConcT| value.
 
-A concurrent computation is just a large value, where we can inspect each
-``step'' of the computation by looking at the data constructor used.
-Constructors mostly correspond to operations in the \verb|MonadConc| class
-(there are also a few extra).  We call these constructors \emph{primitive
-  actions}.  A full listing is available in \cref{app:primops-conc}.
+A concurrent computation is just a large value, where we can inspect
+each ``step'' of the computation by looking at the data constructor
+used.  Most constructors correspond directly to operations in the
+\verb|MonadConc| class, plus a few extra.  We call these constructors
+\emph{primitive actions}.  A full listing is available in
+\cref{app:primops}.
 
-We make a few departures from the semantics of the \verb|IO| monad where
-necessary:
+Each primitive action has a behaviour as close as reasonably possible
+to the primitive \verb|IO| operation it models.  We make a few
+departures from the traditional semantics where necessary:
 
 \begin{itemize}
 \item The \verb|getNumCapabilities| operation allows the programmer to query the
@@ -139,7 +141,7 @@ necessary:
   \dejafu{} cannot.
 \item The \verb|threadDelay| operation is required to yield the thread, but not
   necessarily to delay it.  This is because it is not clear how to incorporate
-  time into the systematic concurrency testing model.
+  time into the model.
 \end{itemize}
 
 There is more to \verb|IO| than concurrency and exceptions.  \dejafu{} supports
@@ -173,8 +175,8 @@ We can express this puzzle as a concurrency problem: the warden is the
 scheduler, each prisoner is a thread, and when the program terminates
 every prisoner should have visited the living room.  So if every
 thread (prisoner) that is forked is scheduled (taken to the room),
-then the prisoners are successful.  \dejafu{} can give us an execution
-trace.  So, given some way of setting up the prison, we can ask
+then the prisoners are successful.  \dejafu{} can give us execution
+traces.  So, given some way of setting up the prison, we can ask
 \dejafu{} to execute it and then examine the returned traces to
 discover if the prisoners are successful.
 
@@ -182,7 +184,7 @@ discover if the prisoners are successful.
 
 One school of thought says to just wait for three years, because by
 then it's unlikely that any single prisoner had never visited the
-room.  In fact, w would expect each prisoner to have been to the room
+room.  In fact, we would expect each prisoner to have been to the room
 ten times by then.  \Cref{lst:100good} shows an implementation of this
 strategy, and \cref{tbl:100rand} shows how the prisoners fare over 100
 random executions.
@@ -209,17 +211,17 @@ Perhaps our prisoners are more cautious, and a 0.004\% chance of death
 is too much.  They want to be certain of their success.  A slow but
 simple strategy is for the prisoners to nominate a leader.  Only the
 leader can declare to the warden that everyone has visited the room.
-Whenever a prisoner other than the leader visits the room, if the
-light is on, they do nothing; otherwise, if this is their first time
-in the room with the light off, they turn it on, otherwise they leave
-it.  Whenever the leader enters the room, they turn the light off.
-When the leader has turned the light off 99 times, they tell the
-warden that everyone has visited.  \Cref{lst:100perfect} shows an
-implementation of these behaviours.
+Whenever a prisoner other than the leader visits the room, if this is
+their first time in the room with the light off, they turn it on,
+otherwise they do nothing.  Whenever the leader enters the room, they
+turn the light off.  When the leader has turned the light off 99
+times, they tell the warden that everyone has visited.
+\Cref{lst:100perfect} shows an implementation of these behaviours.
 
 \begin{listing}
 \begin{sublisting}{\textwidth}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 leader :: MonadConc m => Int -> TVar (STM m) Int -> m ()
 leader numPrisoners days = atomically $ do
   numDays <- readTVar days
@@ -233,7 +235,7 @@ prison numPrisoners = do
   days <- atomically (newTVar 0)
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader days))
   leader numPrisoners days
-\end{minted}
+\end{cminted}
 \caption{The good enough solution: just wait a long time and gamble.}\label{lst:100good}
 \end{sublisting}
 
@@ -241,7 +243,8 @@ prison numPrisoners = do
 \vspace{2.5em}
 
 \begin{sublisting}{\textwidth}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 data Light = IsOn | IsOff
 
 leader :: MonadConc m => Int -> TVar (STM m) Light -> m ()
@@ -271,7 +274,7 @@ prison numPrisoners = do
   light <- atomically (newTVar IsOff)
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader light))
   leader numPrisoners light
-\end{minted}
+\end{cminted}
 \caption{The perfect solution: nominate a leader, who waits until they are certain that everyone has been in the room.}\label{lst:100perfect}
 \end{sublisting}
 \caption{Two solutions for the 100 prisoners problem.}\label{lst:100sols}
@@ -280,24 +283,41 @@ prison numPrisoners = do
 We can satisfy ourselves that this works for all cases by using
 \dejafu{}'s systematic concurrency testing functionality, which is a
 combination of dynamic partial-order reduction and schedule bounding.
-\Cref{tbl:100slow} shows how the number of attempts and average room
-visits grows as the number of prisoners increases.
+\Cref{tbl:100slow} shows how the number of schedules explored and
+average room visits grows as the number of prisoners increases.  It
+does not scale well.
+
+Our algorithm is a really bad case for concurrency testing: every
+thread is messing with the same shared state, so DPOR has to try every
+interleaving.  Taking another look at our prisoners, we can see two
+things which a human would use to decide whether some schedules are
+redundant or not:
 
 \begin{table}
+\begin{subtable}{\textwidth}
   \centering
-  \begin{tabular}{l|rrr} \toprule
+  \begin{tabular}{lrrr} \toprule
     Prisoners          & 1 & 2 &    3 \\
     Schedules          & 1 & 5 & 2035 \\
     Avg.\@ Room Visits & 2 & 7 &  133 \\ \bottomrule
   \end{tabular}
-  \caption{Schedule growth with increasing prisoner numbers.}\label{tbl:100slow}
-\end{table}
+  \caption{Using \dejafu{}'s default schedule bounds.}\label{tbl:100slow}
+\end{subtable}
 
-This doesn't scale well.  Our algorithm is a really bad case for
-concurrency testing: every thread is messing with the same shared
-state, so \dejafu{} has to try all the orderings.  Taking another look
-at our prisoners, we can see two things which a human would use to
-decide whether some schedules are redundant or not:
+% [layout hack]: no gap between the tables otherwise
+\vspace{2.5em}
+
+\begin{subtable}{\textwidth}
+  \centering
+  \begin{tabular}{lrrrrrr} \toprule
+    Prisoners          & 1 & 2 & 3   &  4   &    5 &      6 \\
+    Schedules          & 1 & 1 & 4   & 48   & 1536 & 122880 \\
+    Avg.\@ Room Visits & 2 & 4 & 7.5 & 11.5 &   16 &     21 \\ \bottomrule
+  \end{tabular}
+  \caption{Using a custom fair bound to prevent yields.}\label{tbl:100fast}
+\end{subtable}
+\caption{How the number of schedules grows with increasing prisoner numbers.}\label{tbl:100slowfast}
+\end{table}
 
 \begin{enumerate}
 \item If we adopt any schedule other than alternating leader /
@@ -307,35 +327,24 @@ decide whether some schedules are redundant or not:
   yield.  So we should never schedule a prisoner who will yield.
 \end{enumerate}
 
-\dejafu{} can't make use of (1).  It could be inferred \emph{if}
-\dejafu{} were able to compare values inside \verb|TVar|s.  We cannot
-do that without putting an \verb|Eq| constraint on \verb|writeTVar|,
-however.
-
-\dejafu{} \emph{can} make use of (2).  \dejafu{} already bounds the
-maximum number of times a thread can yield, so that it can test
-constructs like spinlocks.  This is called \emph{fair bounding}.  The
-default bound is 5, but if we set it to 0 \dejafu{} will never
-schedule a thread which is going to yield.  \Cref{tbl:100fast} shows how
-the number of schedules and average room visits grows with this
-change.
-
-\begin{table}
-  \centering
-  \begin{tabular}{l|rrrrrr} \toprule
-    Prisoners          & 1 & 2 & 3   &  4   &    5 &      6 \\
-    Schedules          & 1 & 1 & 4   & 48   & 1536 & 122880 \\
-    Avg.\@ Room Visits & 2 & 4 & 7.5 & 11.5 &   16 &     21 \\ \bottomrule
-  \end{tabular}
-  \caption{Schedule growth with increasing prisoner numbers (improved).}\label{tbl:100fast}
-\end{table}
+\dejafu{} can't make use of (1).  This optimisation could be possibly
+inferred \emph{if} \dejafu{} were able to compare values inside
+\verb|TVar|s.  We cannot do that without putting an \verb|Eq|
+constraint on \verb|writeTVar|, however.  \dejafu{} \emph{can} make
+use of (2).  \dejafu{} already bounds the maximum number of times a
+thread can yield, so that it can test constructs like spinlocks.  This
+is called \emph{fair bounding}.  The default bound is five, but if we
+set it to zero \dejafu{} will never schedule a thread which is going
+to yield.  \Cref{tbl:100fast} shows how the number of schedules
+explored and average room visits grows with this change.
 
 This is better, but still scales poorly.  The prisoners are stepping
 on each other's toes and causing needless work.  This is probably as
 good as we can do without adding some extra primitives to \dejafu{} to
-optimise the case where we have an \verb|Eq| instance available.
+optimise the case where we have an \verb|Eq| instance available, or by
+using an alternative systematic testing algorithm.
 
-It's not the end for systematic testing, however.  Empirical
+It's not the end for DPOR, however.  Empirical
 studies\cite{thomson2014} have found that many concurrency bugs can be
 exhibited with only two or three threads.  Furthermore, most
 real-world concurrent programs don't have every single thread
@@ -344,15 +353,17 @@ operating on the same bit of shared state.
 \section{Executing Concurrent Programs}
 \label{sec:dejafu-execution}
 
-Concurrent computations are expressed in terms of a continuation monad.  As we
-have noted previously, operations in the \verb|MonadConc| typeclass are
-represented by a type of ``primitive actions'', where each action describes some
-effect and has a continuation.  This is the \verb|Action| type.  Each thread of
-execution is terminated by a distinguished \emph{stop} primitive, which has no
-continuation and signals successful completion.
+We represent operations in the \verb|MonadConc| typeclass by a type of
+``primitive actions'', where each action describes some effect.  This
+is the \verb|Action| type.  Each primitive action also contains a
+continuation.  A concurrent program is just a sequence of these
+continuation values.  Each thread of execution is terminated by a
+distinguished \emph{stop} primitive, which has no continuation and
+signals successful completion.
 
 \begin{listing}
-  \begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 newtype M n r a = M { runM :: (a -> Action n r) -> Action n r }
 
 instance Functor (M n r) where
@@ -372,8 +383,8 @@ instance Monad (M n r) where
 instance Fail.MonadFail (M n r) where
 #endif
   fail e = M (\_ -> AThrow (MonadFailException e))
-  \end{minted}
-  \caption{The \dejafu{} continuation monad.}\label{lst:m}
+\end{cminted}
+\caption{The \dejafu{} continuation monad.}\label{lst:m}
 \end{listing}
 
 \Cref{lst:m} gives the definition and typeclass instances of the \dejafu{}
@@ -407,7 +418,8 @@ whereas if we model references as keys into a heap, then such data can never be
 freed, as we cannot tell when it is safe to delete something from our heap.
 
 \begin{listing}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 pure id <*> v
   = M (\c -> AReturn (c id)) <*> v
   = M (\c -> runM (M (\c -> AReturn (c id))) (\g -> runM v (c . g)))
@@ -416,45 +428,53 @@ pure id <*> v
   = M (\c -> AReturn (runM v (c . id)))
   = M (\c -> AReturn (runM v c))
  /= v
-\end{minted}
-  \caption{Expansion of the \texttt{Applicative} identity law.}\label{lst:areturn}
+\end{cminted}
+\caption{Expansion of the \texttt{Applicative} identity law.}\label{lst:areturn}
 \end{listing}
 
 \paragraph{Nonterminating Executions}
-\dejafu{} is only able to make scheduling decisions at the level of primitive
-actions, which means that if evaluating a primitive action does not terminate,
-\dejafu{} will hang.  We deliberately break the \verb|Applicative| identity law,
-that \verb|pure id <*> v = v| for all \verb|v| (\cref{lst:areturn}), to make some
-programs more defined than they otherwise would be.  Consider this small
-program:
-
-\begin{minted}{haskell}
-test = forever (pure "loop") where
-  forever mx = mx >> forever mx
-\end{minted}
-
-Neither \verb|(>>)| nor \verb|forever| correspond to primitive actions, so they
-cannot be pre-empted.  If \verb|pure| did not correspond to a primitive action
-either, then that expression would cause \dejafu{} to loop forever, trying to
-find the continuation.  This is an unhelpful result.  By breaking the laws and
-introducing a way to interrupt the \verb|forever| computation, \dejafu{} can
-instead report that trying to test this program exceeds the execution length
-limit\footnote{\url{https://github.com/barrucadu/dejafu/issues/27}\\\url{https://github.com/barrucadu/dejafu/issues/113}}.
-
-\paragraph{Scheduling}
-The choice of which thread to execute is made by a scheduler function, which is
-supplied by the user.  The scheduler is called even if there is only one
-runnable thread, to keep things simple.  A scheduler, shown in
-\cref{lst:scheduler}, is a stateful function which is given the previous action
-and the runnable threads, which possibly returns a thread to run.  If no thread
-is returned, the computation is aborted.  This is used to implement schedule
-bounding.  The state is used to implement partial-order reduction and random
-scheduling: in the former, the state is a list of scheduling decisions designed
-to put the system into an unseen state; in the latter, the state is a random
-number generator.
+\dejafu{} is only able to make scheduling decisions at the level of
+primitive actions, which means that if evaluating a primitive action
+does not terminate, \dejafu{} will hang.  We deliberately break the
+\verb|Applicative| identity law, that \verb|pure id <*> v = v| for all
+\verb|v| (\cref{lst:areturn}), to make some programs more defined than
+they otherwise would be.  program:
 
 \begin{listing}
-  \begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
+test = forever (pure "loop") where
+  forever mx = mx >> forever mx
+\end{cminted}
+\caption{A simple non-terminating program.}\label{lst:forever}
+\end{listing}
+
+Consider \cref{lst:forever}.  Neither \verb|(>>)| nor \verb|forever|
+correspond to primitive actions, so they cannot be pre-empted.  If
+\verb|pure| did not correspond to a primitive action either, then that
+expression would cause \dejafu{} to loop forever, trying to find the
+continuation.  This is an unhelpful result.  By breaking the laws and
+introducing a way to interrupt the \verb|forever| computation,
+\dejafu{} can instead report that trying to test this program exceeds
+the execution length
+limit\footnote{\url{https://github.com/barrucadu/dejafu/issues/27} and \texttt{issues/113}}.
+
+\paragraph{Scheduling}
+The choice of which thread to execute is made by a scheduler function,
+which is supplied by the user.  The scheduler is called even if there
+is only one runnable thread, to keep things simple.  A scheduler,
+shown in \cref{lst:scheduler}, is a stateful function which is given
+the previous action and the runnable threads, which possibly returns a
+thread to run.  If no thread is returned, the computation is aborted.
+Aborting is used in the implementation of schedule bounding.  The
+state is used in the implementation of partial-order reduction and
+random scheduling: in the former, the state is a list of scheduling
+decisions hoped to put the system into an unseen state; in the latter,
+the state is a random number generator.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 newtype Scheduler state = Scheduler
   { scheduleThread
     :: Maybe (ThreadId, ThreadAction)
@@ -462,8 +482,8 @@ newtype Scheduler state = Scheduler
     -> state
     -> (Maybe ThreadId, state)
   }
-  \end{minted}
-  \caption{The \dejafu{} \texttt{Scheduler} type.}\label{lst:scheduler}
+\end{cminted}
+\caption{The \dejafu{} \texttt{Scheduler} type.}\label{lst:scheduler}
 \end{listing}
 
 \paragraph{Success and Failure}
@@ -477,25 +497,24 @@ an enumeration of error conditions that \dejafu{} can detect, and the
 
 \subsection{Software Transactional Memory}
 
-Transactions allow the atomic execution of a sequence of operations involving
-\verb|TVar|s, transactional variables.  Unlike operations on \verb|CRef|s or
-\verb|MVar|s, transactions are composable and the whole remains atomic.
+Transactions allow the atomic execution of a sequence of operations
+involving \verb|TVar|s, transactional variables.  Unlike operations on
+\verb|CRef|s or \verb|MVar|s, transactions are composable and the
+whole remains atomic.  We express transactions in a similar way to
+concurrent programs: as a continuation monad over a primitive action
+type.  A complete listing of actions is available in
+\cref{app:primops}.  As \dejafu{} drives the execution of a concurrent
+program, it is possible to have arbitrarily complex effects which
+appear atomic to the program under test.  We ensure atomicity by
+executing primitive actions sequentially.
 
-We express transactions in a similar way to concurrent programs: as a
-continuation monad over a primitive action type.  A complete listing of actions
-is available in \cref{app:primops-stm}.  As \dejafu{} drives the execution of a
-concurrent program, it is possible to have arbitrarily complex effects which
-appear atomic to the program under test.  In particular, we ensure atomicity by
-executing concurrency primitive actions sequentially, ensuring that no two
-transactions (or no two actions of any form) can interfere.
-
-The STM primitive actions have a small-step operational semantics defined as a
-step function.  Like the small-step semantics of the concurrency primitive
-actions, this does not include a model of the heap.  However, as transactions
-are atomic, we only care about the big-step behaviour.  This simplifies some
-aspects of the implementation, but means that we cannot cope with nonterminating
-transactions at all, whereas we can abort concurrent programs which have taken
-too many steps.
+The STM primitive actions have an operational semantics defined by a
+step function.  Like the small-step semantics of the concurrency
+primitive actions, this does not include a model of the heap.
+However, as transactions are atomic, we only care about the big-step
+behaviour.  This simplifies some aspects of the implementation, but
+means that we cannot currently cope with nonterminating transactions,
+whereas we can and do abort concurrent programs.
 
 A transaction evaluates to some success value, a thrown exception, or an abort.
 If successful, it may also mutate some transactional variables as a side-effect;
@@ -524,10 +543,10 @@ There are three memory models supported in \dejafu{}:
   same thread are not necessarily committed in program order.
 \end{description}
 
-The default memory model for testing is TSO, as that most accurately models the
-behaviour of modern x86 processors\cite{owens2009}.  The use of a relaxed memory
-model can require a much larger number of schedules when its effects are at
-play.
+The default memory model for testing is TSO, as that most accurately
+models the behaviour of modern x86 processors\cite{owens2009}.  The
+use of a relaxed memory model can require a much larger number of
+schedules when \verb|CRef|s are shared between threads.
 
 \paragraph{Write Buffering}
 We model relaxed memory by introducing buffers for thread writes.  When a thread
@@ -608,10 +627,11 @@ two threads and two \verb|CRef|s.
   \label{fig:wb}
 \end{figure}
 
-We divide concurrency operations into three categories: \emph{synchronised}
-operations impose a \emph{memory barrier}, which commits all buffered writes;
-\emph{partially synchronised} operations commit one or more buffered writes to
-the same \verb|CRef|; and \emph{unsynchronised} operations never cause a commit.
+We divide operations into three categories: \emph{synchronised}
+operations impose a \emph{memory barrier}, committing all writes;
+\emph{partially synchronised} operations commit one or more writes to
+the same \verb|CRef|; and \emph{unsynchronised} operations never cause
+a commit.
 
 \paragraph{Phantom Threads}
 In a sequentially consistent memory model, the set of runnable threads is
@@ -633,43 +653,36 @@ approach from \cite{zhang2015}.
 
 \dejafu{} uses a combination of dynamic partial-order reduction and
 schedule bounding to test programs, by default.  Controlled random
-scheduling using a fixed number of executions is also available.  To
-make the tool easier to use, we provide a collection of different
-testing functions, with varying levels of detail exposed, hoping that
-the defaults will suffice for most users.  At one end of the scale we
-have the \verb|autocheck| function, which looks for deadlocks,
-uncaught exceptions in the main thread, and nondeterminism.  At the
-other end of the scale is the \verb|dejafuDiscard| function which
-exposes all the controls.
-
-A \dejafu{} test has the following components:
+scheduling using a fixed number of executions is also available.  A
+\dejafu{} test has the following components:
 
 \begin{itemize}
+\item A function to optionally discard results as they are produced,
+  not considering them when determining if the test passes.  This is
+  for performance: execution traces can use a lot of memory, and
+  typically we are only interested in a subset.
 \item The testing algorithm to use plus any configuration it needs.
   The default is DPOR with schedule bounding.
-\item A function to optionally discard results or traces as they are
-  produced, and so not considering them when determining if the test
-  passes.  This is a concession to performance: execution traces can
-  take up a lot of memory, but typically we are only interested in a
-  subset of them.
 \item The memory model.  The default is total store order (TSO), as it
   is closest to the behaviour of an x86 processor\cite{owens2009},
   which is what the user probably has.
 \item The \verb|MonadConc| action to test.
-\item A named predicated, where a predicate is a function from the
+\item A named predicate, where a predicate is a function from the
   final list of results and traces to an indication of success or
   failure with an optional list of failing traces to display to the
   user.
 \end{itemize}
 
+To make the tool easier to use, we provide a collection of different
+testing functions, with varying levels of detail exposed, hoping that
+the defaults will suffice for most users.
+
 \paragraph{Dependency Relation}
 Correct DPOR relies on a dependency relation between pairs of actions
-in a schedule trace.  This relation may be pessimistic, but cannot be
-optimistic.  A pessimistic relation could claim that two actions are
-related when they do not affect each other; an optimistic relation
-could claim that two actions are unrelated when they do affect each
-other.  A pessmistic relation may lead to exploring redundant
-schedules, an optimistic relation may lead to missing distinct ones.
+in a schedule trace.  This relation may have false positives, but
+cannot have false negatives.  False positives may lead to exploring
+redundant executions, false negatives may lead to missing distinct
+ones.
 
 For ease of explanation, DPOR algorithms in the literature are
 presented for small languages.  A paper will typically start with a
@@ -677,22 +690,24 @@ sentence like ``we assume a core concurrent language of reads and
 writes to shared variables, and locks.''  The Haskell concurrency API
 is richer than this, and the implicit dependencies between actions
 (such as which actions impose a memory barrier) are not documented.
-The dependency relation we now use in \dejafu{} was derived by running
-small test cases many thousands of times.
+The dependency relation we now use in \dejafu{} was derived in part by
+running small test cases.
 
 We express our dependency relation in three parts: a relation on
-\emph{thread actions}, which are entries in the trace; a relation on
-\emph{thread action} and \emph{lookahead values}, which are forecasts
-of what a thread will do, available to the scheduler; and a relation
-on \emph{action types}, a simplification of thread actions.  Thread
-actions contain more information than lookahead values, which contain
-more information than action types.  We use this layered approach to
-make use of this extra information to improve dependency detection
-where possible.  \Cref{lst:deprel-simp} shows a simplified view of our
-relations.  \Cref{app:deprel} shows the full dependency relation.
+\emph{thread actions}, which are entries in the trace; a relation
+between \emph{thread action} and \emph{lookahead values}, which are
+forecasts of what a thread will do, available to the scheduler; and a
+relation on \emph{action types}, a simplification of thread actions.
+Thread actions contain more information than lookahead values, which
+contain more information than action types.  We use this layered
+approach to make use of this extra information to improve dependency
+detection where possible.  \Cref{lst:deprel-simp} shows a simplified
+view of our relations.  \Cref{app:deprel} shows the full dependency
+relation.
 
 \begin{listing}
-  \begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 dependent :: ThreadId -> ThreadAction -> ThreadId -> ThreadAction -> Bool
 dependent tid1 ta1 tid2 ta2
   | ...       = True
@@ -709,8 +724,8 @@ dependent' tid1 ta tid2 lh
 
 dependentActions :: ActionType -> ActionType -> Bool
 dependentActions = ...
-  \end{minted}
-  \caption{A simplified view of the \dejafu{} dependency relations.}\label{lst:deprel-simp}
+\end{cminted}
+\caption{A simplified view of the \dejafu{} dependency relations.}\label{lst:deprel-simp}
 \end{listing}
 
 For our dependency relation to be correct, we require some consistency
@@ -718,11 +733,11 @@ rules:
 
 \begin{description}
 \item[Commutativity (1)]
-  $\mathrm{dependent}~x~y = \mathrm{dependent}~y~x$
+  $\mathrm{dependent}~t1~a1~t2~a2 = \mathrm{dependent}~t2~a2~t1~a1$
 \item[Commutativity (2)]
   $\mathrm{dependentActions}~x~y = \mathrm{dependentActions}~y~x$
 \item[Consistency (1)]
-  $\mathrm{dependent}~x~(t,y) \Rightarrow \mathrm{dependent'}~x~(t, \mathrm{rewind}~y)$
+  $\mathrm{dependent}~t1~a1~t2~a2 \Rightarrow \mathrm{dependent'}~t1~a1~t2 (\mathrm{rewind}~a2)$
 \item[Consistency (2)]
   $\mathrm{simplifyLookahead} = \mathrm{simplifyAction} \circ \mathrm{rewind}$
 \end{description}
@@ -786,35 +801,42 @@ daemon thread, so as soon as it terminates the whole program
 terminates.  This is a problem for DPOR, as it makes the last action
 of the execution dependent with everything else in the program!
 
-Consider this small example program:
-
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 main = do
   v <- newEmptyMVar
   fork (myThreadId >> putMVar v "hello world")
   tryReadMVar v
-\end{minted}
+\end{cminted}
+\caption{A program with a race condition.}\label{lst:daemon1}
+\end{listing}
 
-There are two possible results: \verb|Nothing|, and
-\verb|Just "hello world"|, we would like to see both of these.
-However, there is no dependency between \verb|myThreadId| and
+\Cref{lst:daemon1} has two possible results: \verb|Nothing|, and
+\verb|Just "hello world"|, we would like \dejafu{} to produce both of
+these.  However, there is no dependency between \verb|myThreadId| and
 \verb|tryReadMVar|, so if the deterministic scheduler used favours the
 main thread, we may not see the second execution.  Introducing a
 dependency between the last action of the execution and everything
-else solves this.  Now consider this example:
+else solves this.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 main = do
   v <- newEmptyMVar
   fork (myThreadId >> myThreadId >> putMVar v "hello world")
   tryReadMVar v
-\end{minted}
+\end{cminted}
+\caption{Another program with a race condition.}\label{lst:daemon2}
+\end{listing}
 
-The forked thread now performs two calls to \verb|myThreadId|.  If the
-\verb|tryReadMVar| happens after the second, we get the same result as
-if it happened after the first.  Normally, DPOR would prevent this
-redundancy, but by introducing a dependency between the final action
-and everything else, we have told the algorithm that it is \emph{not}
+In \cref{lst:daemon2}, the forked thread now performs
+\verb|myThreadId| twice.  If the \verb|tryReadMVar| happens after the
+second, we get the same result as if it happens after the first.
+Normally, DPOR would recognise this and prune the redundant decision.
+However, by introducing a dependency between the final action and
+everything else, we have told the algorithm that it is \emph{not}
 redundant!  In general, introducing a dependency like this will lead
 to many redundant executions which we would otherwise avoid.
 
@@ -918,7 +940,8 @@ complete execution of the program.  There is a unique initial state,
 where only the initial thread is runnable and nothing has been done.
 
 \begin{listing}
-  \begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 data DPOR = DPOR
   { dporRunnable :: Set ThreadId
   -- ^ What threads are runnable at this step.
@@ -940,8 +963,8 @@ data DPOR = DPOR
   -- conservatively-added ones. This is used in implementing sleep
   -- sets.
   } deriving (Eq, Show)
-  \end{minted}
-  \caption[The \dejafu{} DPOR state.]{The DPOR state is a stack of scheduling decisions.}\label{lst:dpor}
+\end{cminted}
+\caption[The \dejafu{} DPOR state.]{The DPOR state is a stack of scheduling decisions.}\label{lst:dpor}
 \end{listing}
 
 There are some basic well-formedness properties associated with a
@@ -952,19 +975,17 @@ taken set is the done set excluding the sleep set; the next-taken
 decision (if there is one) is in the runnable set and not in the to-do
 or sleep sets; and these properties hold recursively.
 
-A generated schedule prefix is one of the longest sequence of taken
-decisions followed by a single to-do decision possible.  This
-corresponds to a depth-first search of the space of schedules.  As
-long as the well-formedness properties hold, and the runnable sets are
-correctly recorded during execution, then a generated schedule prefix
-will be valid.
+A generated schedule prefix is a sequence of taken decisions followed
+by a single to-do decision.  By maximising the length of prefixes, we
+obtain a depth-first search of the space of schedules.  As long as the
+well-formedness properties hold, and the runnable sets are correctly
+recorded during execution, then a generated schedule prefix will be
+valid.
 
 \paragraph{Schedule Completeness}
-The simplest notion of completeness of interest here is that for all
-results possible by executing a given program, the DPOR machinery can
-give that result.  However, as schedule bounding is involved, this is
-not the case.  So we have two slightly different notions of
-completeness:
+The DPOR machinery should find every possible result of a given
+program.  However, as schedule bounding is involved, this is not the
+case.  So we have two slightly different notions of completeness:
 
 \begin{enumerate}
 \item When all schedule bounds are disabled, all possible results show
@@ -990,7 +1011,8 @@ tested.
 \subsection{The auto-update Package}
 
 \begin{listing}
-  \begin{minted}{haskell}
+  \centering
+  \begin{cminted}{haskell}
 data UpdateSettings a = UpdateSettings
     { updateFreq           :: Int
     , updateSpawnThreshold :: Int
@@ -1035,7 +1057,7 @@ mkAutoUpdate us = do
 catchSome :: IO a -> IO a
 catchSome act = catch act $
   \e -> pure $ throw (e :: SomeException)
-  \end{minted}
+  \end{cminted}
   \caption{The implementation of the auto-update package.}\label{lst:example-autoupdate}
 \end{listing}
 
@@ -1054,27 +1076,31 @@ set.  It returns an action to attempt to read the current result, if
 necessary blocking until there is one.  The transformation to the
 \verb|MonadConc| typeclass is straightforward.
 
-The race condition occurs if the reading thread is pre-empted by the
-worker thread after putting into \verb|needsRunning|, and does not run
-again until after the delay has passed.  In this case the worker
-thread can become blocked on taking for a second time from
-\verb|needsRunning|.  The reader thread will be unable to read from
-\verb|lastValue| as the worker thread emptied it as the last action it
-performed.  The race condition can be exhibited with the following
-test:
+The race condition, shown in \cref{lst:example-autoupdate1}, occurs if
+the reading thread is pre-empted by the worker thread after putting
+into \verb|needsRunning|, and does not run again until after the delay
+has passed.  In this case the worker thread can become blocked on
+taking for a second time from \verb|needsRunning|.  The reader thread
+will be unable to read from \verb|lastValue| as the worker thread
+emptied it as the last action it performed.  This test was chosen as
+it is one of the simplest things a user may wish to do with the
+library: to create the worker, and to then read the computed value.
+We also see here the use of \verb|autocheck|, which is used to search
+for deadlocks, uncaught exceptions in the main thread, and
+nondeterminism in results.
 
-\begin{minted}{haskell}
-test :: MonadConc m => m ()
-test = join (mkAutoUpdate defaultUpdateSettings)
-\end{minted}
+% [layout hack]: get the full-page listing here, rather than at the
+% end of the section.
+%\pagebreak
+\FloatBarrier
 
-This test was chosen as it is one of the simplest things a user may
-wish to do with the library: to create the worker, and to then read
-the computed value.  The output of testing shows the different results
-that were found, with a sample trace leading to each one:
+\begin{listing}
+\centering
+\begin{cminted}{text}
+> autocheck $ do
+    auto <- mkAutoUpdate defaultUpdateSettings
+    auto
 
-\begin{minted}{text}
-> autocheck test
 [fail] Never Deadlocks (checked: 5)
         [deadlock] S0--------S1---------S0-
 [pass] No Exceptions (checked: 55)
@@ -1082,24 +1108,24 @@ that were found, with a sample trace leading to each one:
         () S0--------S1------P0--
 
         [deadlock] S0--------S1---------S0-
-\end{minted}
+\end{cminted}
+%$
+\caption{An example of a race condition in the \textbf{auto-update} library.}\label{lst:example-autoupdate1}
+\end{listing}
 
-The \verb|autocheck| function is used to search for deadlocks,
-uncaught exceptions in the main thread, and nondeterminism in
-results. In this display, ``S$n$'' indicates that thread $n$ began
-executing after the prior one terminated, blocked, or yielded; and
-``P$n$'' indicates that thread $n$ pre-empted the prior one.
-
-To read this trace, it is helpful to look at the ``S'' points, rather
-than to count the steps.  Using this tactic, we see that a deadlock
-occurs if thread 0 (the initial thread) runs until it blocks (which is
-the \verb|readMVar lastValue| call), then thread 1 (the worker thread)
-runs until it blocks (the second time \verb|takeMVar needsRunning| is
-reached).  At this point the initial thread is runnable, as it was
-unblocked by the write to \verb|lastValue|.  The initial thread is
-scheduled, and immediately blocks because the worker thread took the
-value.  Both threads are now blocked, and so the computation is
-deadlocked.
+In \dejafu{}'s abbreviated trace output, ``S$n$'' indicates that
+thread $n$ started after the prior one terminated, blocked, or
+yielded; and ``P$n$'' indicates that thread $n$ pre-empted the prior
+one.  To read this trace, it is helpful to look at the ``S'' points,
+rather than to count the steps.  Using this tactic, we see that a
+deadlock occurs if thread zero (the initial thread) runs until it
+blocks (which is the \verb|readMVar lastValue| call), then thread one
+(the worker thread) runs until it blocks (the second time
+\verb|takeMVar needsRunning| is reached).  At this point the initial
+thread is runnable, as it was unblocked by the write to
+\verb|lastValue|.  The initial thread is scheduled, and immediately
+blocks because the worker thread took the value.  Both threads are now
+blocked, and so the computation is deadlocked.
 
 This deadlock may arise in any use of the library, as it depends only
 on the timing of the delay, and not on the computation performed.  If
@@ -1120,14 +1146,14 @@ returned, but support for returning all results was later added,
 incorrectly, introducing a bug.
 
 The library provides a collection of combinators used to express a
-generate-and-test problem, which are executed in using a concurrent
+generate-and-test problem, which are executed using a concurrent
 producer/consumer pattern.  One worker thread is created for each
 capability, which share a list of work items and communicate results
 back to the main thread.
 
-A key piece of worker loop is as follows:
-
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 case maybea of
   Just a -> do
     atomically $ do
@@ -1138,36 +1164,27 @@ case maybea of
     unless shortcircuit $
       process remaining res
   Nothing -> process remaining res
-\end{minted}
+\end{cminted}
+\caption{A key piece of the \textbf{search-party} worker loop.}\label{lst:example-searchparty1}
+\end{listing}
 
+\Cref{lst:example-searchparty1} shows a key part of the worker loop.
 Here \verb|maybea| is a value indicating whether the computation just
-evaluated was successful.  A \verb|TMVar| (used by the
-\verb|tryTakeTMVar| and \verb|putTMVar| functions) is a \verb|TVar|
-containing a \verb|Maybe| value, which aborts the transaction if it
-fails.  The result is a similar type to the \verb|MVar|, but
-composable.  The intended behaviour of this code that, if a
-computation is successful, its result is added to the list in the
-\verb|res| \verb|TMVar|.  This \verb|TMVar| is exposed indirectly to
-the user of the library, as it is blocked upon when the result of the
-search is requested.
+evaluated was successful.  A \verb|TMVar| is a \verb|TVar| containing
+a \verb|Maybe| value, which aborts the transaction if it fails.  The
+result is a similar type to the \verb|MVar|, but composable.  The
+intended behaviour of this code that, if a computation is successful,
+its result is added to the list in the \verb|res| \verb|TMVar|.  This
+\verb|TMVar| is exposed indirectly to the user of the library, as it
+is blocked upon when the result of the search is requested.
 
-Upon introducing this new functionality, tests for it were added to
-the testsuite:\footnote{The \texttt{representative} function picks
-  only one trace for each unique result.}
-
-\begin{minted}{haskell}
-checkResultLists :: Eq a => Predicate [a]
-checkResultLists = representative (alwaysTrue2 check) where
-  check (Right as) (Right bs) = as `elem` permutations bs
-  check a b = a == b
-\end{minted}
-
-This \dejafu{} predicate checks that all result lists are equal, up to
-ordering.  Given this predicate, we can see the problem:
-
-\begin{minted}{text}
+\begin{listing}
+\centering
+\begin{cminted}{text}
+> let check = alwaysSameOn (fmap sort)
 > let test xs = takeStream (length xs) =<< xs @! const True
-> dejafu (test [0..2]) ("Result Lists", checkResultLists)
+> dejafu (test [0..2]) ("Result Lists", check)
+
 [fail] Result Lists (checked: 38)
         [] S0------S1-----S0-------
 
@@ -1176,14 +1193,21 @@ ordering.  Given this predicate, we can see the problem:
         [0,1] S0------S1-----S0---P3------------S0--P3------S0--------
 
         [1] S0------S1-----S0---P2-P3------------S0-------
-\end{minted}
-%>> - emacs does some silly highlighting after the << above
+\end{cminted}
+%>>
+\caption{}\label{lst:example-searchparty2}
+\end{listing}
 
-The \verb|@!| operator is a concurrent filter, with the order of
-results nondeterministic.  The problem was a lack of any indication
-that a list-producing computation had finished.  As results were
-written directly to the \verb|TMVar|, partial result lists could be
-read depending on how the worker threads and the main thread were
+When returning all results of a nondeterministic generate-and-test
+computation, different executions may produce this list in different
+orders.  However, the lists should contain the same elements.  We can
+check this property with \dejafu{}.  \Cref{lst:example-searchparty2}
+shows a test, and a failure, for this property.  The \verb|@!|
+operator is a concurrent filter, with the order of results
+nondeterministic.  The problem was a lack of any indication that a
+list-producing computation had finished.  As results were written
+directly to the \verb|TMVar|, partial result lists could be read
+depending on how the worker threads and the main thread were
 interleaved.
 
 In this case, fixing the failure did not require any interactive
@@ -1198,7 +1222,8 @@ will not be accidentally reintroduced.
 
 \begin{listing}
   \begin{sublisting}{\textwidth}
-    \begin{minted}{haskell}
+    \centering
+    \begin{cminted}{haskell}
 makeScheds :: Int -> IO [Sched]
 makeScheds main = do
    workpools <- replicateM numCapabilities $ R.newQ
@@ -1219,7 +1244,7 @@ makeScheds main = do
                    | stck <- sessionStacks
                    ]
    pure allscheds
-    \end{minted}
+    \end{cminted}
     \caption{Original}\label{lst:example-parmonad-sched-orig}
   \end{sublisting}
 
@@ -1227,7 +1252,8 @@ makeScheds main = do
   \vspace{2.5em}
 
   \begin{sublisting}{\textwidth}
-    \begin{minted}{haskell}
+    \centering
+    \begin{cminted}{haskell}
 makeScheds :: (MonadConc m, MonadIO m) => Int -> m [Sched m]
 makeScheds main = do
    numCapabilities <- getNumCapabilities
@@ -1250,7 +1276,7 @@ makeScheds main = do
                    | stck <- sessionStacks
                    ]
    pure allscheds
-    \end{minted}
+    \end{cminted}
     \caption{\dejafu{}}\label{lst:example-parmonad-sched-dejafu}
   \end{sublisting}
   \caption{The monad-par ``direct'' scheduler initialisation.}\label{lst:example-parmonad-sched}
@@ -1260,12 +1286,12 @@ The \package{monad-par} library\cite{marlow2011} provides a
 traditional-looking concurrency abstraction, giving the programmer
 threads and mutable state, however it maintains determinism by
 restricting its shared variables to one write, and read operations
-block until a value has been written.  These shared \verb|IVar|
-variables are used to implement futures, rather than general mutable
-state.  The package uses a work-stealing scheduler running on multiple
-operating system threads, fully evaluating values on their own threads
-before inserting them into an \verb|IVar|.  Despite its limitations,
-the library can be effective in speeding up pure code.
+block until a value has been written.  These shared variables, called
+\verb|IVar|s, are used to implement futures, rather than general
+mutable state.  The package uses a work-stealing scheduler running on
+multiple operating system threads, fully evaluating values on their
+own threads before inserting them into an \verb|IVar|.  Despite its
+limitations, the library can be effective in speeding up pure code.
 
 The library provides several different schedulers.  We ported the
 ``direct'' scheduler to the \verb|MonadConc| typeclass so it could be
@@ -1301,7 +1327,7 @@ was not the case.  The logic changes were all places where a call to
 
 \begin{table}
   \centering
-  \begin{tabular}{l|rr} \toprule
+  \begin{tabular}{lrr} \toprule
     & Direct.hs & DirectInternal.hs \\ \midrule
     Language extensions & 1 & 0 \\
     Module imports & 6 & 1 \\
@@ -1314,8 +1340,8 @@ was not the case.  The logic changes were all places where a call to
   \caption{Breakdown of changes to port the monad-par ``direct'' scheduler.}\label{tbl:example-parmonad-diff}
 \end{table}
 
-No deadlock or nondeterminism was discovered, with a variety of
-initial random seeds tried.
+No deadlock or nondeterminism was discovered for a small test program,
+with a variety of initial random seeds tried.
 
 \section{Evaluation}
 \label{sec:dejafu-evaluation}
@@ -1327,9 +1353,9 @@ without sacrificing completeness in all but trivial examples.
 Ideally, existing libraries would be modified to support the
 \verb|MonadConc| abstraction.  However, this does not seem a likely
 short-term goal, and so a more promising way to approach the problem
-is to provide feature complete alternatives to existing libraries.  As
-adapting code to \verb|MonadConc| is often straightforward, as seen in
-the Par monad case study, this is a viable short-term solution.
+is to provide alternatives to existing libraries.  As adapting code to
+\verb|MonadConc| is often straightforward, as seen in the Par monad
+case study, this is a viable short-term solution.
 
 A second, more tractable, problem is integration with existing testing
 frameworks; using \dejafu{} for little stand-alone programs is all
@@ -1404,41 +1430,51 @@ implementation cost.  If that belief changes, we will look for a way.
 
 \subsection{Porting and Writing Code}
 
-We saw in the \textbf{monad-par} example that porting complex code to
-the \verb|MonadConc| abstraction is not necessarily a difficult
-process.  However, this is not always the case.  Recently a user tried
-to port a logging abstraction they made to \verb|MonadConc|.  The
-original code looked like this:
-
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 instance MonadLogger (LoggerT STM) where -- ...
 instance MonadLogger (LoggerT IO) where -- ...
-\end{minted}
+\end{cminted}
+\caption{Concrete instances for a typeclass-based logging abstraction.}\label{lst:mlogger1}
+\end{listing}
 
-Expressing this with \verb|MonadConc| and \verb|MonadSTM| is less
-straightforward, as constraints do not factor into instance selection.
-So these two instances overlap:
+We saw in the Par monad example that porting complex code to the
+\verb|MonadConc| abstraction is not necessarily a difficult process.
+However, this is not always the case.  Recently a user tried to port a
+logging abstraction they made to \verb|MonadConc|.  Expressing this
+with \verb|MonadConc| and \verb|MonadSTM| is not straightforward, as
+constraints do not factor into instance selection.  So the instances
+in \cref{lst:mlogger2} overlap, and are not useful.
 
-\begin{minted}{haskell}
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 instance MonadSTM  m => MonadLogger (LoggerT m) where -- ...
 instance MonadConc m => MonadLogger (LoggerT m) where -- ...
-\end{minted}
+\end{cminted}
+\caption{Overlapping instances for a typeclass-based logging abstraction.}\label{lst:mlogger2}
+\end{listing}
 
 After some work, we introduced new types to disambiguate between the
-two cases, and ended up with something like this:
-
-\begin{minted}{haskell}
-instance MonadSTM  m => MonadLogger (LoggerT (IsSTM  m)) where -- ...
-instance MonadConc m => MonadLogger (LoggerT (IsConc m)) where -- ...
-\end{minted}
-
-Where \verb|IsSTM| and \verb|IsConc| are new types we introduced, with
-their own \verb|MonadSTM| and \verb|MonadConc| instances.  The amount
-of effort required to arrive at this solution led to the user
-questioning whether classes like their \verb|MonadLogger| were even a
-useful abstraction at all\footnote{\url{https://www.reddit.com/r/haskell/comments/7b1fbk/do_mtlstyle_effect_classes_really_pull_their/}}!
+two cases, and ended up with \cref{lst:mlogger3}.  Where \verb|IsSTM|
+and \verb|IsConc| are new types we introduced, with their own
+\verb|MonadSTM| and \verb|MonadConc| instances.  The amount of effort
+required to arrive at this solution led to the user questioning
+whether classes like their \verb|MonadLogger| were even a useful
+abstraction at
+all\footnote{\url{https://www.reddit.com/r/haskell/comments/7b1fbk/do_mtlstyle_effect_classes_really_pull_their/}}!
 This is a good topic to think about, but it should not be prompted by
 the effort of trying to use \dejafu{}.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+instance MonadSTM  m => MonadLogger (LoggerT (IsSTM  m)) where -- ...
+instance MonadConc m => MonadLogger (LoggerT (IsConc m)) where -- ...
+\end{cminted}
+\caption{Polymorphic instances for a typeclass-based logging abstraction.}\label{lst:mlogger3}
+\end{listing}
 
 So while porting code to the \verb|MonadConc| typeclass is often
 simple when dealing with datatype and function definitions, it can be
@@ -1450,36 +1486,9 @@ can be done to improve this matter.
 There are popular Haskell libraries specifically for concurrency.  One
 of these is the \package{async} library, for expressing asynchronous
 computations.  This library is intended to be a higher-level and safer
-way of expressing asynchronous computations than using threading and
-mutable state directly.  It provides two main functions to execute an
-action asynchronously:
-
-\begin{minted}{haskell}
-async     :: IO a -> IO (Async a)
-withAsync :: IO a -> (Async a -> IO b) -> IO b
-\end{minted}
-
-Both of these fork the computation into a separate thread, returning
-an \verb|Async| value, which can be blocked on to retrieve the result,
-or used to kill the thread.  In addition, \verb|withAsync| kills the
-thread if the inner action (which is run in the original thread)
-completes first, to help prevent resource leaks.
-
-There is a further abstraction atop \verb|Async|, called
-\verb|Concurrently|, which has Functor, Applicative, and Alternative
-instances, and represents an action which can be concurrently composed
-with other actions.  The concurrency is achieved by having the
-Applicative \verb|(<*>)| operator execute each action asynchronously.
-There was once a Monad instance for \verb|Concurrently|, but it was
-inconsistent with the Applicative
-instance\footnote{\url{https://github.com/simonmar/async/pull/26}}.
-
-This law-breaking could have been discovered through testing, but only
-probabilistically.  If \textbf{async} were written using
-\verb|MonadConc|, the relevant laws could have been specified as unit
-tests and checked.  The bug might then have been caught before it
-showed up in user code.  Indeed, the \dejafu{} testsuite contains this
-invalid Monad instance and checks that the failure is caught.
+way of expressing asynchronous computations with guaranteed cleanup
+than using threading, mutable state, and asynchronous exceptions
+directly.
 
 The \textbf{concurrency} package, which provides \verb|MonadConc|,
 includes an alternative to \textbf{async} using \verb|MonadConc|.
@@ -1511,7 +1520,7 @@ of Test.DejaFu but constructing values representing individual tests
 which the frameworks can run, rather than executing and printing
 results directly.  The \package{test-framework} library is also in
 common use, however it supports integration with \textbf{HUnit}, and
-so needs no special support. of its own.
+so needs no special support of its own.
 
 The \textbf{tasty} library is more featureful than \textbf{HUnit},
 supporting progress reporting, giving a message on success as well as
@@ -1524,17 +1533,16 @@ make use of these additional features.
 
 Although a commonly reported experience amongst Haskell programmers is
 that ``if it compiles, it works'', there are times where it does
-\emph{not} work.  A number of profiling and debugging tools exist,
-typically requiring special runtime support.  Concurrency is a
-particularly difficult area to get right, as everyone who has had to
-move outside the realm of guaranteed determinism will know.  Yet there
-are no debugging tools for concurrent Haskell programs.  We contribute
-such a tool, at the cost of a programmer having to use a
-generalisation of the familiar concurrency abstraction.
+\emph{not} work.  Concurrency is a particularly difficult area to get
+right, as everyone who has had to move outside the realm of guaranteed
+determinism will know.  A number of profiling and debugging tools
+exist, typically requiring special runtime support.  Yet there are no
+debugging tools for concurrent Haskell programs.  We contribute such a
+tool, at the cost of a programmer having to use a generalisation of
+the familiar concurrency abstraction.
 
-This work was inspired by attending a talk at INVEST
-2014\footnote{\url{http://wp.doc.ic.ac.uk/verificationgroup/event/workshop-introduction-to-verification-and-testing-invest-2014/}}
-by Paul Thompson, then a Ph.D student at Imperial College London, on
+This work was inspired by attending a talk at INVEST 2014 by Paul
+Thompson, then a Ph.D student at Imperial College London, on
 systematic concurrency testing, the talk mentioned tools for languages
 like Java and C, but functional languages were not mentioned at all.
 The questions to be answered, then, were:
@@ -1575,5 +1583,8 @@ The contributions of this work are:
 
 \item a library called \dejafu{} for the systematic and random testing
   of concurrent Haskell programs, including those using relaxed-memory
-  effects.
+  effects; and
+
+\item a convincing demonstration that systematic concurrency
+  techniques work well in a rich concurrency setting such as Haskell.
 \end{itemize}
