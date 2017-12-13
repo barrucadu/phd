@@ -495,6 +495,45 @@ nested, to handle different types of exception.
 
 \begin{listing}
 \centering
+\begin{cminted}{java}
+public void createFile(String path, String text) throws IOException {
+  FileWriter writer = new FileWriter(path, true);
+  writer.write(text);
+  writer.close();
+}
+\end{cminted}
+\caption{Checked exceptions in Java.}\label{lst:excs_java}
+\end{listing}
+
+In addition to Haskell-style exceptions, Java supports \emph{checked
+  exceptions}.  If a method can throw (or propagate) a checked
+exception, it appears in the type.  Checked exceptions statically
+enforce exception handling, but are often regarded as cumbersome.  The
+Haskell type system has no equivalent of checked exceptions.  If a
+Haskell programmer wants something like a checked exception, they use
+a type such as \verb|Either| to indicate success or failure.
+
+\begin{listing}
+\centering
+\begin{cminted}{rust}
+let result = panic::catch_unwind(|| {
+    panic!("oh no!");
+});
+\end{cminted}
+\caption{Panics in Rust.}\label{lst:excs_rust}
+\end{listing}
+
+Rust does not really have exceptions.  The \verb|panic| function which
+raises an error which, if uncaught, kills the current thread.  The
+\verb|catch_unwind| function can be used to execute a closure and
+recover from a panic, but it is not guaranteed to catch all
+panics\footnote{\url{https://doc.rust-lang.org/1.9.0/std/panic/fn.catch_unwind.html}},
+making panics unsuitable as a general control-flow mechanism.  The
+typical Rust approach is, like Haskell, to return a type indicating
+success or failure.
+
+\begin{listing}
+\centering
 \begin{cminted}{haskell}
 throwTo    :: Exception e => ThreadId -> e -> IO ()
 killThread :: ThreadId -> IO ()
