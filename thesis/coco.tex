@@ -1,19 +1,16 @@
-Properties about a program can give a fuller understanding of its
-behaviour.  In this chapter we present and evaluate CoCo, our tool for
-recovering a declarative view of concurrent Haskell functions
-operating on shared state by finding properties of equivalence and
-refinement between concurrent expressions.  We first discuss some key
-concerns in the implementation of a tool like
-this~\sref{coco-concerns}, and then demonstrate the use of the tool
-with an illustrative example~\sref{coco-example}.  We explain how
-properties are discovered~\sref{coco-hiw} and argue the correctness of
-our approach~\sref{coco-correctness}.  We then present two further
+In this chapter we present and evaluate CoCo, our tool for finding
+properties of equivalence and refinement between concurrent Haskell
+expressions with shared state.  We first discuss some key concerns in
+the implementation of a tool like this~\sref{coco-concerns}, and then
+demonstrate the use of the tool with an illustrative
+example~\sref{coco-example}.  We explain how properties are
+discovered~\sref{coco-hiw} and argue the correctness of our
+approach~\sref{coco-correctness}.  We then present two further
 examples~\sref{coco-cases}.  Next we discuss how CoCo properties can
 be incorporated into a \dejafu{} testsuite.  Finally, we present
-conclusions and evaluate the approach~\sref{coco-conclusions}.  CoCo
-is built on top of \dejafu{}.
+conclusions and evaluate the approach~\sref{coco-conclusions}.
 
-This chapter is derived from our previous work \todo{cite when formally
+This chapter is derived from our previous work \todo{cite when
   published}.
 
 \section{Key Concerns of Observing Concurrent Programs}
@@ -32,36 +29,29 @@ what it means for two concurrent programs to be related.
 \paragraph{Nondeterminism}
 If we restrict the nondeterminism in our program to schedule
 nondeterminism, we can use systematic concurrency testing
-(SCT)\cite{coons2013,flanagan2005,musuvathi2007,musuvathi2008}
-techniques.  These techniques aim to test a variety of schedules,
-making use of runtime knowledge of the program to reduce the number of
-required executions, without necessarily sacrificing completeness.
-
-We have previously developed \dejafu{}\cite{walker2015} an SCT tool
-for Haskell, based on a typeclass-abstraction over the primitive
-concurrency operations.  CoCo uses \dejafu{} to produce the set of
-results of a generated program fragment.
+(SCT)\cite{coons2013,musuvathi2008,musuvathi2007,flanagan2005}
+techniques as implemented in \dejafu{} to produce the set of results
+of a generated program fragment.
 
 \paragraph{Interference}
 We do not know what sort of interference may lead to interesting
 results.  So CoCo requires the programmer to supply a function with
 effects, which is executed concurrently during property discovery, to
 provide this interference.  By supplying different sorts of
-interference, the programmer can see how the API they provide behaves
-in different concurrent contexts.
+interference, the programmer can see how the functions under test
+behave in different concurrent contexts.
 
 \paragraph{Properties}
 We formulate our properties in terms of \emph{observational
   refinement}\cite{he1986}, where the observations we take are
-snapshots of the shared state.  CoCo requires the programmer to supply
-an observation function to produce these snapshots.  By varying their
+snapshots of the state.  CoCo requires the programmer to supply an
+observation function to produce these snapshots.  By varying their
 observation function, the programmer can see different aspects of the
-API they provide.
+functions under test.
 
 We define a \emph{behaviour} of a concurrent program as a pair of a
 final observation, taken after the program terminates, and a possible
-\emph{failure}.  Failures are states like a deadlock, or an uncaught
-exception.  By considering the set of a program's possible behaviours,
+failure.  By considering the set of a program's possible behaviours,
 rather than simply final observations, we can distinguish between
 operations which may fail and those which do not.  Properties that we
 report are of the form \verb|A === B|, meaning that the sets of
@@ -72,8 +62,35 @@ the set of behaviours of \verb|B|.
 \section{An Illustrative Example}
 \label{sec:coco-example}
 
+Let us now show an example use of CoCo for Haskell \verb|MVar|s.
+Recall that an \verb|MVar| is a mutable memory cell which may be
+\emph{full} or \emph{empty}.  We now examine three basic operations
+over \verb|MVar|s: put, take, and read.  To \emph{put} is to block
+until the \verb|MVar| is empty and then set its value.  To \emph{take}
+is to block until the \verb|MVar| is full, remove its value, and
+return the value.  To \emph{read} is to \emph{take}, but without
+emptying the \verb|MVar|.
+
 \begin{listing}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
+putMVar  :: MVar Concurrency Int -> Int -> Concurrency ()
+takeMVar :: MVar Concurrency Int -> Concurrency Int
+readMVar :: MVar Concurrency Int -> Concurrency Int
+\end{cminted}
+\caption{Type signatures for \texttt{MVar} operations in CoCo.}\label{lst:mvar_types}
+\end{listing}
+
+Allowing shared values of type \verb|Int|, we obtain the type
+signatures in \cref{lst:mvar_types}.  Here \verb|Concurrency| is an
+implementation of the \verb|MonadConc| typeclass, provided by CoCo.
+The \verb|MVar| type is an abstract type defined in \verb|MonadConc|,
+with the concrete type determined by the monad used.  In this case the
+concrete type is defined as part of \dejafu{}.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
 type C = Concurrency
 
 sig :: Sig (MVar C Int) (Maybe Int) (Maybe Int)
@@ -93,54 +110,22 @@ sig = Sig
   , observe    = \v _ -> tryReadMVar v
   , backToSeed = \v _ -> tryReadMVar v
   }
-\end{minted}
-\caption{CoCo signature for \texttt{MVar}s holding \texttt{Int}s.}
-\label{lst:mvar}
+\end{cminted}
+\caption{CoCo signature for \texttt{MVar}s holding \texttt{Int}s.}\label{lst:mvar}
 \end{listing}
-
-Let us now show an example use of CoCo.  We consider a type of
-concurrent shared variable in the Haskell libraries.  An \verb|MVar|
-is a mutable memory cell which may be \emph{full} or \emph{empty}.
-Instead of the standard version of the functions from Haskell's
-Control.Concurrent library module, we instead use
-typeclass-generalised versions which \dejafu{} can test.  We shall
-examine three basic operations over \verb|MVar|s: put, take, and read.
-To \emph{put} is to block until the \verb|MVar| is empty and then set
-its value.  To \emph{take} is to block until the \verb|MVar| is full,
-remove its value, and return the value.  To \emph{read} is to
-\emph{take}, but without emptying the \verb|MVar|.
-
-Allowing shared values of type \verb|Int|, we have the following type
-signatures:
-
-\begin{minted}{haskell}
-putMVar  :: MVar Concurrency Int -> Int -> Concurrency ()
-takeMVar :: MVar Concurrency Int -> Concurrency Int
-readMVar :: MVar Concurrency Int -> Concurrency Int
-\end{minted}
-
-\noindent
-Here \verb|Concurrency| is an implementation of the
-concurrency-typeclass.  In this case, the return type of each function
-is of the form \verb|Concurrency x|, meaning that the result of the
-function produces an \verb|x| value and also has some effects in the
-concurrency execution context.  The \verb|MVar| type is parameterised
-by the monad type; \verb|MVar| is an abstract type, with the concrete
-type determined by the monad.
 
 \paragraph{Signatures}
 When we use CoCo, we must provide the functions and values which may
 appear in properties.  We must also provide a way to initialise the
 state, an observation function, and an interference function.  We call
 this collection of programmer-supplied definitions the
-\emph{signature}.
-
-\Cref{lst:mvar} shows a signature for \verb|MVar| operations.  The
-initialisation function constructs an empty or a full \verb|MVar|.
-The interference function simply stores a new value.  The observation
-function takes a snapshot of the state.  The \verb|backToSeed|
-function is used to check whether the state has been changed: if the
-original and final seed values are the same, the state is unchanged.
+\emph{signature}.  \Cref{lst:mvar} shows a signature for \verb|MVar|
+operations.  The initialisation function constructs an empty or a full
+\verb|MVar|.  The interference function simply stores a new value.
+The observation function takes a snapshot of the state.  The
+\verb|backToSeed| function is used to check whether the state has been
+changed: if the original and final seed values are the same, the state
+is unchanged.
 
 It is essential to provide an initialisation function which gives a
 representative collection of states, and an interference function
@@ -153,19 +138,25 @@ Developing a fuller understanding of the functions under test may
 require examining the different property-sets found under different
 execution conditions.
 
-\paragraph{\texttt{MVar} properties}
-Given \verb|putMVar|, \verb|takeMVar|, and \verb|readMVar|, CoCo
-outputs exactly these properties:
+\paragraph{Discovering properties}
+\Cref{lst:mvar_props1} shows the properties which CoCo discovers given
+\verb|putMVar|, \verb|takeMVar|, and \verb|readMVar|.  In this output,
+\verb|@| is the state argument, which is the \verb|MVar|.  For
+convenience of reference, we have added numbers to the CoCo
+properties.  These numbers are not included in the normal output of
+the tool.
 
-\begin{minted}{text}
- readMVar @  ===  readMVar @ >> readMVar @                    (1)
- readMVar @  ->-  takeMVar @ >>= \x -> putMVar @ x            (2)
- takeMVar @  ===  readMVar @ >> takeMVar @                    (3)
-putMVar @ x  ===  putMVar @ x >> readMVar @                   (4)
-\end{minted}
 
-\noindent
-Here \verb|@| is the state argument, in this case the \verb|MVar|.
+\begin{listing}
+\centering
+\begin{cminted}{text}
+(1)   readMVar @  ===  readMVar @ >> readMVar @
+(2)   readMVar @  ->-  takeMVar @ >>= \x -> putMVar @ x
+(3)   takeMVar @  ===  readMVar @ >> takeMVar @
+(4)  putMVar @ x  ===  putMVar @ x >> readMVar @
+\end{cminted}
+\caption{CoCo-discovered properties about \texttt{MVar}s.}\label{lst:mvar_props1}
+\end{listing}
 
 Property (1) shows that \verb|readMVar| is idempotent; (2) shows that
 it is not merely a take followed by a put, it is rather a distinct
@@ -180,26 +171,28 @@ Sometimes when expressing properties it is necessary to call upon
 other expressions which are of secondary interest.  Such expressions
 are commonly called \emph{background} expressions.  A property is only
 reported if each side includes at least one non-background expression.
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+      readMVar @  ===  readMVar @ >> tryPutMVar @ x
+(5)   readMVar @  ===  readMVar @ >>= \x -> tryPutMVar @ x
+      readMVar @  ->-  takeMVar @ >>= \x -> tryPutMVar @ x
+     putMVar @ x  ===  putMVar @ x >> tryPutMVar @ x1
+\end{cminted}
+\caption{Additional CoCo-discovered properties about \texttt{MVar}s.}\label{lst:mvar_props2}
+\end{listing}
+
 If we include \verb|tryPutMVar|, a non-blocking version of
-\verb|putMVar|, as a background expression, CoCo discovers these
-additional properties:
+\verb|putMVar|, as a background expression, CoCo discovers the
+additional properties in \cref{lst:mvar_props2}.  Property (5) shows
+how important the choice of interference function is.  The left and
+right terms are not equivalent.  If the interference were to empty a
+full \verb|MVar| then the right term could restore its original value.
+As our choice of interference function only produces, rather than
+consumes, it will never alter the value in a full \verb|MVar|.
 
-\begin{minted}{text}
- readMVar @  ===  readMVar @ >> tryPutMVar @ x
- readMVar @  ===  readMVar @ >>= \x -> tryPutMVar @ x         (5)
- readMVar @  ->-  takeMVar @ >>= \x -> tryPutMVar @ x
-putMVar @ x  ===  putMVar @ x >> tryPutMVar @ x1
-\end{minted}
-
-\noindent
-Property (5) shows how important the choice of interference function
-is.  The left and right terms are not equivalent.  If the interference
-were to empty a full \verb|MVar| then the right term could restore its
-original value.  As our choice of interference function only produces,
-rather than consumes, it will never alter the value in a full
-\verb|MVar|.
-
-The above example takes about 4 seconds to run in total, and the
+The example in this section takes about 1.5 seconds to run, and the
 output displayed here is the output of the tool, aside from the
 property numbers.
 
@@ -210,7 +203,7 @@ A simplified version of our approach is to generate all terms up to
 some syntactic size limit, compute and store their behaviours, and
 then find properties by comparing the sets of behaviours of each pair
 of terms.  This would be slow, however.  Following the lead of
-QuickSpec\cite{claessen2010,smallbone2017} we make three key
+QuickSpec\cite{smallbone2017,claessen2010} we make three key
 improvements:
 
 \begin{enumerate}
@@ -233,28 +226,17 @@ restricted setting whereas QuickSpec does not do so at all.
 
 We can greatly reduce the number of expressions considered by not
 generating alpha-equivalent ones.  Instead of generating an expression
-like
-
-\begin{minted}{text}
-push @ x >> push @ y
-\end{minted}
-
-\noindent
-we will instead generate the expression
-
-\begin{minted}{text}
-push @ ? >> push @ ?
-\end{minted}
-
-\noindent
-where each \verb|?| is a \emph{hole} for a variable.  These
-expressions-with-holes are called \emph{schemas}.  One schema can be
-instantiated into many \emph{terms} by assigning variable names to
-groups of holes.  The push-push schema has two semantically distinct
-term instances: the single-variable and the two-variable cases.
+like \verb|push @ x >> push @ y|, we will instead generate the
+expression \verb|push @ ? >> push @ ?| where each \verb|?| is a
+\emph{hole} for a variable.  These expressions-with-holes are called
+\emph{schemas}.  One schema can be instantiated into many \emph{terms}
+by assigning variable names to groups of holes.  The push-push schema
+has two semantically distinct term instances: the single-variable and
+the two-variable cases.
 
 \begin{listing}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 data Expr s h
   = Lit  String Dynamic
   | Var  TypeRep (Var h)
@@ -266,7 +248,7 @@ data Var h = Hole h | Named String | Bound Int
 
 type Schema s = Expr s ()
 type Term   s = Expr s Void
-\end{minted}
+\end{cminted}
 \caption{Representation of Haskell expressions.}
 \label{lst:exprrep}
 \end{listing}
@@ -286,28 +268,27 @@ constructed.
 Generating new schemas is straightforward.  We give expressions a
 notion of \emph{size}, corresponding roughly to the size of the
 \verb|Expr| tree.  Schemas are generated in size order.  The needed
-expressions of size 1 are supplied in the user's signature.  FOr
+expressions of size 1 are supplied in the user's signature.  For
 larger sizes we combine appropriately sized pairings of already
 generated schemas and keep the type-correct ones.
 
 We interleave generation with evaluation and property discovery.  In
 this way we can partition schemas into equivalence classes and use
 only the smallest of known-equivalent schemas when generating new
-ones.
+ones.  We do this for both pure and monadic schemas.
 
 \paragraph{Monadic expressions}
 The expressions of most interest to us are \emph{monadic} expressions.
 Such expressions allow us to combine smaller effects to create larger
 ones.  We simplify this task by taking inspiration from Haskell's
-do-notation.  Do-notation is a syntactic sugar for expressing
-sequences of monadic operations in an imperative style, which has
-explicit variable bindings and makes the sequencing of effects clear.
-
-Rather than generating lambda-terms, we use a kind of first-class
-do-notation where the monadic bind operation binds the result of
-evaluating the \emph{binder} to zero or more holes in the \emph{body}.
-Restricting ourselves to this simpler case allows us to avoid many of
-the complexities of trying to generate lambda-terms directly.
+do-notation, a syntactic sugar for expressing sequences of monadic
+operations in an imperative style, which has explicit variable
+bindings and makes the sequencing of effects clear.  Rather than
+generating lambda-terms, we use a kind of first-class do-notation
+where the monadic bind operation binds the result of evaluating the
+\emph{binder} to zero or more holes in the \emph{body}.  Restricting
+ourselves to this simpler case allows us to avoid many of the
+complexities of trying to generate lambda-terms directly.
 
 For example, the generation of the schema
 \verb|pop @ >>= \x -> push @ x| proceeds as follows:
@@ -336,39 +317,45 @@ What is more, our term evaluation always involves at least two
 threads: the term thread executing the term itself, and an
 \emph{interference thread}.  The term thread may fork additional
 threads.  The interference thread is essential to distinguish
-refinement from equality in some cases.  For example, the following
-equivalence holds only when is no concurrent producer for the same
-\verb|MVar|:
+refinement from equality in some cases.  For example, the equivalence
+in \cref{lst:prop_mvar3} holds only when is no concurrent producer for
+the same \verb|MVar|.
 
-\begin{minted}{text}
+\begin{listing}
+\centering
+\begin{cminted}{text}
 readMVar @  ===  takeMVar @ >>= \x -> putMVar @ x
-\end{minted}
+\end{cminted}
+\caption{A property that holds with no interference.}\label{lst:prop_mvar3}
+\end{listing}
 
 To avoid repeated work, we compute the behaviours of all the terms for
 a schema when it is generated.  We annotate each schema with some
 metadata, including its behaviour-sets, and compare these cached
 behaviours later when discovering properties.  While possibly a
 significant space cost, storing this data reduces the execution time
-of some of our test applications from hours to minutes.
+of some of our test applications from hours to minutes.  We discuss
+this further in \cref{sec:coco-conclusions}.
 
 \paragraph{Deriving terms from schemas}
-One schema may have many term instances.  For example, given the
-schema
+One schema may have many term instances.  \Cref{lst:schematerms} shows
+an example of a schema with two holes of one type and two of another.
+From this, we can produce four semantically distinct terms.  We can
+order the terms by number of distinct variables.  The term with the
+most variables is the \emph{most general term}.
 
-\begin{minted}{text}
+\begin{listing}
+\centering
+\begin{cminted}{text}
 f (? :: Int) (? :: Bool) (? :: Bool) (? :: Int)
-\end{minted}
 
-\noindent
-we can produce four semantically distinct terms, here ordered from
-most general to most constrained:
-
-\begin{minted}{text}
 f (w :: Int) (x :: Bool) (y :: Bool) (z :: Int)
 f (w :: Int) (x :: Bool) (y :: Bool) (w :: Int)
 f (w :: Int) (x :: Bool) (x :: Bool) (z :: Int)
 f (w :: Int) (x :: Bool) (x :: Bool) (w :: Int)
-\end{minted}
+\end{cminted}
+\caption{A schema and its term instances.}\label{lst:schematerms}
+\end{listing}
 
 We use a simple reduce-and-conquer algorithm to eliminate holes one
 type at a time:
@@ -389,8 +376,9 @@ To compute the behaviours of every term for a schema, we need only
 consider the most general term.  The behaviours of all less-general
 terms can be derived from the most general case by restricting to
 cases where the variables are equal.  For example, given the
-behaviours of \verb|f x y|, we throw away those where \verb|x| $\neq$
-\verb|y| to obtain the behaviours of \verb|f x x|.
+behaviours of the term \verb|f x y|, we throw away those where
+\verb|x| $\neq$ \verb|y| to obtain the behaviours of the term
+\verb|f x x|.
 
 \dejafu{} allows us to make an observation of the final state even if
 evaluation of the term deadlocks.  This is essential, as an operation
@@ -428,7 +416,7 @@ generating new monadic binds:
   is a smallest schema.
 \end{itemize}
 
-We also only consider properties \verb|S === T| or \verb|S -<- T|
+We also only consider properties \verb|S === T| or \verb|S ->- T|
 where both \verb|S| and \verb|T| are smallest schemas.
 
 \paragraph{Neutral schemas}
@@ -515,11 +503,14 @@ than attempting any logical analysis.
 \section{Case Studies}
 \label{sec:coco-cases}
 
-\subsection*{Concurrent Stacks}
+We now discuss two case studies of using CoCo.
+
+\subsection{Concurrent Stacks}
 \label{sec:coco-cases-stack}
 
 \begin{listing}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 newtype LockStack m a = LockStack (MVar m [a])
 
 push :: MonadConc m => a -> LockStack m a -> m ()
@@ -530,71 +521,66 @@ pop (LockStack v) = modifyMVar v (\as -> (drop 1 as, listToMaybe as))
 
 peek :: MonadConc m => LockStack m a -> m (Maybe a)
 peek (LockStack v) = fmap listToMaybe (readMVar v)
-\end{minted}
-\caption{A lock-based mutable stack.}
-\label{lst:lockstack}
+\end{cminted}
+\caption{A lock-based mutable stack.}\label{lst:lockstack}
 \end{listing}
 
 \paragraph{Lock-based stacks}
 Mutable stacks are commonly used for synchronisation amongst multiple
 threads.  A simple mutable stack is just an immutable list inside an
-\verb|MVar| shared variable, as in \cref{lst:lockstack}.  We now run
-CoCo on those functions, where the initialisation function constructs
-a stack from a list, the observation function converts it back to a
+\verb|MVar| shared variable, as in \cref{lst:lockstack}.
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+(6)  peek @  ->-  push x @ >> pop @
+(7)  peek @  ->-  (push x @) ||| (pop @)
+(8)  peek @  ->-  pop @ >>= \m -> whenJust push @ m
+\end{cminted}
+\caption{CoCo-discovered properties about the \texttt{MVar} stack.}\label{lst:lockstack2}
+\end{listing}
+
+With this signature, CoCo discovers the properties in
+\cref{lst:lockstack2}, where the initialisation function constructs a
+stack from a list, the observation function converts it back to a
 list, and the interference function sets the contents of the stack to
-a given list.  CoCo discovers the following properties:
-
-\begin{minted}{text}
-peek @  ->-  push x @ >> pop @                                (6)
-peek @  ->-  (push x @) ||| (pop @)                           (7)
-peek @  ->-  pop @ >>= \m -> whenJust push @ m                (8)
-\end{minted}
-
-\noindent
-Here \verb#|||# is concurrent composition.  Property (6) may seem
-surprising: the left term returns the top of stack whereas the right
-term returns the value pushed.  Remember that CoCo does not consider
-equality of results when determining properties, only the effect on
-the state.  Property (7) is a consequence of (6).  Property (8) is
-analogous to the \verb|readMVar| properties presented in
-\cref{sec:coco-example}, as we might expect given how the stack
+a given list.  Here \verb#|||# is concurrent composition.  Property
+(6) may seem surprising: the left term returns the top of stack
+whereas the right term returns the value pushed.  Remember that CoCo
+does not consider equality of results when determining properties,
+only the effect on the state.  Property (7) is a consequence of (6).
+Property (8) is analogous to the \verb|readMVar| properties presented
+in \cref{sec:coco-example}, as we might expect given how the stack
 operations are defined.
 
 \paragraph{Buggy functions}
 Suppose we add an \emph{incorrect} \verb|push2| function, which is
 meant to push two values atomically, but which only pushes the second
-value twice.  CoCo finds this property:
+value twice.
 
-\begin{minted}{text}
+\begin{listing}
+\centering
+\begin{cminted}{text}
 push2 x1 x @  ->-  push x @ >> push x @
-\end{minted}
+\end{cminted}
+\caption{A property about an incorrect function.}\label{lst:lockstack3}
+\end{listing}
 
-\noindent
-As this is a strict refinement, we now know that \verb|push2| is more
-deterministic in some way than two \verb|push|es.  As we know that the
-composition of two \verb|push|es is not atomic, this strongly suggests
-that \verb|push2| is.  We can also see the effect of \verb|push2| on
-the state, and that it is incorrect!
+CoCo finds the property in \cref{lst:lockstack3}.  As this is a strict
+refinement, we now know that \verb|push2| is more deterministic in
+some way than two \verb|push|es.  As we know that the composition of
+two \verb|push|es is not atomic, this strongly suggests that
+\verb|push2| is.  We can also see the effect of \verb|push2| on the
+state, and that it is incorrect!
 
 \paragraph{Choice of observation}
 As CoCo uses a programmer-supplied observation function in its
 property-discovery process, the programmer can supply different
 observations to discover different properties.  By changing the
-observation of our stack from equality-as-a-list to \verb|peek|, we
-discover a new collection of properties.  Here we have fixed the
-\verb|push2| function to behave correctly and also removed \verb#|||#
-from the signature.
-
-\begin{minted}{text}
-           peek @  ->-  push x @ >> pop @
-           peek @  ===  pop @ >>= \m -> whenJust push @ m
-         push x @  ===  pop @ >> push x @
-        push x1 @  ===  push2 x x1 @                           (9)
-        push x1 @  ===  push x @ >> push x1 @                 (10)
-whenJust push @ m  ===  whenJust (push2 x) @ m
-\end{minted}
-
-\noindent
+observation of our stack from list equality to \verb|peek|, we
+discover a new collection of properties, shown in
+\cref{lst:lockstack4}.  Here we have fixed the \verb|push2| function
+to behave correctly and also removed \verb#|||# from the signature.
 Properties (9) and (10) show the power of supplying a custom
 observation function: in the left and right terms, the stack states
 are \emph{not} equal.  In both (9) and (10) the left term increases
@@ -604,6 +590,19 @@ could not directly observe this before, as a single push would leave
 the stack sizes out of balance.  Throwing away unnecessary details, in
 this case the tail of the stack, allows us to see more than we
 previously could.
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+           peek @  ->-  push x @ >> pop @
+           peek @  ===  pop @ >>= \m -> whenJust push @ m
+         push x @  ===  pop @ >> push x @
+(9)     push x1 @  ===  push2 x x1 @
+(10)    push x1 @  ===  push x @ >> push x1 @
+whenJust push @ m  ===  whenJust (push2 x) @ m
+\end{cminted}
+\caption{Changing the observation changes the properties.}\label{lst:lockstack4}
+\end{listing}
 
 It is important to bear in mind that there is no \emph{best}
 observation to make, no \emph{best} interference to consider, and no
@@ -615,15 +614,14 @@ understanding of our code.
 \paragraph{Choice of implementation}
 Due to their blocking behaviour, \verb|MVar|s can have poor
 performance under contention.  An alternative concurrency primitive is
-the \verb|CRef|,\footnote{In regular GHC Haskell this is the
-  \texttt{IORef}, here \dejafu{} deviates from the norm.}
-corresponding to a lock-free mutable location in memory.  An atomic
-compare-and-swap operation updates \verb|CRef| values efficiently even
-with contention.  \Cref{lst:crefstack} shows our implementation, which
-is similar to the \verb|MVar| stack.
+the \verb|CRef|.  An atomic compare-and-swap operation updates
+\verb|CRef| values efficiently even with contention.
+\Cref{lst:crefstack} shows our implementation, which is similar to the
+\verb|MVar| stack.
 
 \begin{listing}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 newtype CASStack m a = CASStack (CRef m [a])
 
 push :: MonadConc m => a -> CASStack m a -> m ()
@@ -634,7 +632,7 @@ pop (CASStack r) = modifyCRefCAS r (\as -> (drop 1 as, listToMaybe as))
 
 peek :: MonadConc m => CASStack m a -> m (Maybe a)
 peek (CASStack r) = fmap listToMaybe (readCRef r)
-\end{minted}
+\end{cminted}
 \caption{A lock-free mutable stack.}
 \label{lst:crefstack}
 \end{listing}
@@ -643,20 +641,22 @@ A feature of CoCo that differentiates it from other property-discovery
 tools is the ability to compare two different signatures which have
 compatible observation types.  We can compare the \verb|MVar| and
 \verb|CRef| stacks by simply supplying both signatures to the tool,
-which then reports, amongst others, the following correspondences:
+which then reports, amongst others, the correspondences in
+\cref{lst:stacks}.  Here we use the list observation again.  Functions
+with names ending \verb|M| are for \verb|MVar| stacks, functions with
+names ending \verb|C| for \verb|CRef| stacks.  These properties tell
+us what we want to know: the \verb|CRef| stack is equivalent to the
+\verb|MVar| stack.
 
-\begin{minted}{text}
-   popM @  ===  popC @                                        (11)
-  peekM @  ===  peekC @                                       (12)
-pushM x @  ===  pushC x @                                     (13)
-\end{minted}
-
-\noindent
-Here we use the list observation again.  Functions with names ending
-\verb|M| are for \verb|MVar| stacks, functions with names ending
-\verb|C| for \verb|CRef| stacks.  Properties (11), (12),
-and (13) tell us what we want to know: the \verb|CRef| stack is
-equivalent to the \verb|MVar| stack.
+\begin{listing}
+\centering
+\begin{cminted}{text}
+   popM @  ===  popC @
+  peekM @  ===  peekC @
+pushM x @  ===  pushC x @
+\end{cminted}
+\caption{Discovering properties between signatures.}\label{lst:stacks}
+\end{listing}
 
 A common approach when first writing a program is to do everything in
 a simple and clearly correct fashion.  After checking correctness, we
@@ -667,7 +667,7 @@ equivalence of different implementations of the same API is an
 alternative to the more-common unit-testing for this
 task\cite{he1986}.
 
-\subsection*{Semaphores}
+\subsection{Semaphores}
 \label{sec:coco-cases-semaphore}
 
 A semaphore is a synchronisation primitive used to regulate access to
@@ -675,15 +675,14 @@ some resource.  A semaphore can be thought of as a record of how many
 units of some abstract resource are available, with operations to
 adjust the record in a race-free way.  \emph{Binary semaphores} only
 have two states, and are used to implement locks. \emph{Counting
-  semaphores} have an arbitrary number of states.
-
-An implementation of counting semaphores is provided in the
-Control.Concurr\-ent.QSemN library module.  As with the \verb|MVar| and
-\verb|CRef|, \dejafu{} provides a typeclass-generalised version which
-we use here.
+  semaphores} have an arbitrary number of states.  An implementation
+of counting semaphores is provided in the Control.Concurrent.QSemN
+library module.  As with the \verb|MVar| and \verb|CRef|, \dejafu{}
+provides a typeclass-generalised version which we use here.
 
 \begin{listing}
-\begin{minted}{haskell}
+\centering
+\begin{cminted}{haskell}
 type C = Concurrency
 
 sig :: Sig (QSemN C) Int Int
@@ -704,7 +703,7 @@ sig = Sig
   , backToSeed  = \q _ -> remaining q
   , setState = \q n -> let i = n `div` 2 in wait q i >> signal q i
   }
-\end{minted}
+\end{cminted}
 \caption{CoCo signature for the QSemN type.}
 \label{lst:sig}
 \end{listing}
@@ -714,74 +713,63 @@ polymorphic function types, as can be seen in the type of \verb#|||#,
 where \verb|A| and \verb|B| are types we use as type \emph{variables}.
 The \verb|commLit| function indicates that the supplied binary
 function is \emph{commutative}, which is used to prune the generated
-schemas further.
-
-The \verb|new|, \verb|wait|, \verb|signal|, and \verb|remaining|
-functions are provided by the \verb|QSemN| library module.  We
-construct a new semaphore by allocating an arbitrary amount of
-resource; we observe how much resource remains; and we interfere by
-taking and then replacing half of the resource.  The interference
-thread is interleaved with the term thread, so it may cause the term
-thread to block.
+schemas further.  The \verb|new|, \verb|wait|, \verb|signal|, and
+\verb|remaining| functions are provided by the \verb|QSemN| library
+module.  We construct a new semaphore by allocating an arbitrary
+amount of resource; we observe how much resource remains; and we
+interfere by taking and then replacing half of the resource.  The
+interference thread is interleaved with the term thread, so it may
+cause the term thread to block.
 
 CoCo finds many properties in this example, so in the remainder of the
-section we only discuss selected properties
+subsection we only discuss selected properties.
 
 \paragraph{Waiting and signalling}
-CoCo tells us that the effect of waiting for zero resource and of
-signalling the availability of zero resource are the same --- neither
-affects the state of the semaphore:
-
-\begin{minted}{text}
-  wait @ 0  ===  wait @ 0 >> wait @ 0                       (14)
-signal @ 0  ===  wait @ 0 >> wait @ 0
-\end{minted}
-
-\noindent
-Additionally, property (14) shows that waiting for zero resource is
+CoCo tells us in properties (11) and (12) that the effect of waiting
+for zero resource and of signalling the availability of zero resource
+are the same --- neither affects the state of the semaphore.
+Additionally, property (11) shows that waiting for zero resource is
 not a neutral operation, as if it were CoCo would prune the property
 away.  This suggests that \verb|wait| may block.
 
-CoCo also generates properties revealing another implementation detail
-which is not strictly guaranteed by the abstract definition of a
-semaphore:
+\begin{listing}
+\centering
+\begin{cminted}{text}
+(11)          wait @ 0  ===  wait @ 0 >> wait @ 0
+(12)        signal @ 0  ===  wait @ 0 >> wait @ 0
+(13)        signal @ 1  ===  wait @ (0 - 1)
+(14)  signal @ (1 + 1)  ===  wait @ (0 - (1 + 1))
+(15)  signal @ (abs x)  ===  wait @ (negate (abs x))
+\end{cminted}
+\caption{Properties about semaphore waiting and signalling.}\label{lst:sem2}
+\end{listing}
 
-\begin{minted}{text}
-       signal @ 1  ===  wait @ (0 - 1)
- signal @ (1 + 1)  ===  wait @ (0 - (1 + 1))
-\end{minted}
-
-\noindent
-However, the more general property that signalling a positive resource
-\verb|n| appears to be equivalent to \emph{waiting for a negative
-  resource} \verb|-n| is not found.  If we extend our signature with
-\verb|abs| and \verb|negate| CoCo does report:
-
-\begin{minted}{text}
-signal @ (abs x)  ===  wait @ (negate (abs x))                (15)
-\end{minted}
+CoCo also finds properties (13) and (14), revealing another
+implementation detail which is not strictly guaranteed by the abstract
+definition of a semaphore.  If we extend our signature with \verb|abs|
+and \verb|negate|, a more general property (15), that signalling a
+positive resource \verb|n| appears to be equivalent to \emph{waiting
+  for a negative resource} \verb|-n|, is found.
 
 \paragraph{A lack of composability}
-CoCo reports a strict refinement involving \verb|signal| and
-\verb|wait|, which we might expect to be an equivalence:
+CoCo reports a strict refinement, property (16), involving
+\verb|signal| and \verb|wait|, which we might expect to be an
+equivalence.  The only interference we have specified may occur is
+taking and then returning half of the original resource.  So surely
+releasing a quantity of resource and then claiming it again should be
+fine?
 
-\begin{minted}{text}
-signal @ 0  ->-  signal @ x >> wait @ x                       (16)
-\end{minted}
+\begin{listing}
+\centering
+\begin{cminted}{text}
+(16)         signal @ 0  ->-  signal @ x >> wait @ x
+(17)  signal @ (x + x1)  ->-  signal @ x >> signal @ x1
+(18)  signal @ (x + x1)  ->-  (signal @ x) ||| (signal @ x1)
+\end{cminted}
+\caption{Properties suggesting a lack of composability.}\label{lst:sem3}
+\end{listing}
 
-\noindent
-The only interference we have specified may occur is taking and then
-returning half of the original resource.  So surely releasing a
-quantity of resource and then claiming it again should be fine?
-
-We also get two properties solely about \verb|signal|:
-
-\begin{minted}{text}
-signal @ (x + x1)  ->-  signal @ x >> signal @ x1             (17)
-signal @ (x + x1)  ->-  (signal @ x) ||| (signal @ x1)        (18)
-\end{minted}
-
-\noindent
+We also get two properties, (17) and (18), solely about \verb|signal|.
 Surely signaling the availability of a sum is the same as signaling
 the availability of its constituent parts?  As we are about to see, it
 is due to negative values that these are only refinements.
@@ -802,13 +790,17 @@ existing types.
 
 If we alter the signature so that \verb|signal| and \verb|wait| use
 the type of natural numbers rather than integers, properties (16--18)
-become equivalences:
+become equivalences, as shown in \cref{lst:sem4}
 
-\begin{minted}{text}
+\begin{listing}
+\centering
+\begin{cminted}{text}
        signal @ 0  ===  signal @ n >> wait @ n
 signal @ (n + n1)  ===  signal @ n >> signal @ n1
 signal @ (n + n1)  ===  (signal @ n) ||| (signal @ n1)
-\end{minted}
+\end{cminted}
+\caption{Properties (16--18) restricted to natural numbers.}\label{lst:sem4}
+\end{listing}
 
 We could pursue this issue further by examining the terms with
 \dejafu{} when given a negative quantity, or we could change the type
@@ -851,7 +843,7 @@ testProperty "name" $
 \Cref{lst:coco_ppr} shows the three pretty-printing modes.  The
 ``dejafu'' and ``hunit/tasty'' modes are valid Haskell, and can be
 used as a regression test to ensure the property holds (after
-supplying a signature).  The two alternative views of properties are
+supplying a signature).  These two alternative views of properties are
 more verbose, and so less convenient to read than the default output
 when examining a list of properties.  Furthermore, it is little work
 to transform a CoCo property into a form checkable by \dejafu{}.
@@ -870,7 +862,7 @@ signatures were being compared, there would also be reference to a
 \texttt{sigR} (the ``right signature'').
 
 CoCo provides a function, \texttt{cocoToDejaFu}, to convert a CoCo
-signature into a \dejafu{} signature.
+signature into a \dejafu{} signature function.
 
 \paragraph{Checking properties}
 \dejafu{} can check properties, and also produce a list of
@@ -972,7 +964,7 @@ general term'' optimisation does not apply here, as these are three
 are instances of another.  Constants in signatures are necessary as
 CoCo does not synthesise preconditions.  If it did, constants could be
 omitted, as any properties which require a specific value for a
-parameter would be found as a precondition.  Property (14) in the
+parameter would be found as a precondition.  Property (11) in the
 semaphore example would instead become:
 
 \begin{listing}
