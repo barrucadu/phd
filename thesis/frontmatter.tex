@@ -19,7 +19,39 @@
 
 \chapter*{Abstract}
 \addcontentsline{toc}{chapter}{Abstract}
-\blindtext
+
+We aim to make it easier for programmers to write correct concurrent
+programs.  We do this through three areas of work:
+
+\paragraph{Testing concurrent Haskell}
+We develop a library for testing concurrent Haskell programs using a
+typeclass abstraction of concurrency.  Our tool implements
+\emph{systematic concurrency testing}, a family of techniques for
+deterministically testing concurrent programs.  In so doing, we not
+only obtain a useful tool for Haskell programs, but we also
+demonstrate that these techniques work well in languages with rich
+concurrency abstractions.
+
+\paragraph{Randomised concurrency testing}
+We propose a new algorithm for \emph{randomly} testing concurrent
+programs.  This approach is fundamentally incomplete, but is suitable
+for large programs, or programs with nondeterminism beyond scheduler
+nondeterminsim, whereas systematic concurrency testing is not.  We
+show that our algorithm performs as well as a pre-existing popular
+algorithm in a standard set of benchmarks, while not requiring the use
+of program-specific parameters.  We argue that this makes use and
+implementation of our algorithm simpler, while giving results which
+are just as good.
+
+\paragraph{Finding properties of programs}
+We develop a tool for finding properties of sets of concurrency
+functions operating on some shared state, such as the API for a
+concurrent data type.  Our tool enumerates Haskell expressions and
+discovers properties by comparing execution results for a variety of
+inputs.  Unlike other property discovery tools, we support side
+effects.  We do so by building on our tool for testing concurrent
+Haskell programs.  We also generate lambda-terms, in a restricted
+setting, whereas other property discovery tools typically do not.
 
 % octavo disables the "ugly" table-of-contents dots, but I find they
 % improve readability.  The default dot separation is 4.5, but I like
