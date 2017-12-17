@@ -14,9 +14,9 @@ concurrency testing in functional languages~\sref{sct-functional}.
 With a controlled scheduling technique, execution of a program is
 serialised and the controlling scheduler drives the program.  Program
 schedules are either explored
-\emph{systematically}\cite{coons2013,musuvathi2008,musuvathi2007,flanagan2005}
+\emph{systematically}\cite{coons2013,flanagan2005,musuvathi2008,musuvathi2007}
 (often called ``systematic concurrency testing'' or ``SCT'') or
-randomly\cite{thomson2016,burckhardt2010}.  Non-controlled methods do
+randomly\cite{burckhardt2010,thomson2016}.  Non-controlled methods do
 not provide their own scheduler, and instead use delays and priorities
 to affect execution\cite{yu2012}.  Controlled scheduling techniques
 are attractive because of their ability to record and replay program
@@ -25,7 +25,7 @@ executions.
 Controlled scheduling can be implemented by overriding the concurrency
 primitives of the language\cite{walker2015}; by instrumenting the
 source program\cite{claessen2009}; or by instrumenting the compiled
-program\cite{yu2012,musuvathi2006}.  Systematic techniques may be
+program\cite{musuvathi2006,yu2012}.  Systematic techniques may be
 complete, whereas random techniques cannot.  Random techniques
 typically cannot ``complete'', even for small programs, and are
 usually run for some predetermined number of program executions.
@@ -162,7 +162,7 @@ just work\cite{zhang2015}.
 
 \subsection{Maximal Causality Reduction}
 
-Maximal Causality Reduction (MCR)\cite{huang2017,huang2015} is an alternative to
+Maximal Causality Reduction (MCR)\cite{huang2015,huang2017} is an alternative to
 DPOR which explores a provably minimal number of executions.  Consider these
 three threads:
 

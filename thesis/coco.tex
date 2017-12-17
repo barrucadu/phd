@@ -29,7 +29,7 @@ what it means for two concurrent programs to be related.
 \paragraph{Nondeterminism}
 If we restrict the nondeterminism in our program to schedule
 nondeterminism, we can use systematic concurrency testing
-(SCT)\cite{coons2013,musuvathi2008,musuvathi2007,flanagan2005}
+(SCT)\cite{coons2013,flanagan2005,musuvathi2008,musuvathi2007}
 techniques as implemented in \dejafu{} to produce the set of results
 of a generated program fragment.
 
@@ -203,7 +203,7 @@ A simplified version of our approach is to generate all terms up to
 some syntactic size limit, compute and store their behaviours, and
 then find properties by comparing the sets of behaviours of each pair
 of terms.  This would be slow, however.  Following the lead of
-QuickSpec\cite{smallbone2017,claessen2010} we make three key
+QuickSpec\cite{claessen2010,smallbone2017} we make three key
 improvements:
 
 \begin{enumerate}
