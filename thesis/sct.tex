@@ -5,7 +5,8 @@ give an introduction to concurrency testing through \emph{controlled
   scheduling}, which addresses this problem.  We first give a
 high-level overview~\sref{sct-fundamentals}, then discuss specific
 implementation approaches, both complete~\sref{sct-dpor} and
-incomplete~\sref{sct-bounding}.
+incomplete~\sref{sct-bounding}.  Finally we discuss two tools for
+concurrency testing in functional languages~\sref{sct-functional}.
 
 \section{Controlled Scheduling}
 \label{sec:sct-fundamentals}
@@ -258,3 +259,55 @@ backtracking point\cite{coons2013}.  This is because context switches
 influence the number of pre-emptions needed to reach a given program
 state, depending on which thread gets scheduled.  In practice this
 tends not to greatly increase the search space.
+
+\section{In Functional Languages}
+\label{sec:sct-functional}
+
+\paragraph{In Erlang}
+\textsc{Pulse}\cite{claessen2009} is a controlled scheduler for Erlang
+programs which implements co-operative multi-tasking.  An
+instrumentation process automatically modifies existing programs to
+call out to this scheduler.  \textsc{Pulse} works by only allowing one
+of the concurrent processes to operate at a time, and makes scheduling
+decisions around actions with side-effects: such as a process
+receiving a message.  It also allows interaction with uninstrumented
+functions, which are treated as atomic, allowing tested subsystems to
+be composed without exploring interleavings within the subsystem.
+\textsc{Pulse} scheduling decisions are made randomly, using a
+provided seed, and a complete execution trace is returned, which can
+be rendered into a graphical form showing the interactions between
+threads to aid debugging.  The authors report that the graphical
+traces can often suggest potential race conditions which have not been
+evident to a human reader.
+
+\emph{Procrastination}\cite{sen2008} is used to improve detection of
+bugs.  First \textsc{Pulse} is used to produce an execution trace,
+which is then examined to find pairs of dependent actions, as in DPOR.
+Then, for each pair, execution proceeds with a random scheduler.  When
+one of the actions in an identified dependent pair is encountered, the
+thread is instead paused until another thread is about to resolve the
+other action.  The race is then randomly resolved and execution
+continues.  Rather than exploring all partial orders, this approach is
+a probabilistic one, but is guaranteed to explore only \emph{racing}
+partial orders.  This approach has an advantage in programs which have
+many non-racy partial orders, where randomly choosing between them
+does not reliably produce a bug.  The authors report that improvements
+can result in new bugs being found, although in the cases where the
+procrastination was not necessary to find the bug, performance
+degrades\cite{arts2011}.  This is because one test with
+procrastination corresponds to multiple executions with different
+schedules.
+
+\paragraph{In Haskell}
+The Concurrent Haskell Debugger (CHD)\cite{bottcher2002} is a
+GUI-based controlled scheduler for Haskell programs.  Like
+\textsc{Pulse}, CHD works by inserting blocking communication
+operations around concurrency actions to call out to the controlling
+scheduler.  Unlike \textsc{Pulse}, this process is not quite
+automatic.  The programmer must import the concurrency module provided
+by the CHD library, rather than the standard library.  CHD does not
+implement its own scheduler, it presents a GUI to the user, allowing
+them to drive execution by clicking representations of threads.
+Furthermore, it allows the user to specify cases which should be
+automatically allowed to execute.  CHD does not function with any GHC
+newer than version 5 (released between 2001 and 2003).
