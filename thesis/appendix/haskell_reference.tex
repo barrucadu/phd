@@ -29,8 +29,8 @@ incAndAdd x y = increment x + increment y
 double = \x -> incAndAdd x x - 2
 \end{minted}
 
-\item Functions are curried, ``multi-argument functions'' are
-  syntactic sugar
+\item Functions are curried, `multi-argument functions' are syntactic
+  sugar
 \begin{minted}{haskell}
 incAndAdd x = \y -> increment x + increment y
 \end{minted}
@@ -147,7 +147,7 @@ data (a, b, c) = (a, b, c)
 -- ...
 \end{minted}
 
-\item The ``unit'' type looks like an empty tuple
+\item The `unit' type looks like an empty tuple
 \begin{minted}{haskell}
 -- sugar: not really a legal data definition!
 data () = ()
@@ -193,8 +193,8 @@ eq3 :: Eq a => a -> a -> a -> Bool
 eq3 a b c = a == b && b == c
 \end{minted}
 
-\item The \verb|Functor| typeclass represents ``contexts'' which can
-  be mapped over
+\item The \verb|Functor| typeclass represents `contexts' which can be
+  mapped over
 \begin{minted}{haskell}
 class Functor f where
   fmap :: (a -> b) -> f a -> f b

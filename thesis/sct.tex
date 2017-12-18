@@ -15,7 +15,7 @@ With a controlled scheduling technique, execution of a program is
 serialised and the controlling scheduler drives the program.  Program
 schedules are either explored
 \emph{systematically}\cite{coons2013,flanagan2005,musuvathi2008,musuvathi2007}
-(often called ``systematic concurrency testing'' or ``SCT'') or
+(often called `systematic concurrency testing' or `SCT') or
 randomly\cite{burckhardt2010,thomson2016}.  Non-controlled methods do
 not provide their own scheduler, and instead use delays and priorities
 to affect execution\cite{yu2012}.  Controlled scheduling techniques
@@ -27,8 +27,8 @@ primitives of the language\cite{walker2015}; by instrumenting the
 source program\cite{claessen2009}; or by instrumenting the compiled
 program\cite{musuvathi2006,yu2012}.  Systematic techniques may be
 complete, whereas random techniques cannot.  Random techniques
-typically cannot ``complete,'' even for small programs, and are
-usually run for some predetermined number of program executions.
+typically cannot `complete,' even for small programs, and are usually
+run for some predetermined number of program executions.
 
 Typically we assume that all possible executions are
 \emph{terminating}: leading to successful completion or a failure
@@ -198,7 +198,7 @@ threads) determine the next action of the thread.  This is not the
 case for Haskell, where one thread may be killed by another by
 throwing an exception to it.  However, it may be possible to encode
 Haskell exceptions in an MCR-friendly way by giving each thread an
-``exception variable,'' and inserting reads to this variable before
+`exception variable,' and inserting reads to this variable before
 every normal action, but some difficulty remains, as even blocked
 threads may be interrupted by exceptions in Haskell.
 
@@ -236,8 +236,7 @@ with a bound value equal to a fixed parameter.  A variant is
 increased\cite{musuvathi2007}.  Another variant is where an
 inequality, rather than an equality, is used.  This explores the same
 schedules as iterative bounding, but doesn't impose the same ordering.
-In practice, ``schedule bounding'' typically refers to this third
-type.
+In practice, `schedule bounding' typically refers to this third type.
 
 \subsection{Integration with DPOR}
 

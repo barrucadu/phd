@@ -51,7 +51,7 @@ threads and at most $k$ steps, choose a bound $d$, then:
   step to $i$.
 \end{enumerate}
 
-PCT also introduces the idea of a ``bug depth.''  The bug depth is
+PCT also introduces the idea of a \emph{bug depth}.  The bug depth is
 defined as the minimum set of ordering constraints between actions
 from different threads that are sufficient to trigger the
 bug\cite{burckhardt2010}.  Assuming a bug with depth $d$, the
@@ -84,15 +84,17 @@ would tend to be popped as quickly as they are pushed.  The proposed alternative
 is, rather than having a \emph{single} optimal distribution for all tests,
 generate \emph{multiple} distributions to encourage greater variety.
 
-We transfer this idea to the context of scheduling algorithms by observing that
-controlled random scheduling is much like the ``single optimal distribution''
-for generating fuzz tests.  We pick threads according to a single pre-determined
-distribution.  So instead, we assign a \emph{uniformly chosen weight} to each
-new thread as it is created, and schedule threads with a weighted random
-selection.  This approach is similar to PCT, but less deterministic: PCT will
-always schedule the highest-weighted runnable thread, whereas our approach is
-most likely to, but may not.  We can also introduce weight change points, as in
-PCT, where we simply assign the running thread a new weight uniformly.
+We transfer this idea to the context of scheduling algorithms by
+observing that controlled random scheduling is much like the `single
+optimal distribution' for generating fuzz tests.  We pick threads
+according to a single pre-determined distribution.  So instead, we
+assign a \emph{uniformly chosen weight} to each new thread as it is
+created, and schedule threads with a weighted random selection.  This
+approach is similar to PCT, but less deterministic: PCT will always
+schedule the highest-weighted runnable thread, whereas our approach is
+most likely to, but may not.  We can also introduce weight change
+points, as in PCT, where we simply assign the running thread a new
+weight uniformly.
 
 With weight change points included, the algorithm is as follows: given a program
 with at most $k$ steps, choose a range of weights $[w_{min}, w_{max}]$ and
@@ -242,11 +244,11 @@ and $x$ values.  For each $(d, x)$ pair, we perform 10,000 executions of each
 benchmark, using its estimated $k$ value.
 
 \paragraph{Note on randomness}
-For a given benchmark, we can use the ``average number of schedules needed to
-expose a bug'' (10,000 $\div$ ``the number of buggy schedules'') to compare
-techniques.  The exact value is dependent on the initial seed, but we would
-expect it to become stable as the number of executions is
-increased\cite{thomson2016}.
+For a given benchmark, we can use the `average number of schedules
+needed to expose a bug' (10,000 $\div$ `the number of buggy
+schedules') to compare techniques.  The exact value is dependent on
+the initial seed, but we would expect it to become stable as the
+number of executions is increased\cite{thomson2016}.
 
 \begin{figure}
   \centering
@@ -318,7 +320,7 @@ unchanged.
 The Venn diagrams in \cref{fig:bugs} show the relative bug-finding ability of
 each algorithm.  \Cref{fig:bugs-base} summarises the bugs found by controlled
 random scheduling, PCT $d=3$, and swarm scheduling $(d,x)=(0,1)$ (which we now
-call ``Swarm'' for brevity); showing that swarm scheduling performs comparably
+call `Swarm' for brevity); showing that swarm scheduling performs comparably
 with PCT.  \Cref{fig:bugs-swarmx,fig:bugs-swarmd} show the effect of re-using
 the swarm weights and of introducing weight change points, we omit $x=1000$
 because it performed worse than the other cases; we see that these variations

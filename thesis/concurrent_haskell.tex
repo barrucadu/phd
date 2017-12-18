@@ -283,8 +283,8 @@ let thread = thread::spawn(move|| {
 \caption{Mutual exclusion in Rust.}\label{lst:mute_rust}
 \end{listing}
 
-The Rust ``mutex'' type is more like the Haskell \verb|MVar| type, in
-that it does not merely function as a lock but also guards a
+The Rust \verb|Mutex| type is more like the Haskell \verb|MVar| type,
+in that it does not merely function as a lock but also guards a
 reference.  Locks are released when the unlocked value falls out of
 scope.  This ensures that a thread cannot unlock a mutex and terminate
 with the mutex still locked.  There is also a non-blocking

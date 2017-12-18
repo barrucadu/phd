@@ -406,7 +406,7 @@ a more general allocation of variables to holes.
 To avoid discovering the same property multiple times, we maintain a
 set of \emph{smallest schemas}.  At first, all schemas are assumed to
 be smallest.  If a syntactically smaller schema is a refinement of a
-larger one, the larger is annotated as ``not smallest.''  When
+larger one, the larger is annotated as `not smallest.'  When
 generating new monadic binds:
 
 \begin{itemize}
@@ -436,8 +436,8 @@ constructing larger schemas.
 \paragraph{Projection to a common namespace}
 We compute the behaviours of every term individually, yet we construct
 properties from pairs of terms.  Each term introduces its own variable
-namespace: the variable ``x'' in one term is unrelated to the variable
-``x'' in another.  When discovering properties, we must first project
+namespace: the variable $x$ in one term is unrelated to the variable
+$x$ in another.  When discovering properties, we must first project
 both terms into a common namespace.  Each variable in each term can
 either be given a unique name, or identified with a variable in the
 other term.  We never reduce the number of distinct variables in a
@@ -841,12 +841,12 @@ testProperty "name" $
 \end{listing}
 
 \Cref{lst:coco_ppr} shows the three pretty-printing modes.  The
-``dejafu'' and ``hunit/tasty'' modes are valid Haskell, and can be
-used as a regression test to ensure the property holds (after
-supplying a signature).  These two alternative views of properties are
-more verbose, and so less convenient to read than the default output
-when examining a list of properties.  Furthermore, it is little work
-to transform a CoCo property into a form checkable by \dejafu{}.
+`dejafu' and `hunit/tasty' modes are valid Haskell, and can be used as
+a regression test to ensure the property holds (after supplying a
+signature).  These two alternative views of properties are more
+verbose, and so less convenient to read than the default output when
+examining a list of properties.  Furthermore, it is little work to
+transform a CoCo property into a form checkable by \dejafu{}.
 
 \paragraph{Signatures}
 \dejafu{} has a notion of signatures, similar to CoCo signatures.  A
@@ -857,9 +857,9 @@ uses signature functions, which take the expression and produce a
 signature.  These functions are called \texttt{sigL} because the
 general form of a CoCo invocation provides two signatures to compare,
 discovering properties of a single signature is a special case of
-this.  So these properties use the ``left signature,'' if two
-signatures were being compared, there would also be reference to a
-\texttt{sigR} (the ``right signature'').
+this.  So these properties use the `left signature,' if two signatures
+were being compared, there would also be reference to a \texttt{sigR}
+(the `right signature').
 
 CoCo provides a function, \texttt{cocoToDejaFu}, to convert a CoCo
 signature into a \dejafu{} signature function.
@@ -958,8 +958,8 @@ signal @ 1
 \caption{Redundant schemas.}\label{lst:redundant}
 \end{listing}
 
-Such schemas arise when the signature includes constants.  The ``most
-general term'' optimisation does not apply here, as these are three
+Such schemas arise when the signature includes constants.  The `most
+general term' optimisation does not apply here, as these are three
 \emph{different} schemas, it just so happens that two of the schemas
 are instances of another.  Constants in signatures are necessary as
 CoCo does not synthesise preconditions.  If it did, constants could be

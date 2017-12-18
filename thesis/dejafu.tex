@@ -121,7 +121,7 @@ arguments and wrap them up inside a data structure whose final argument is a
 continuation, which is then converted into a \verb|ConcT| value.
 
 A concurrent computation is just a large value, where we can inspect
-each ``step'' of the computation by looking at the data constructor
+each `step' of the computation by looking at the data constructor
 used.  Most constructors correspond directly to operations in the
 \verb|MonadConc| class, plus a few extra.  We call these constructors
 \emph{primitive actions}.  A full listing is available in
@@ -132,10 +132,11 @@ to the primitive \verb|IO| operation it models.  We make a few
 departures from the traditional semantics where necessary:
 
 \begin{itemize}
-\item The \verb|getNumCapabilities| operation allows the programmer to query the
-  number of capabilities.  During testing, we return ``2,'' despite executing
-  everything in the same OS thread.  This is to avoid special-case behaviour for
-  one capability, which may reduce concurrency.
+\item The \verb|getNumCapabilities| operation allows the programmer to
+  query the number of capabilities.  During testing, we return two,
+  despite executing everything in the same OS thread.  This is to
+  avoid special-case behaviour for one capability, which may reduce
+  concurrency.
 \item Runtime errors, such as pattern match failures, can be caught as
   exceptions inside \verb|IO|.  As there is no non-\verb|IO| way to do the same,
   \dejafu{} cannot.
@@ -180,7 +181,7 @@ traces.  So, given some way of setting up the prison, we can ask
 \dejafu{} to execute it and then examine the returned traces to
 discover if the prisoners are successful.
 
-\subsection{The ``Good Enough'' Solution}
+\subsection{The Probabilistic Solution}
 
 One school of thought says to just wait for three years, because by
 then it's unlikely that any single prisoner had never visited the
@@ -197,7 +198,7 @@ random executions.
     Failures           &   0 &   0    &   0    &   0    &   0    &   0    &   0    &   0 \\
     Avg.\@ Room Visits &   2 &  18.35 &  31.92 &  43.52 &  55.88 &  67.37 &  77.05 &  90.40 \\ \bottomrule
   \end{tabular}
-  \caption{The behaviour of the good enough solution.}\label{tbl:100rand}
+  \caption{The behaviour of the probabilistic solution.}\label{tbl:100rand}
 \end{table}
 
 After waiting $10 n$ days, where $n$ is the number of prisoners, the
@@ -236,7 +237,7 @@ prison numPrisoners = do
   for_ [1..numPrisoners-1] (\_ -> fork (notLeader days))
   leader numPrisoners days
 \end{cminted}
-\caption{The good enough solution: just wait a long time and gamble.}\label{lst:100good}
+\caption{The probabilistic solution: just wait a long time and gamble.}\label{lst:100good}
 \end{sublisting}
 
 % [layout hack]: no gap between the listings otherwise
@@ -354,8 +355,8 @@ operating on the same bit of shared state.
 \label{sec:dejafu-execution}
 
 We represent operations in the \verb|MonadConc| typeclass by a type of
-``primitive actions,'' where each action describes some effect.  This
-is the \verb|Action| type.  Each primitive action also contains a
+\emph{primitive actions}, where each action describes some effect.
+This is the \verb|Action| type.  Each primitive action also contains a
 continuation.  A concurrent program is just a sequence of these
 continuation values.  Each thread of execution is terminated by a
 distinguished \emph{stop} primitive, which has no continuation and
@@ -855,8 +856,8 @@ usual.
 Correctness for \dejafu{} breaks down along a natural separation in
 the theory: correctness of a single execution of a concurrent program,
 and correctness of the testing framework around this which discovers
-new executions.  We can state correctness as ``nothing is missed and
-nothing is made up,'' or:
+new executions.  We can state correctness as `nothing is missed and
+nothing is made up,' or:
 
 \begin{description}
 \item[Soundness] \dejafu{} only reports results of the program which
@@ -1113,10 +1114,10 @@ nondeterminism in results.
 \caption{An example of a race condition in the \textbf{auto-update} library.}\label{lst:example-autoupdate1}
 \end{listing}
 
-In \dejafu{}'s abbreviated trace output, ``S$n$'' indicates that
+In \dejafu{}'s abbreviated trace output, $Sn$ indicates that
 thread $n$ started after the prior one terminated, blocked, or
-yielded; and ``P$n$'' indicates that thread $n$ pre-empted the prior
-one.  To read this trace, it is helpful to look at the ``S'' points,
+yielded; and $Pn$ indicates that thread $n$ pre-empted the prior
+one.  To read this trace, it is helpful to look at the $S$ points,
 rather than to count the steps.  Using this tactic, we see that a
 deadlock occurs if thread zero (the initial thread) runs until it
 blocks (which is the \verb|readMVar lastValue| call), then thread one
@@ -1279,7 +1280,7 @@ makeScheds main = do
     \end{cminted}
     \caption{\dejafu{}}\label{lst:example-parmonad-sched-dejafu}
   \end{sublisting}
-  \caption{The \textbf{monad-par} ``direct'' scheduler initialisation.}\label{lst:example-parmonad-sched}
+  \caption{The \textbf{monad-par} `direct' scheduler initialisation.}\label{lst:example-parmonad-sched}
 \end{listing}
 
 The \package{monad-par} library\cite{marlow2011} provides a
@@ -1294,7 +1295,7 @@ own threads before inserting them into an \verb|IVar|.  Despite its
 limitations, the library can be effective in speeding up pure code.
 
 The library provides several different schedulers.  We ported the
-``direct'' scheduler to the \verb|MonadConc| typeclass so it could be
+`direct' scheduler to the \verb|MonadConc| typeclass so it could be
 tested.  This resulted in two files needing change.  This was a
 straightforward and compiler-driven refactoring.  Changing function
 types to reference \verb|MonadConc| rather than \verb|IO| led to
@@ -1319,9 +1320,9 @@ scheduler initialisation code.  As can be seen, they are similar, even
 though this is a core component of a rather sophisticated library,
 where the types have been changed.  \Cref{tbl:example-parmonad-diff}
 breaks down the changes across both files.  Code changes are broken
-down into ``renames,'' where the \textbf{concurrency} library simply
-provides a different name for a function, and ``logic,'' where that
-was not the case.  The logic changes were all places where a call to
+down into `renames,' where the \textbf{concurrency} library simply
+provides a different name for a function, and `logic,' where that was
+not the case.  The logic changes were all places where a call to
 \verb|liftIO| or \verb|lift| was now necessary, and inserting uses of
 \verb|getNumCapabilities|.
 
@@ -1337,7 +1338,7 @@ was not the case.  The logic changes were all places where a call to
     Logic changes & 16 & 0 \\ \midrule
     \emph{Total} & 75 & 26 \\ \bottomrule
   \end{tabular}
-  \caption{Breakdown of changes to port the \textbf{monad-par} ``direct'' scheduler.}\label{tbl:example-parmonad-diff}
+  \caption{Breakdown of changes to port the \textbf{monad-par} `direct' scheduler.}\label{tbl:example-parmonad-diff}
 \end{table}
 
 No deadlock or nondeterminism was discovered for a small test program,
@@ -1503,8 +1504,8 @@ those functions that use them have been omitted.
 This is just one library, and providing an alternative library people
 will have to switch to is far from optimal.  However, until library
 authors start to use \dejafu{} and \verb|MonadConc| directly, such
-alternatives will be needed to answer the question ``Why should I use
-this if I can't use it with anything I use already?''
+alternatives will be needed to answer the question `Why should I use
+this if I can't use it with anything I use already?'
 
 \subsection{Tool Integration}
 
@@ -1532,7 +1533,7 @@ make use of these additional features.
 \label{sec:dejafu-conclusions}
 
 Although a commonly reported experience amongst Haskell programmers is
-that ``if it compiles, it works,'' there are times where it does
+that `if it compiles, it works,' there are times where it does
 \emph{not} work.  Concurrency is a particularly difficult area to get
 right, as everyone who has had to move outside the realm of guaranteed
 determinism will know.  A number of profiling and debugging tools
@@ -1552,7 +1553,7 @@ The questions to be answered, then, were:
     and object-oriented worlds be applied in the functional world?}
   \hfill
 
-  The answer to this would seem to be a resounding ``yes.''  There was
+  The answer to this would seem to be a resounding `yes.'  There was
   some difficulty in implementing these techniques in a purely
   functional setting, as the algorithms are typically expressed in
   terms of mutable state, but this was overcome.
