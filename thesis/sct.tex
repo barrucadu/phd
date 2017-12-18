@@ -27,7 +27,7 @@ primitives of the language\cite{walker2015}; by instrumenting the
 source program\cite{claessen2009}; or by instrumenting the compiled
 program\cite{musuvathi2006,yu2012}.  Systematic techniques may be
 complete, whereas random techniques cannot.  Random techniques
-typically cannot ``complete'', even for small programs, and are
+typically cannot ``complete,'' even for small programs, and are
 usually run for some predetermined number of program executions.
 
 Typically we assume that all possible executions are
@@ -84,7 +84,7 @@ variable where at least one is a write,'' or:
      \land \left(\mathrm{is\_write}(x) \lor \mathrm{is\_write}(y)\right)\right)
 \end{align*}
 
-Where $x \dependent y$ is read as ``$x$ and $y$ are dependent''.  This
+Where $x \dependent y$ is read as ``$x$ and $y$ are dependent.''  This
 choice of notation would suggest a symbol $\leftrightarrow$ meaning
 independence, but that doesn't seem to be used in the literature.
 
@@ -198,7 +198,7 @@ threads) determine the next action of the thread.  This is not the
 case for Haskell, where one thread may be killed by another by
 throwing an exception to it.  However, it may be possible to encode
 Haskell exceptions in an MCR-friendly way by giving each thread an
-``exception variable'', and inserting reads to this variable before
+``exception variable,'' and inserting reads to this variable before
 every normal action, but some difficulty remains, as even blocked
 threads may be interrupted by exceptions in Haskell.
 

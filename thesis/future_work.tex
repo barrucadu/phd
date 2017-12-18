@@ -40,7 +40,7 @@ shared variables, which is much simpler than Haskell.  It may be
 possible to implement a Haskell-MCR by translating Haskell execution
 traces into a simpler form suitable for MCR\@.  For example,
 asynchronous exceptions can be modelled by giving each thread an
-``exception variable'', where throwing an exception to a thread writes
+``exception variable,'' where throwing an exception to a thread writes
 to that variable, and the thread checks the variable before each
 action.
 

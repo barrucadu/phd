@@ -2,7 +2,7 @@
   % hack to stop the displayquote from eating the [
   {[}\dejafu{} is] A martial art in which the user's limbs move in time
   as well as space, [\ldots] It is best described as ``the feeling
-  that you have been kicked in the head this way before''.
+  that you have been kicked in the head this way before.''
 \end{bquote}
 
 \noindent
@@ -133,7 +133,7 @@ departures from the traditional semantics where necessary:
 
 \begin{itemize}
 \item The \verb|getNumCapabilities| operation allows the programmer to query the
-  number of capabilities.  During testing, we return ``2'', despite executing
+  number of capabilities.  During testing, we return ``2,'' despite executing
   everything in the same OS thread.  This is to avoid special-case behaviour for
   one capability, which may reduce concurrency.
 \item Runtime errors, such as pattern match failures, can be caught as
@@ -354,7 +354,7 @@ operating on the same bit of shared state.
 \label{sec:dejafu-execution}
 
 We represent operations in the \verb|MonadConc| typeclass by a type of
-``primitive actions'', where each action describes some effect.  This
+``primitive actions,'' where each action describes some effect.  This
 is the \verb|Action| type.  Each primitive action also contains a
 continuation.  A concurrent program is just a sequence of these
 continuation values.  Each thread of execution is terminated by a
@@ -1532,7 +1532,7 @@ make use of these additional features.
 \label{sec:dejafu-conclusions}
 
 Although a commonly reported experience amongst Haskell programmers is
-that ``if it compiles, it works'', there are times where it does
+that ``if it compiles, it works,'' there are times where it does
 \emph{not} work.  Concurrency is a particularly difficult area to get
 right, as everyone who has had to move outside the realm of guaranteed
 determinism will know.  A number of profiling and debugging tools
@@ -1552,7 +1552,7 @@ The questions to be answered, then, were:
     and object-oriented worlds be applied in the functional world?}
   \hfill
 
-  The answer to this would seem to be a resounding ``yes''.  There was
+  The answer to this would seem to be a resounding ``yes.''  There was
   some difficulty in implementing these techniques in a purely
   functional setting, as the algorithms are typically expressed in
   terms of mutable state, but this was overcome.
