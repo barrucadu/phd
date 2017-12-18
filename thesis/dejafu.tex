@@ -1195,7 +1195,7 @@ is blocked upon when the result of the search is requested.
         [1] S0------S1-----S0---P2-P3------------S0-------
 \end{cminted}
 %>>
-\caption{}\label{lst:example-searchparty2}
+\caption{An example of a race condition in the \textbf{search-party} library.}\label{lst:example-searchparty2}
 \end{listing}
 
 When returning all results of a nondeterministic generate-and-test
@@ -1279,7 +1279,7 @@ makeScheds main = do
     \end{cminted}
     \caption{\dejafu{}}\label{lst:example-parmonad-sched-dejafu}
   \end{sublisting}
-  \caption{The monad-par ``direct'' scheduler initialisation.}\label{lst:example-parmonad-sched}
+  \caption{The \textbf{monad-par} ``direct'' scheduler initialisation.}\label{lst:example-parmonad-sched}
 \end{listing}
 
 The \package{monad-par} library\cite{marlow2011} provides a
@@ -1337,7 +1337,7 @@ was not the case.  The logic changes were all places where a call to
     Logic changes & 16 & 0 \\ \midrule
     \emph{Total} & 75 & 26 \\ \bottomrule
   \end{tabular}
-  \caption{Breakdown of changes to port the monad-par ``direct'' scheduler.}\label{tbl:example-parmonad-diff}
+  \caption{Breakdown of changes to port the \textbf{monad-par} ``direct'' scheduler.}\label{tbl:example-parmonad-diff}
 \end{table}
 
 No deadlock or nondeterminism was discovered for a small test program,
