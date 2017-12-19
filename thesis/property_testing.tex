@@ -55,11 +55,11 @@ in general.
 
 In the absence of a programmer-supplied generator function, input
 values are generated in a type-directed process.  A tool will provide
-a typeclass, typically called \verb|Arbitrary| or \verb|Enumerable| or
-\verb|Listable| or something, which has functions to generate values.
-This typeclass will typically have instances for most common types,
-but if a programmer wishes to have input values of other types, they
-will need to supply a suitable instance.
+a typeclass, typically called something like \verb|Arbitrary| or
+\verb|Enumerable| or \verb|Listable|, which has functions to generate
+values.  This typeclass will typically have instances for most common
+types, but if a programmer wishes to have input values of other types,
+they will need to supply a suitable instance.
 
 \section{Property Testing Tools}
 \label{sec:property_testing-tools}
@@ -166,7 +166,7 @@ minimum.  However, shrinking and enumeration are not the only ways to
 produce small counterexamples.  Both SmartCheck\cite{pike2014} and
 Lazy SmallCheck\cite{runciman2008} can generalise counter\-examples.
 Generalising counterexamples directly can be more efficient than a
-QuickCheck-style shrinking process\cite{pike2014}.  Furthermore, it is
+shrinking process as in QuickCheck\cite{pike2014}.  Furthermore, it is
 often possible to produce a generalisation which is simpler than any
 concrete counterexample.
 
