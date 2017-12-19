@@ -667,11 +667,11 @@ scheduling using a fixed number of executions is also available.  A
 \item The memory model.  The default is total store order (TSO), as it
   is closest to the behaviour of an x86 processor\cite{owens2009},
   which is what the user probably has.
-\item The \verb|MonadConc| action to test.
-\item A named predicate, where a predicate is a function from the
-  final list of results and traces to an indication of success or
-  failure with an optional list of failing traces to display to the
-  user.
+\item A name.
+\item A predicate, which is a function from the final list of results
+  and traces to an indication of success or failure with an optional
+  list of failing traces to display to the user.
+\item Finally, the \verb|MonadConc| action to test.
 \end{itemize}
 
 To make the tool easier to use, we provide a collection of different
@@ -1077,18 +1077,17 @@ set.  It returns an action to attempt to read the current result, if
 necessary blocking until there is one.  The transformation to the
 \verb|MonadConc| typeclass is straightforward.
 
-The race condition, shown in \cref{lst:example-autoupdate1}, occurs if
-the reading thread is pre-empted by the worker thread after putting
-into \verb|needsRunning|, and does not run again until after the delay
-has passed.  In this case the worker thread can become blocked on
-taking for a second time from \verb|needsRunning|.  The reader thread
-will be unable to read from \verb|lastValue| as the worker thread
-emptied it as the last action it performed.  This test was chosen as
-it is one of the simplest things a user may wish to do with the
-library: to create the worker, and to then read the computed value.
-We also see here the use of \verb|autocheck|, which is used to search
-for deadlocks, uncaught exceptions in the main thread, and
-nondeterminism in results.
+The race condition~(\cref{lst:example-autoupdate1}) occurs if the
+reading thread is pre-empted by the worker thread after putting into
+\verb|needsRunning|, and does not run again until after the delay.  In
+this case the worker thread blocks on taking for a second time from
+\verb|needsRunning|.  The reader thread is unable to read from
+\verb|lastValue| as the worker thread emptied it as the last action it
+performed.  This test was chosen as it is one of the simplest things a
+user may wish to do with the library: to create the worker, and to
+then read the computed value.  We also see here the use of
+\verb|autocheck|, which is used to search for deadlocks, uncaught
+exceptions in the main thread, and nondeterminism.
 
 % [layout hack]: get the full-page listing here, rather than at the
 % end of the section.
@@ -1102,13 +1101,13 @@ nondeterminism in results.
     auto <- mkAutoUpdate defaultUpdateSettings
     auto
 
-[fail] Never Deadlocks (checked: 5)
-        [deadlock] S0--------S1---------S0-
-[pass] No Exceptions (checked: 55)
-[fail] Consistent Result (checked: 54)
-        () S0--------S1------P0--
+[fail] Never Deadlocks
+        [deadlock] S0--------S1-----------S0-
+[pass] No Exceptions
+[fail] Consistent Result
+        () S0--------S1--------p0--
 
-        [deadlock] S0--------S1---------S0-
+        [deadlock] S0--------S1-----------S0-
 \end{cminted}
 %$
 \caption{An example of a race condition in the \textbf{auto-update} library.}\label{lst:example-autoupdate1}
@@ -1116,12 +1115,12 @@ nondeterminism in results.
 
 In \dejafu{}'s abbreviated trace output, $Sn$ indicates that
 thread $n$ started after the prior one terminated, blocked, or
-yielded; and $Pn$ indicates that thread $n$ pre-empted the prior
-one.  To read this trace, it is helpful to look at the $S$ points,
-rather than to count the steps.  Using this tactic, we see that a
-deadlock occurs if thread zero (the initial thread) runs until it
-blocks (which is the \verb|readMVar lastValue| call), then thread one
-(the worker thread) runs until it blocks (the second time
+yielded; and $pn$ indicates that thread $n$ pre-empted the prior
+one after it yielded.  To read this trace, it is helpful to look at
+the $S$ points, rather than to count the steps.  Using this tactic, we
+see that a deadlock occurs if thread zero (the initial thread) runs
+until it blocks (which is the \verb|readMVar lastValue| call), then
+thread one (the worker thread) runs until it blocks (the second time
 \verb|takeMVar needsRunning| is reached).  At this point the initial
 thread is runnable, as it was unblocked by the write to
 \verb|lastValue|.  The initial thread is scheduled, and immediately
@@ -1184,16 +1183,16 @@ is blocked upon when the result of the search is requested.
 \begin{cminted}{text}
 > let check = alwaysSameOn (fmap sort)
 > let test xs = takeStream (length xs) =<< xs @! const True
-> dejafu (test [0..2]) ("Result Lists", check)
+> dejafu "Result Lists" check (test [0..2])
 
-[fail] Result Lists (checked: 38)
+[fail] Result Lists
         [] S0------S1-----S0-------
 
         [0] S0------S1-----S0---P3------------S0-------
 
         [0,1] S0------S1-----S0---P3------------S0--P3------S0--------
 
-        [1] S0------S1-----S0---P2-P3------------S0-------
+        [1] S0------S1-----S0---P3-P2------------S0-------
 \end{cminted}
 %>>
 \caption{An example of a race condition in the \textbf{search-party} library.}\label{lst:example-searchparty2}
