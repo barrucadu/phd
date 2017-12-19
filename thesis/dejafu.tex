@@ -815,7 +815,7 @@ main = do
 
 \Cref{lst:daemon1} has two possible results: \verb|Nothing|, and
 \verb|Just "hello world"|, we would like \dejafu{} to produce both of
-these.  However, there is no dependency between \verb|myThreadId| and
+these.  There is no dependency between \verb|myThreadId| and
 \verb|tryReadMVar|, so if the deterministic scheduler used favours the
 main thread, we may not see the second execution.  Introducing a
 dependency between the last action of the execution and everything
