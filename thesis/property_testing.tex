@@ -341,6 +341,27 @@ unchanged.  Buggy executions will not.  The authors argue that
 examining discrepancies between invariants can lead to greater
 understanding of the software under test and diagnosis of errors.
 
+The \textsc{Determin} tool\cite{burnim2010} infers deterministic
+specifications for procedures which make use of internal parallelism,
+of which a program may have many.  These specifications are in the
+form of a precondition and a postcondition over program states.  If we
+use $P(s, \sigma)$ to denote the resulting program state after
+executing procedure $P$ in an initial state $s$ with a schedule
+$\sigma$, then specifications are of the form,
+
+\[
+\forall s, s', \sigma, \sigma'.~~
+\mathrm{Pre}\left(s, s'\right) \implies
+\mathrm{Post}\left(P\left(s,\sigma\right),P\left(s', \sigma'\right)\right)
+\]
+
+\noindent
+For example, if the precondition is $s = s'$ and the postcondition is
+$v = v'$, where $v$ is some variable assigned to by $P$, then the
+overall specification can be read as ``for all schedules $\sigma$ from
+state $s$, the variable $v$ gets the same value (if execution
+terminates).''
+
 \paragraph{Example-driven property discovery}
 The Bach\cite{smith2017} tool uses a database of examples of
 input/output values from functions to synthesise properties using a
