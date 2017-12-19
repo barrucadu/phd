@@ -704,9 +704,12 @@ relation on \emph{action types}, a simplification of thread actions.
 Thread actions contain more information than lookahead values, which
 contain more information than action types.  We use this layered
 approach to make use of this extra information to improve dependency
-detection where possible.  \Cref{lst:deprel-simp} shows a simplified
-view of our relations.  \Cref{app:deprel} shows the full dependency
-relation.
+detection where possible.  Furthermore, our dependency relation is
+\emph{conditional}\cite{godefroid1993}, we record which \verb|CRef|s
+have buffered writes and what the masking state of every thread is,
+allowing more precise decisions.  \Cref{lst:deprel-simp} shows a
+simplified view of our relations.  For our dependency relation to be
+correct, we require some consistency rules:
 
 \begin{listing}
 \centering
@@ -731,9 +734,6 @@ dependentActions = ...
 \caption{A simplified view of the \dejafu{} dependency relations.}\label{lst:deprel-simp}
 \end{listing}
 
-For our dependency relation to be correct, we require some consistency
-rules:
-
 \begin{description}
 \item[Commutativity (1)]
   $\mathrm{dependent}~t1~a1~t2~a2 = \mathrm{dependent}~t2~a2~t1~a1$
@@ -752,7 +752,8 @@ apparent.  The more pessimistic \verb|dependent'| function is similar
 to the more accurate \verb|dependent| function, but with less
 information available, which makes consistency apparent.  We also
 include these properties in the \dejafu{} test suite to ensure they
-are not inadvertently broken.
+are not inadvertently broken.  \Cref{app:deprel} shows the full
+relation.
 
 Through the lens of \verb|dependentActions|, Haskell is a small
 concurrent language with synchronised and unsynchronised shared
