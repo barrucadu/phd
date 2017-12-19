@@ -305,6 +305,42 @@ however.  It is only able to discover invariants which exist in the
 original program.  In contrast, the other tools described can discover
 properties that do not appear in the original program at all.
 
+\paragraph{In Concurrent C and C++}
+A variant of the Daikon tool discovers likely invariants of concurrent
+C and C++ programs using code instrumentation and systematic
+concurrency testing techniques\cite{kusano2015}.  The invariants it
+finds are so-called \emph{transition invariants} that capture the
+relations amongst mutable state shared between threads.
+
+\begin{listing}
+\centering
+\begin{minipage}[t]{0.3\textwidth}
+\begin{minted}{c}
+/* Thread 1 */
+p = &A
+if (p != NULL) {
+  p->x += 10;
+}
+\end{minted}
+\end{minipage}
+\begin{minipage}[t]{0.3\textwidth}
+\begin{minted}{c}
+/* Thread 2 */
+p = NULL;
+\end{minted}
+\end{minipage}
+\caption{Two threads accessing a shared pointer.}\label{lst:cthreads}
+\end{listing}
+
+\Cref{lst:cthreads} shows two threads accessing a shared pointer.  If
+the second thread sets \verb|p| to \verb|NULL| after the first checks
+that it is not but before dereferencing it, then an error will occur.
+Correct executions of the program will produce the invariant
+\verb|p == orig(p)| for that if-statement, meaning that \verb|p| is
+unchanged.  Buggy executions will not.  The authors argue that
+examining discrepancies between invariants can lead to greater
+understanding of the software under test and diagnosis of errors.
+
 \paragraph{In Anything}
 The Bach\cite{smith2017} tool uses a database of examples of
 input/output values from functions to synthesise properties using a
