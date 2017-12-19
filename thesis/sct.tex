@@ -268,16 +268,16 @@ programs which implements co-operative multi-tasking.  An
 instrumentation process automatically modifies existing programs to
 call out to this scheduler.  \textsc{Pulse} works by only allowing one
 of the concurrent processes to operate at a time, and makes scheduling
-decisions around actions with side-effects: such as a process
-receiving a message.  It also allows interaction with uninstrumented
-functions, which are treated as atomic, allowing tested subsystems to
-be composed without exploring interleavings within the subsystem.
-\textsc{Pulse} scheduling decisions are made randomly, using a
-provided seed, and a complete execution trace is returned, which can
-be rendered into a graphical form showing the interactions between
-threads to aid debugging.  The authors report that the graphical
-traces can often suggest potential race conditions which have not been
-evident to a human reader.
+decisions around effectful actions: such as a process receiving a
+message.  It also allows interaction with uninstrumented functions,
+which are treated as atomic, allowing tested subsystems to be composed
+without exploring interleavings within the subsystem.  \textsc{Pulse}
+scheduling decisions are made randomly, using a provided seed, and a
+complete execution trace is returned, which can be rendered into a
+graphical form showing the interactions between threads to aid
+debugging.  The authors report that the graphical traces can often
+suggest potential race conditions which have not been evident to a
+human reader.
 
 \emph{Procrastination}\cite{sen2008} is used to improve detection of
 bugs.  First \textsc{Pulse} is used to produce an execution trace,

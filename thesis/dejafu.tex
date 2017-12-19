@@ -406,17 +406,18 @@ we either indicate a failure condition, or produce a new state; in both cases we
 return a log of what happened, to put into the execution trace returned to the
 user.
 
-Our context value does not contain a heap, instead we use Haskell mutable
-references directly.  This means that executing our step function has
-side-effects, and in general contexts should not be re-used.  This is not a
-limitation in practice because we never want to re-use contexts.  We could
-include the heap state in our context, by using a heterogeneous map
-type\footnote{Like the \inlpackage{vault} library.}, however the additional
-indirection both increases allocation, and reduces the efficacy of garbage
-collection.  By using Haskell mutable references directly, when all copies of a
-reference fall out of scope, the referenced value can be garbage collected;
-whereas if we model references as keys into a heap, then such data can never be
-freed, as we cannot tell when it is safe to delete something from our heap.
+Our context value does not contain a heap, instead we use Haskell
+mutable references directly.  This means that executing our step
+function has effects, and in general contexts should not be re-used.
+This is not a limitation in practice because we never want to re-use
+contexts.  We could include the heap state in our context, by using a
+heterogeneous map type\footnote{Like the \inlpackage{vault} library.},
+however the additional indirection both increases allocation, and
+reduces the efficacy of garbage collection.  By using Haskell mutable
+references directly, when all copies of a reference fall out of scope,
+the referenced value can be garbage collected; whereas if we model
+references as keys into a heap, then such data can never be freed, as
+we cannot tell when it is safe to delete something from our heap.
 
 \begin{listing}
 \centering
@@ -517,12 +518,13 @@ behaviour.  This simplifies some aspects of the implementation, but
 means that we cannot currently cope with nonterminating transactions,
 whereas we can and do abort concurrent programs.
 
-A transaction evaluates to some success value, a thrown exception, or an abort.
-If successful, it may also mutate some transactional variables as a side-effect;
-otherwise it does not.  If it evaluates to a thrown exception, we throw the
-exception in the thread performing the transaction.  If it evaluates to an
-abort, we block the thread performing the transaction until at least one
-\verb|TVar| read in the transaction is mutated by another thread.
+A transaction evaluates to some success value, a thrown exception, or
+an abort.  If successful, it may also mutate some transactional
+variables as a effect; otherwise it does not.  If it evaluates to a
+thrown exception, we throw the exception in the thread performing the
+transaction.  If it evaluates to an abort, we block the thread
+performing the transaction until at least one \verb|TVar| read in the
+transaction is mutated by another thread.
 
 \subsection{Relaxed Memory}
 
@@ -1560,9 +1562,9 @@ The questions to be answered, then, were:
 \item \textbf{Does the purely functional setting allow for new
     techniques to be developed?} \hfill
 
-  At first we hoped that the lack of side-effects in evaluation,
-  amongst other things, would allow for new techniques to be
-  developed.  However, as concurrency testing explicitly cares about
+  At first we hoped that the lack of effects in evaluation, amongst
+  other things, would allow for new techniques to be developed.
+  However, as concurrency testing explicitly cares about
   \emph{execution} rather than \emph{evaluation} (although these are
   one and the same in most languages), this does not seem to be the
   case.

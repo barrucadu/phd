@@ -413,10 +413,10 @@ actions.
 Neither Java nor Rust provide an STM implementation in their standard
 libraries, but there are third-party implementations.  However, as
 Java and Rust are impure, these libraries cannot prevent the
-programmer from performing arbitrary side-effects inside a
-transaction.  These STM library implementations provide atomic
-transactions for specified operations, but they \emph{cannot} provide
-the same guarantees as STM in Haskell.
+programmer from performing arbitrary effects inside a transaction.
+These STM library implementations provide atomic transactions for
+specified operations, but they \emph{cannot} provide the same
+guarantees as STM in Haskell.
 
 \paragraph{Transactional variables}
 The \verb|TVar| type is yet another type of shared variable, but with
