@@ -342,6 +342,14 @@ atomic values specify the memory consistency desired.  The weakest is
 \verb|Relaxed|, which imposes no constraints, and the strongest is
 \verb|SeqCst|, which imposes sequential consistency.
 
+\paragraph{Sequential consistency}
+While relaxed memory models are used for performance, research
+suggests that in languages which statically distinguish between shared
+and thread-local state such as Haskell, sequential consistency can be
+imposed for all shared state with little overhead\cite{vollmer2017}.
+If implemented in Haskell, this would greatly simplify correct use of
+\verb|IORef|s.
+
 \paragraph{Compare-and-swap}
 Modern processor architectures provide an atomic
 \emph{compare-and-swap} instruction, which is typically used in
