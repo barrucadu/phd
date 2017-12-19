@@ -225,7 +225,7 @@ merely conjectures supported by a finite amount of evidence.  Despite
 that, such properties are surprisingly accurate in practice, and often
 lead to a deeper understanding of the program under test.
 
-\paragraph{In Haskell}
+\paragraph{Testing}
 QuickSpec\cite{claessen2010,smallbone2017} and
 Speculate\cite{braquehais2017} are tools for Haskell which
 automatically discover equational laws of pure functions.  Both are
@@ -293,7 +293,7 @@ abs y <= x ==>     abs (x + y) == x + y
 \caption{Properties of arithmetic, discovered by Speculate.}\label{lst:arith_props}
 \end{listing}
 
-\paragraph{In Java}
+\paragraph{Machine learning}
 The Daikon\cite{ernst2007} tool discovers \emph{likely invariants} of
 C, C++, Java, and Perl programs.  It observes variables in memory
 during the execution of a program, and applies machine learning
@@ -305,7 +305,7 @@ however.  It is only able to discover invariants which exist in the
 original program.  In contrast, the other tools described can discover
 properties that do not appear in the original program at all.
 
-\paragraph{In Concurrent C and C++}
+\paragraph{Concurrency testing}
 A variant of the Daikon tool discovers likely invariants of concurrent
 C and C++ programs using code instrumentation and systematic
 concurrency testing techniques\cite{kusano2015}.  The invariants it
@@ -341,7 +341,7 @@ unchanged.  Buggy executions will not.  The authors argue that
 examining discrepancies between invariants can lead to greater
 understanding of the software under test and diagnosis of errors.
 
-\paragraph{In Anything}
+\paragraph{Example-driven property discovery}
 The Bach\cite{smith2017} tool uses a database of examples of
 input/output values from functions to synthesise properties using a
 Datalog-based oracle.  As it is based on examples, it is not tied to
