@@ -82,7 +82,7 @@ readMVar :: MVar Concurrency Int -> Concurrency Int
 \end{listing}
 
 Allowing shared values of type \verb|Int|, we obtain the type
-signatures in \cref{lst:mvar_types}.  Here \verb|Concurrency| is an
+signatures in \Cref{lst:mvar_types}.  Here \verb|Concurrency| is an
 implementation of the \verb|MonadConc| typeclass, provided by CoCo.
 The \verb|MVar| type is an abstract type defined in \verb|MonadConc|,
 with the concrete type determined by the monad used.  In this case the
@@ -185,7 +185,7 @@ reported if each side includes at least one non-background expression.
 
 If we include \verb|tryPutMVar|, a non-blocking version of
 \verb|putMVar|, as a background expression, CoCo discovers the
-additional properties in \cref{lst:mvar_props2}.  Property (5) shows
+additional properties in \Cref{lst:mvar_props2}.  Property (5) shows
 how important the choice of interference function is.  The left and
 right terms are not equivalent.  If the interference were to empty a
 full \verb|MVar| then the right term could restore its original value.
@@ -253,7 +253,7 @@ type Term   s = Expr s Void
 \label{lst:exprrep}
 \end{listing}
 
-Our expression representation is shown in \cref{lst:exprrep}.  The
+Our expression representation is shown in \Cref{lst:exprrep}.  The
 \verb|Expr| type is parameterised by the state type and a \emph{hole}
 type.  The state parameter ensures expressions that assume different
 execution contexts cannot be inadvertently combined.  The hole
@@ -318,7 +318,7 @@ threads: the term thread executing the term itself, and an
 \emph{interference thread}.  The term thread may fork additional
 threads.  The interference thread is essential to distinguish
 refinement from equality in some cases.  For example, the equivalence
-in \cref{lst:prop_mvar3} holds only when is no concurrent producer for
+in \Cref{lst:prop_mvar3} holds only when is no concurrent producer for
 the same \verb|MVar|.
 
 \begin{listing}
@@ -335,7 +335,7 @@ metadata, including its behaviour-sets, and compare these cached
 behaviours later when discovering properties.  While possibly a
 significant space cost, storing this data reduces the execution time
 of some of our test applications from hours to minutes.  We discuss
-this further in \cref{sec:coco-conclusions}.
+this further in \Cref{sec:coco-conclusions}.
 
 \paragraph{Deriving terms from schemas}
 One schema may have many term instances.  \Cref{lst:schematerms} shows
@@ -528,7 +528,7 @@ peek (LockStack v) = fmap listToMaybe (readMVar v)
 \paragraph{Lock-based stacks}
 Mutable stacks are commonly used for synchronisation amongst multiple
 threads.  A simple mutable stack is just an immutable list inside an
-\verb|MVar| shared variable, as in \cref{lst:lockstack}.
+\verb|MVar| shared variable, as in \Cref{lst:lockstack}.
 
 \begin{listing}
 \centering
@@ -541,7 +541,7 @@ threads.  A simple mutable stack is just an immutable list inside an
 \end{listing}
 
 With this signature, CoCo discovers the properties in
-\cref{lst:lockstack2}, where the initialisation function constructs a
+\Cref{lst:lockstack2}, where the initialisation function constructs a
 stack from a list, the observation function converts it back to a
 list, and the interference function sets the contents of the stack to
 a given list.  Here \verb#|||# is concurrent composition.  Property
@@ -550,7 +550,7 @@ whereas the right term returns the value pushed.  Remember that CoCo
 does not consider equality of results when determining properties,
 only the effect on the state.  Property (7) is a consequence of (6).
 Property (8) is analogous to the \verb|readMVar| properties presented
-in \cref{sec:coco-example}, as we might expect given how the stack
+in \Cref{sec:coco-example}, as we might expect given how the stack
 operations are defined.
 
 \paragraph{Buggy functions}
@@ -566,7 +566,7 @@ push2 x1 x @  ->-  push x @ >> push x @
 \caption{A property about an incorrect function.}\label{lst:lockstack3}
 \end{listing}
 
-CoCo finds the property in \cref{lst:lockstack3}.  As this is a strict
+CoCo finds the property in \Cref{lst:lockstack3}.  As this is a strict
 refinement, we now know that \verb|push2| is more deterministic in
 some way than two \verb|push|es.  As we know that the composition of
 two \verb|push|es is not atomic, this strongly suggests that
@@ -579,7 +579,7 @@ property-discovery process, the programmer can supply different
 observations to discover different properties.  By changing the
 observation of our stack from list equality to \verb|peek|, we
 discover a new collection of properties, shown in
-\cref{lst:lockstack4}.  Here we have fixed the \verb|push2| function
+\Cref{lst:lockstack4}.  Here we have fixed the \verb|push2| function
 to behave correctly and also removed \verb#|||# from the signature.
 Properties (9) and (10) show the power of supplying a custom
 observation function: in the left and right terms, the stack states
@@ -642,7 +642,7 @@ tools is the ability to compare two different signatures which have
 compatible observation types.  We can compare the \verb|MVar| and
 \verb|CRef| stacks by simply supplying both signatures to the tool,
 which then reports, amongst others, the correspondences in
-\cref{lst:stacks}.  Here we use the list observation again.  Functions
+\Cref{lst:stacks}.  Here we use the list observation again.  Functions
 with names ending \verb|M| are for \verb|MVar| stacks, functions with
 names ending \verb|C| for \verb|CRef| stacks.  These properties tell
 us what we want to know: the \verb|CRef| stack is equivalent to the
@@ -790,7 +790,7 @@ existing types.
 
 If we alter the signature so that \verb|signal| and \verb|wait| use
 the type of natural numbers rather than integers, properties (16--18)
-become equivalences, as shown in \cref{lst:sem4}
+become equivalences, as shown in \Cref{lst:sem4}
 
 \begin{listing}
 \centering

@@ -115,7 +115,7 @@ instance Monad n => MonadConc (ConcT r n) where
 
 The type for our testing implementation is called \verb|ConcT r n|, which is a
 monad that has access to \emph{references} of type \verb|r| in a monad of type
-\verb|n|.  \Cref{lst:mvarops} shows the implementation of \cref{lst:monadconc} for
+\verb|n|.  \Cref{lst:mvarops} shows the implementation of \Cref{lst:monadconc} for
 this type.  Each concurrency operation is of the same form: we take the
 arguments and wrap them up inside a data structure whose final argument is a
 continuation, which is then converted into a \verb|ConcT| value.
@@ -125,7 +125,7 @@ each `step' of the computation by looking at the data constructor
 used.  Most constructors correspond directly to operations in the
 \verb|MonadConc| class, plus a few extra.  We call these constructors
 \emph{primitive actions}.  A full listing is available in
-\cref{app:primops}.
+\Cref{app:primops}.
 
 Each primitive action has a behaviour as close as reasonably possible
 to the primitive \verb|IO| operation it models.  We make a few
@@ -187,7 +187,7 @@ One school of thought says to just wait for three years, because by
 then it's unlikely that any single prisoner had never visited the
 room.  In fact, we would expect each prisoner to have been to the room
 ten times by then.  \Cref{lst:100good} shows an implementation of this
-strategy, and \cref{tbl:100rand} shows how the prisoners fare over 100
+strategy, and \Cref{tbl:100rand} shows how the prisoners fare over 100
 random executions.
 
 \begin{table}
@@ -439,7 +439,7 @@ pure id <*> v
 primitive actions, which means that if evaluating a primitive action
 does not terminate, \dejafu{} will hang.  We deliberately break the
 \verb|Applicative| identity law, that \verb|pure id <*> v = v| for all
-\verb|v| (\cref{lst:areturn}), to make some programs more defined than
+\verb|v| (\Cref{lst:areturn}), to make some programs more defined than
 they otherwise would be.  program:
 
 \begin{listing}
@@ -451,7 +451,7 @@ test = forever (pure "loop") where
 \caption{A simple non-terminating program.}\label{lst:forever}
 \end{listing}
 
-Consider \cref{lst:forever}.  Neither \verb|(>>)| nor \verb|forever|
+Consider \Cref{lst:forever}.  Neither \verb|(>>)| nor \verb|forever|
 correspond to primitive actions, so they cannot be pre-empted.  If
 \verb|pure| did not correspond to a primitive action either, then that
 expression would cause \dejafu{} to loop forever, trying to find the
@@ -465,7 +465,7 @@ limit\footnote{\url{https://github.com/barrucadu/dejafu/issues/27} and \texttt{i
 The choice of which thread to execute is made by a scheduler function,
 which is supplied by the user.  The scheduler is called even if there
 is only one runnable thread, to keep things simple.  A scheduler,
-shown in \cref{lst:scheduler}, is a stateful function which is given
+shown in \Cref{lst:scheduler}, is a stateful function which is given
 the previous action and the runnable threads, which possibly returns a
 thread to run.  If no thread is returned, the computation is aborted.
 Aborting is used in the implementation of schedule bounding.  The
@@ -505,7 +505,7 @@ involving \verb|TVar|s, transactional variables.  Unlike operations on
 whole remains atomic.  We express transactions in a similar way to
 concurrent programs: as a continuation monad over a primitive action
 type.  A complete listing of actions is available in
-\cref{app:primops}.  As \dejafu{} drives the execution of a concurrent
+\Cref{app:primops}.  As \dejafu{} drives the execution of a concurrent
 program, it is possible to have arbitrarily complex effects which
 appear atomic to the program under test.  We ensure atomicity by
 executing primitive actions sequentially.
@@ -835,7 +835,7 @@ main = do
 \caption{Another program with a race condition.}\label{lst:daemon2}
 \end{listing}
 
-In \cref{lst:daemon2}, the forked thread now performs
+In \Cref{lst:daemon2}, the forked thread now performs
 \verb|myThreadId| twice.  If the \verb|tryReadMVar| happens after the
 second, we get the same result as if it happens after the first.
 Normally, DPOR would recognise this and prune the redundant decision.
@@ -938,7 +938,7 @@ the testing framework generating every schedule, as that is precisely
 what DPOR tries to avoid.
 
 \paragraph{Prefix Validity}
-Executions are stored internally as a stack, shown in \cref{lst:dpor}.
+Executions are stored internally as a stack, shown in \Cref{lst:dpor}.
 The sequence of thread IDs corresponding to this stack represents a
 complete execution of the program.  There is a unique initial state,
 where only the initial thread is runnable and nothing has been done.
@@ -1073,14 +1073,14 @@ independently.  Despite the core functionality being simple, a race
 condition was noticed by users inspecting the code in October 2014.
 
 The entire implementation, excluding comments and imports, is
-reproduced in \cref{lst:example-autoupdate}.  The \verb|mkAutoUpdate|
+reproduced in \Cref{lst:example-autoupdate}.  The \verb|mkAutoUpdate|
 function spawns a worker thread, which performs the update action at
 the given frequency, only if the \verb|needsRunning| flag has been
 set.  It returns an action to attempt to read the current result, if
 necessary blocking until there is one.  The transformation to the
 \verb|MonadConc| typeclass is straightforward.
 
-The race condition~(\cref{lst:example-autoupdate1}) occurs if the
+The race condition~(\Cref{lst:example-autoupdate1}) occurs if the
 reading thread is pre-empted by the worker thread after putting into
 \verb|needsRunning|, and does not run again until after the delay.  In
 this case the worker thread blocks on taking for a second time from
@@ -1448,7 +1448,7 @@ However, this is not always the case.  Recently a user tried to port a
 logging abstraction they made to \verb|MonadConc|.  Expressing this
 with \verb|MonadConc| and \verb|MonadSTM| is not straightforward, as
 constraints do not factor into instance selection.  So the instances
-in \cref{lst:mlogger2} overlap, and are not useful.
+in \Cref{lst:mlogger2} overlap, and are not useful.
 
 \begin{listing}
 \centering
@@ -1460,7 +1460,7 @@ instance MonadConc m => MonadLogger (LoggerT m) where -- ...
 \end{listing}
 
 After some work, we introduced new types to disambiguate between the
-two cases, and ended up with \cref{lst:mlogger3}.  Where \verb|IsSTM|
+two cases, and ended up with \Cref{lst:mlogger3}.  Where \verb|IsSTM|
 and \verb|IsConc| are new types we introduced, with their own
 \verb|MonadSTM| and \verb|MonadConc| instances.  The amount of effort
 required to arrive at this solution led to the user questioning

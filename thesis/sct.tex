@@ -36,7 +36,7 @@ state such as deadlock.  Another common assumption is that the number
 of possible executions is \emph{finite}: forbidding finite but
 arbitrarily long executions, as can be created with constructs such as
 spinlocks.  We can sacrifice completeness to do away with these
-assumptions, as we shall see in \cref{sec:sct-bounding}.
+assumptions, as we shall see in \Cref{sec:sct-bounding}.
 
 \section{Dynamic Partial-order Reduction}
 \label{sec:sct-dpor}
@@ -97,7 +97,7 @@ terminates when the main thread terminates, which complicates matters
 further.  The na\"{\i}ve implementation of this, making the final
 action of the main thread dependent with everything, leads to too many
 executions being tried to be of practical use.  We discuss these
-issues further in \cref{sec:dejafu-testing}.
+issues further in \Cref{sec:dejafu-testing}.
 
 \subsection{Total and Partial Orders}
 
