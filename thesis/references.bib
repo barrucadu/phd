@@ -704,7 +704,7 @@
   year =         1995
 }
 
-@InProceedings{shavit1995,  % UNUSED
+@InProceedings{shavit1995,
   author =       "Shavit, Nir and Touitou, Dan",
   title =        "Software Transactional Memory",
   booktitle =    "Proceedings of the Fourteenth Annual ACM Symposium on Principles of Distributed Computing",
@@ -716,6 +716,13 @@
 }
 
 % ----- 1996 ------------------------------------------------------------------
+
+@Book{lea1996,
+  author =       "Lea, Doug",
+  title =        "Concurrent Programming in Java: Design Principles and Patterns",
+  publisher =    "Addison-Wesley Longman Publishing Co., Inc.",
+  year =         1996
+}
 
 @InProceedings{peytonjones1996,
   author =       "Peyton Jones, Simon and Gordon, Andrew and Finne, Sigbjorn",
@@ -747,6 +754,23 @@
 
 % ----- 2005 ------------------------------------------------------------------
 
+@InProceedings{harris2005,
+  author =       "Harris, Tim and Marlow, Simon and Peyton-Jones, Simon and Herlihy, Maurice",
+  title =        "Composable Memory Transactions",
+  booktitle =    "Proceedings of the Tenth ACM SIGPLAN Symposium on Principles and Practice of Parallel Programming",
+  year =         2005,
+  series =       "PPoPP '05",
+  pages =        "48-60",
+  publisher =    "ACM",
+  doi =          "10.1145/1065944.1065952"
+}
+
+@Article{peytonjones2005,
+  author =       "Peyton Jones, Simon",
+  title =        "Tackling the Awkward Squad: monadic input/output, concurrency, exceptions, and foreign-language calls in Haskell",
+  year =         2002
+}
+
 @Article{stolz2005,  % UNUSED
   author =       "Stolz, Volker and Huch, Frank",
   title =        "Runtime Verification of Concurrent Haskell Programs",
@@ -771,6 +795,17 @@
 }
 
 % ----- 2009 -----------------------------------------------------------------
+
+@InProceedings{marlow2009,
+  author =       "Marlow, Simon and Peyton Jones, Simon and Singh, Satnam",
+  title =        "Runtime Support for Multicore Haskell",
+  booktitle =    "Proceedings of the 14th ACM SIGPLAN International Conference on Functional Programming",
+  year =         2009,
+  series =       "ICFP '09",
+  pages =        "65-78",
+  publisher =    "ACM",
+  doi =          "10.1145/1596550.1596563"
+}
 
 @InProceedings{owens2009,
   author =       "Owens, Scott and Sarkar, Susmit and Sewell, Peter",
@@ -821,6 +856,12 @@
   doi =          "10.1145/2034675.2034685"
 }
 
+@Book{rust2011,
+  author =       "The Rust Developers",
+  title =        "The Rust Programming Language (first edition)",
+  year =         2011
+}
+
 % ----- 2012 ------------------------------------------------------------------
 
 @InProceedings{groce2012,
@@ -836,6 +877,17 @@
 
 % ----- 2013 ------------------------------------------------------------------
 
+@InProceedings{dice2013,
+  author =       "Dice, David and Hendler, Danny and Mirsky, Ilya",
+  title =        "Lightweight Contention Management for Efficient Compare-and-swap Operations",
+  booktitle =    "Proceedings of the 19th International Conference on Parallel Processing",
+  year =         2013,
+  series =       "Euro-Par'13",
+  pages =        "595-606",
+  publisher =    "Springer-Verlag",
+  doi =          "10.1007/978-3-642-40047-6_60"
+}
+
 @PhdThesis{linden2013,  % UNUSED
   author =       "Linden, Alexander",
   title =        "On the Verification of Programs on Relaxed Memory Models",
@@ -843,7 +895,27 @@
   year =         2013
 }
 
+% ----- 2015 ------------------------------------------------------------------
+
+@InProceedings{le2015,
+  author =       "Le, Matthew and Fluet, Matthew",
+  title =        "Partial Aborts for Transactions via First-class Continuations",
+  booktitle =    "Proceedings of the 20th ACM SIGPLAN International Conference on Functional Programming",
+  year =         2015,
+  series =       "ICFP 2015",
+  pages =        "230-242",
+  publisher =    "ACM",
+  doi =          "10.1145/2784731.2784736"
+}
+
 % ----- 2017 ------------------------------------------------------------------
+
+@Unpublished{ghc2017,
+  author =       "{GHC} Developers",
+  title =        "{Data.IORef} module documentation",
+  note =         "API documentation at \url{https://hackage.haskell.org/package/base-4.10.0.0/docs/Data-IORef.html}, accessed at 2018-01-13",
+  year =         2017
+}
 
 @InProceedings{groce2017,  % UNUSED
   author =       "Groce, Alex and Holmes, Josie and Kellar, Kevin",
@@ -856,6 +928,13 @@
   doi =          "10.1145/3092703.3092704"
 }
 
+@Unpublished{oracle2017,
+  author =       "Oracle",
+  title =        "Java Thread Primitive Deprecation",
+  note =         "\url{https://docs.oracle.com/javase/7/docs/technotes/guides/concurrency/threadPrimitiveDeprecation.html}, accessed at 2018-01-13",
+  year =         2017
+}
+
 @InProceedings{vollmer2017,
   author =       "Vollmer, Michael and Scott, Ryan G. and Musuvathi, Madanlal and Newton, Ryan R.",
   title =        "SC-Haskell: Sequential Consistency in Languages That Minimize Mutable Shared Heap",
@@ -865,4 +944,13 @@
   pages =        "283-298",
   publisher =    "ACM",
   doi =          "10.1145/3018743.3018746"
+}
+
+% ----- 2018 ------------------------------------------------------------------
+
+@Unpublished{rust2018,
+  author =       "Rust Developers",
+  title =        "{catch\_unwind} function documentation",
+  note =         "API documentation at \url{https://doc.rust-lang.org/1.23.0/std/panic/fn.catch_unwind.html}, accessed at 2018-01-13",
+  year =         2018
 }
