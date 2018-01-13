@@ -393,3 +393,16 @@ $x$ and $y$ may be constants or variables.  It uses a notion of
 evidence consists of counterexamples; positive evidence consists of
 witnesses.  Bach crucially requires functions to have at most one
 output for each distinct input, to construct negative evidence.
+
+\section{Summary}
+
+Going forward, the reader should keep in mind:
+
+\begin{itemize}
+\item Properties are universally quantified boolean functions which
+  are expected to hold for all input values.
+\item Property discovery tools, typically, take a description of a
+  program API and return properties which appear to hold, based on
+  testing.  In \Cref{chp:coco} we describe a property discovery tool
+  where the API may involve concurrency.
+\end{itemize}
