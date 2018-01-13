@@ -331,3 +331,36 @@ allowing them to drive execution by clicking representations of
 threads.  Furthermore, it allows the user to specify cases which
 should be automatically allowed to execute.  CHD does not function
 with any GHC newer than version 5 (released between 2001 and 2003).
+
+\section{Summary}
+
+Going forward, the reader should keep in mind:
+
+\begin{itemize}
+\item \emph{Controlled scheduling} refers to driving the scheduling of
+  threads in a concurrent program in a way which the programmer can
+  control.
+\item Deterministically testing concurrent programs relies on
+  controlled scheduling.
+\item \emph{Systematic concurrency testing}
+  (SCT)\cite{coons2013,flanagan2005,musuvathi2008,musuvathi2007} is an
+  umbrella term for a family of techniques relating to
+  deterministically testing concurrent programs, using controlled
+  scheduling.
+\item \emph{Dynamic partial-order reduction}
+  (DPOR)\cite{flanagan2005,godefroid1996}, which falls under the SCT
+  umbrella, is a technique to explore different behaviours of a
+  concurrent program by permuting the order of dependent actions.
+\item \emph{Schedule bounding}\cite{emmi2011,musuvathi2008,musuvathi2007} is
+  a technique to reduce the number of schedules to try by throwing
+  away those which exceed some bound.  In \Cref{chp:dejafu} we discuss
+  a concurrency testing tool for Haskell, built on DPOR and schedule
+  bounding.
+\item Controlled scheduling may be used to implement \emph{random}
+  testing algorithms, which use a random seed to make scheduling
+  decisions.  In \Cref{chp:algorithms} we propose a new random
+  scheduling algorithm.
+\end{itemize}
+
+Completeness, sequential consistency, and relaxed memory models appear
+in \Cref{chp:dejafu}, but are defined where they are used.
