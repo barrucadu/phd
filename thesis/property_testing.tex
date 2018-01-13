@@ -1,13 +1,17 @@
-A common approach to testing in Haskell is to give functional
-properties about the code.  Property testing tools are used to
+A common approach to testing in Haskell is to give properties about
+the code.  Properties are functions with boolean results, expected to
+be true for all argument values.  Property testing tools are used to
 generate input values, and check that these properties hold, or
 display a counterexample if they do not.  The popularity of property
 testing stems from the difficulty of writing good tests.  In this
-chapter we give an overview of using property testing tools.  We first
-give a general introduction to specifying and using properties as
-tests~\sref{property_testing-intro}, then discuss specific
-tools~\sref{property_testing-tools}.  Finally, we summarise tools for
-\emph{discovering} properties~\sref{property_testing-gen}.
+chapter we give an overview of using property testing tools.  We build
+on this background in \Cref{chp:coco}, where we discuss a tool to
+\emph{generate} such properties for concurrency functions operating
+over shared state.  We first give a general introduction to specifying
+and using properties as tests~\sref{property_testing-intro}, then
+discuss specific tools~\sref{property_testing-tools}.  Finally, we
+summarise tools for \emph{discovering}
+properties~\sref{property_testing-gen}.
 
 \section{Properties as Tests}
 \label{sec:property_testing-intro}
@@ -15,9 +19,10 @@ tools~\sref{property_testing-tools}.  Finally, we summarise tools for
 Property-based testing\cite{claessen2000}, sometimes called
 \emph{parameterised unit testing}, is an approach to testing where the
 programmer gives general laws (or properties) which should hold for
-all input values.  For example, a sort function should preserve
-length.  This approach is unlike typical unit testing, which can be
-thought of as checking specific pairs of input--output values.
+all input values.  For example, \Cref{lst:prop_sort_len} says that a
+sort function should preserve length.  This approach is unlike typical
+unit testing, which can be thought of as checking specific pairs of
+input--output values.
 
 \begin{listing}
 \centering
@@ -51,7 +56,8 @@ are ordered, but only 50\% of lists of length two are.  An alternative
 approach is to use a custom value generator.  By only generating input
 values which satisfy the precondition, we can avoid skewing the
 distribution, and improve our confidence that the property does hold
-in general.
+in general.  \Cref{lst:prop_ord_insert} shows the implication and
+generator function approaches.
 
 In the absence of a programmer-supplied generator function, input
 values are generated in a type-directed process.  A tool will provide
@@ -77,37 +83,30 @@ several tools for Haskell.
 
 \begin{table}
 \centering
-\begin{tabular}{lccccccccccc}
+\begin{tabular}{lcccccc}
 &\rotatebox{90}{QuickCheck\hphantom{a}}
 &\rotatebox{90}{SmartCheck}
 &\rotatebox{90}{SmallCheck}
 &\rotatebox{90}{Lazy SmallCheck}
 &\rotatebox{90}{LeanCheck}
-&\rotatebox{90}{Feat}
-&\rotatebox{90}{Neat}
-&\rotatebox{90}{GenCheck}
-&\rotatebox{90}{Irulan}
-&\rotatebox{90}{Reach}
 \\ \toprule
-\textbf{Input value generation}          &&&&&&&&&&\\
-~~random                              &\YY&\YY&\NN&\NN&\NN&\YY&\NN&\YY&\YY&\NN\\
-~~enumerative                         &\NN&\NN&\YY&\YY&\YY&\YY&\YY&\YY&\YY&\NN\\
-~~mixed random \& enumerative         &\NN&\NN&\NN&\NN&\NN&\YY&\NN&\YY&\YY&\NN\\ \midrule
-\textbf{Property DSL}          &&&&&&&&&&\\
-~~existential                 &\NN&\NN&\YY&\YY&\YY&\QQ&\QQ&\QQ&\NN&\NN\\
-~~higher order                &\YY&\YY&\YY&\YY&\YY&\QQ&\QQ&\QQ&\NN&\NN\\ \midrule
-\textbf{Output}          &&&&&&&&&&\\
-~~generalized counterexamples            &\NN&\YY&\NN&\YN&\NN&\NN&\NN&\NN&\NN&\NN\\
+\textbf{Input value generation}          &&&&&\\
+~~random                              &\YY&\YY&\NN&\NN&\NN\\
+~~enumerative                         &\NN&\NN&\YY&\YY&\YY\\
+\textbf{Property DSL}          &&&&&\\
+~~existential                 &\NN&\NN&\YY&\YY&\YY\\
+~~higher order                &\YY&\YY&\YY&\YY&\YY\\ \midrule
+\textbf{Output}          &&&&&\\
+~~generalized counterexamples            &\NN&\YY&\NN&\YN&\NN\\
 \bottomrule
-\multicolumn{11}{l}{
+\multicolumn{6}{l}{
 \footnotesize
 Legend:\hspace{1em}
 \YY{} Yes/Good.\hspace{1em}
 \NN{} No/Poor.\hspace{1em}
-\YN{} Partial/Median.\hspace{1em}
-$^p$ Potential support} \\
+\YN{} Partial/Median.} \\
 \end{tabular}
-\caption[Summary of differences in Haskell property-testing tools.]{Summary of differences between property-based testing tools for Haskell.}\label{tbl:proptools}
+\caption[Summary of differences in Haskell property-testing tools.]{Summary of differences between property-based testing tools for Haskell, adapted from \cite{braquehais2017phd}.}\label{tbl:proptools}
 \end{table}
 \endgroup
 
@@ -117,12 +116,13 @@ is a simple technique which tends to work well in practice,
 QuickCheck\cite{claessen2000} is an example of a randomised property
 testing tool.  Alternatively, we may assume that there is some
 enumeration likely to expose useful counterexamples.
-SmallCheck\cite{runciman2008} enumerates values in size order, on the
-assumption that most bugs are exhibited by simple counterexamples.  As
-simple counterexamples are more useful to the programmer than large
-ones, random approaches must have an additional \emph{shrinking} step,
-to try and remove unnecessary complexity from counterexamples, which
-enumerative approaches may not need.
+SmallCheck\cite{runciman2008} and LeanCheck\cite{braquehais2017lean}
+enumerate values in size order, on the assumption that most bugs are
+exhibited by simple counterexamples.  As simple counterexamples are
+more useful to the programmer than large ones, random approaches must
+have an additional \emph{shrinking} step, to try and remove
+unnecessary complexity from counterexamples, which enumerative
+approaches may not need.
 
 \paragraph{Property DSL}
 A more expressive property language complicates implementation, but
@@ -130,12 +130,13 @@ allows the programmer to say more about their tests.  Two important
 types of property are \emph{existential} properties and
 \emph{higher-order} properties.
 
-Existential properties allow the programmer to assert that some input
-exists which the property holds for.  Existential properties are
-difficult to implement reliably in a randomised tool, such as
-QuickCheck, because the nondeterminism means that the property may
-sometimes pass and sometimes fail.  Existential properties are more
-commonly supported by enumerative tools.
+Existential properties, such as in \Cref{lst:prop_gt_5}, allow the
+programmer to assert that some input exists for which the property
+holds.  Existential properties are apparently incompatible with a
+randomised tool, such as QuickCheck, because a random test value is
+unlikely to be a witness for a specific existential property.
+Existential properties are more commonly supported by enumerative
+tools.
 
 \begin{listing}
 \centering
@@ -145,10 +146,11 @@ prop_gt_5 = exists (\x -> x > 5)
 \caption{Using existential quantification in a property.}\label{lst:prop_gt_5}
 \end{listing}
 
-Higher-order properties are properties where some of the inputs are,
-themselves, functions.  To test such a property requires the tool to
-be able to generate functions.  Higher-order properties are invaluable
-in the testing of higher-order functions.
+Higher-order properties, such as in \Cref{lst:prop_map_fuse}, are
+properties where some of the inputs are, themselves, functions.  To
+test such a property requires the tool to be able to generate
+functions.  Higher-order properties are invaluable in the testing of
+higher-order functions.
 
 \begin{listing}
 \centering
@@ -158,17 +160,29 @@ prop_map_fuse xs f g = map g (map f xs) == map (g . f) xs
 \caption{Using higher-order functions in a property.}\label{lst:prop_map_fuse}
 \end{listing}
 
+In the context of concurrency, another way in which a property could
+be \emph{higher-order} is in taking an explicit schedule as an
+argument.  A list of scheduling decisions cannot be generated up
+front, as the property-testing tool cannot know which threads are
+runnable.  So instead we can generate a scheduler
+function\cite{ankuzik2014}.  This is one possible way to implement
+random testing of concurrent programs.
+
 \paragraph{Output}
-Despite not affecting the expressiveness of the tool, presenting
-output clearly is essential.  This is why
-QuickCheck\cite{claessen2000} shrinks counterexamples to find a local
-minimum.  However, shrinking and enumeration are not the only ways to
-produce small counterexamples.  Both SmartCheck\cite{pike2014} and
-Lazy SmallCheck\cite{runciman2008} can generalise counter\-examples.
-Generalising counterexamples directly can be more efficient than a
-shrinking process as in QuickCheck\cite{pike2014}.  Furthermore, it is
-often possible to produce a generalisation which is simpler than any
-concrete counterexample.
+How a tool presents its output is of great importance.  Randomly
+generated counterexamples, such as those found by
+QuickCheck\cite{claessen2000}, are often not minimal.  Searching for a
+local minimum by shrinking randomly generated counterexamples before
+displaying them is a common approach.  However, shrinking and
+enumeration are not the only ways to produce small counterexamples.
+Both SmartCheck\cite{pike2014} and Lazy SmallCheck\cite{runciman2008}
+can generalise counter\-examples.  Generalising counterexamples
+directly can be more efficient than a shrinking process as in
+QuickCheck\cite{pike2014}.  Furthermore, it is often possible to
+produce a generalisation which is simpler than any concrete
+counterexample.  \Cref{lst:gencntr} shows such a generalised
+counterexample.  The property here fails for lists which contain
+duplicates, the concrete value is unimportant.
 
 \begin{listing}
 \centering
@@ -185,8 +199,9 @@ x:x:_
 \end{listing}
 
 \paragraph{Beyond Haskell}
-While this is a thesis using Haskell, the interest in property-based testing is
-wider than that.
+Although this is a thesis using Haskell, a language particularly
+suited for property-based testing, the interest in property-based
+testing is wider than that.
 
 \begin{itemize}
 \item QuviQ provide a commercial version of QuickCheck for
@@ -237,7 +252,7 @@ When provided with the integers \verb|0| and \verb|1| and the
 functions \verb|id|, \verb|abs|, and \verb|(+)|, Speculate prints the
 properties in \Cref{lst:arith_props}.  QuickSpec discovers similar
 properties to \Cref{lst:arith_props0}, but not the inequalities and
-conditional equations.
+conditional equations in \Cref{lst:arith_props1}.
 
 \begin{listing}
 \begin{sublisting}{\textwidth}
@@ -301,9 +316,11 @@ techniques to discover properties that seem to hold.  These properties
 may include: pre- and post-conditions of statements, and equational
 relationships between variables at a given program point and functions
 from a library.  Daikon does not synthesise and test program terms,
-however.  It is only able to discover invariants which exist in the
-original program.  In contrast, the other tools described can discover
-properties that do not appear in the original program at all.
+however.  Daikon is provided with a grammar describing patterns of
+invariants, and reports which are observed to hold as the program
+executes.  Properties found by Daikon correspond to assertions which
+could be inserted into the program, whereas the other tools described
+here discover properties based on the program API.
 
 \paragraph{Concurrency testing}
 A variant of the Daikon tool discovers likely invariants of concurrent
@@ -333,19 +350,20 @@ p = NULL;
 \end{listing}
 
 \Cref{lst:cthreads} shows two threads accessing a shared pointer.  If
-the second thread sets \verb|p| to \verb|NULL| after the first checks
-that it is not but before dereferencing it, then an error will occur.
-Correct executions of the program will produce the invariant
-\verb|p == orig(p)| for that if-statement, meaning that \verb|p| is
-unchanged.  Buggy executions will not.  The authors argue that
-examining discrepancies between invariants can lead to greater
-understanding of the software under test and diagnosis of errors.
+Thread 2 executes \verb|p = NULL| after Thread 1 checks that
+\verb|p != NULL| but before it executes the assigment
+\verb|p->x += 10|, then an error will occur.  Correct executions of
+the program will produce the invariant \verb|p == orig(p)| for that
+if-statement, meaning that \verb|p| is unchanged.  Buggy executions
+will not.  The authors argue that examining discrepancies between
+invariants can lead to greater understanding of the software under
+test and diagnosis of errors.
 
 The \textsc{Determin} tool\cite{burnim2010} infers deterministic
-specifications for procedures which make use of internal parallelism,
-of which a program may have many.  These specifications are in the
-form of a precondition and a postcondition over program states.  If we
-use $P(s, \sigma)$ to denote the resulting program state after
+specifications for procedures which make use of internal parallelism.
+A program may have many such procedures.  These specifications are in
+the form of a precondition and a postcondition over program states.
+If we use $P(s, \sigma)$ to denote the resulting program state after
 executing procedure $P$ in an initial state $s$ with a schedule
 $\sigma$, then specifications are of the form,
 
