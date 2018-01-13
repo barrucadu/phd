@@ -7,7 +7,9 @@ available in the \package{concurrency} library.  We cover the basic
 use of concurrency~\sref{concurrent_haskell-threads}, the memory
 model~\sref{concurrent_haskell-mmodel}, software transactional
 memory~\sref{concurrent_haskell-stm}, and finally
-exceptions~\sref{concurrent_haskell-exc}.
+exceptions~\sref{concurrent_haskell-exc}.  We then walk through the
+development of a small example
+program~\sref{concurrent_haskell-example}.
 
 Throughout, we compare with the concurrency abstractions of
 Java\cite{lea1996} and Rust\cite{rust2011}.  Java because it is a
@@ -642,3 +644,184 @@ catchSTM :: Exception e => STM a -> (e -> STM a) -> STM a
 \end{listing}
 
 The \verb|orElse| function does not catch exceptions.
+
+\section{Example Program}
+\label{sec:concurrent_haskell-example}
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+import Control.Concurrent
+import Control.Monad
+
+main :: IO ()
+main = forever $ do
+  putStr "Enter a number of seconds: "
+  s <- getLine                   -- 1
+  forkIO (setReminder (read s))  -- 2
+
+setReminder :: Int -> IO ()
+setReminder s = do
+  putStrLn ("Starting a " ++ show s ++ " second timer.")
+  threadDelay (10^6 * s)        -- 3
+  putStrLn "Time is up!\BEL"    -- 4
+\end{cminted}
+\caption{A simple alarm program.}\label{lst:ch_ex1}
+\end{listing}
+%$
+
+\Cref{lst:ch_ex1} shows a simple program which prompts the user for a
+number of seconds and prints a message, as well as ringing the
+terminal bell, after that time.  This is a concurrent program.  The
+user can keep entering new delays before old ones have elapsed.
+Execution proceeds as follows:
+
+\begin{enumerate}
+\item Get a number of seconds from the user.
+\item Fork a thread to execute the \verb|setReminder| function, and
+  return to the prompt.
+\item The new thread delays for the given number of seconds.
+\item The new thread prints a message and sound the bell.
+\end{enumerate}
+
+We can extend this program to allow the user to type ``exit'' to quit.
+\Cref{lst:ch_ex2} shows the new \verb|main| function.  This program is
+similar to the original but, rather than using \verb|forever|, we use
+a custom recursive function; we also only loop in the case where the
+input is not ``exit.''
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+main :: IO ()
+main = loop where
+  loop = do
+    putStr "Enter a number of seconds, or \"exit\": "
+    s <- getLine
+    if s == "exit"
+      then pure ()
+      else do
+        forkIO (setReminder (read s))
+        loop
+\end{cminted}
+\caption{A simple alarm program, with an exit instruction.}\label{lst:ch_ex2}
+\end{listing}
+
+This program now demonstrates an important property of Haskell
+threading.  The user can quit even if there are reminder threads still
+running.  All Haskell threads terminate when the main thread does,
+regardless of what they are doing.  Haskell provides the simplest
+behaviour, leaving it to libraries to implement higher-level behaviour
+using these building blocks.
+
+\paragraph{Shared state}
+We can modify our program to only quit when every reminder is done.
+To achieve this, we need to know if there are any reminders
+outstanding.  One way to do this is to give every reminder thread an
+\verb|MVar|, which we write to when done.  \Cref{lst:ch_ex3} shows the
+new \verb|main| function.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+main :: IO ()
+main = loop [] where
+  loop vars = do
+    putStr "Enter a number of seconds, or \"exit\": "
+    s <- getLine
+    if s == "exit"
+      then mapM_ readMVar vars
+      else do
+        var <- newEmptyMVar
+        forkIO $ do
+          setReminder (read s)
+          putMVar var ()
+        loop (var:vars)
+\end{cminted}
+\caption{A simple alarm program, which blocks until every reminder is done.}\label{lst:ch_ex3}
+\end{listing}
+%$
+
+For each reminder, we create an empty \verb|MVar|.  A reminder thread
+fills its \verb|MVar| when done.  On exit, each \verb|MVar| is read
+from, which will block if the \verb|MVar| is still empty.
+
+So now the main thread will block until every reminder is done,
+however this approach is not very satisfactory.  Our \verb|MVar| list
+gains one element each time we set a reminder, so our program has
+linear space usage.  We can instead use a shared counter, and wait for
+the count to be zero before terminating.  \Cref{lst:ch_ex4} shows the
+new \verb|main| function.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+main :: IO ()
+main = loop =<< newMVar 0 where
+  loop var = do
+    putStr "Enter a number of seconds, or \"exit\": "
+    s <- getLine
+    if s == "exit"
+      then wait var
+      else do
+        modifyMVar_ var (+1)
+        forkIO $ do
+          setReminder (read s)
+          modifyMVar_ var (-1)
+        loop var
+  wait var =
+    c <- readMVar var
+    if c == 0 then pure () else wait var
+\end{cminted}
+\caption{A simple alarm program, which blocks until every reminder is done.}\label{lst:ch_ex4}
+\end{listing}
+%$
+
+So now, rather than have a constantly growing list, we just have a
+single \verb|MVar|.  When a new reminder is created the value in the
+\verb|MVar| is incremented.  When a reminder terminates the value in
+the \verb|MVar| is decremented.  However, this program has two flaws.
+Firstly, \verb|modifyMVar_| is not atomic: if two threads are updating
+the counter at the same time, one may undo the other's effect.
+Secondly, we wait for all reminder threads to be done by looping until
+a condition holds, which is inefficient.
+
+\paragraph{Software transactional memory}
+We can solve the two problems with the \verb|MVar|-counter approach
+using STM instead.  Transactions are atomic, so we can modify the
+counter atomically.  Transactions can be blocked until any referenced
+variables are updated, which is more efficient than repeatedly
+checking.  \Cref{lst:ch_ex5} shows the new \verb|main| function.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+main :: IO ()
+main = loop =<< newTVarIO 0 where
+  loop var = do
+    putStr "Enter a number of seconds, or \"exit\": "
+    s <- getLine
+    if s == "exit"
+      then wait var
+      else do
+        atomically (modifyTVar var (+1))
+        forkIO $ do
+          setReminder (read s)
+          atomically (modifyTVar var (-1))
+        loop var
+  wait var = atomically $ do
+    c <- readTVar var
+    if c == 0 then pure () else retry
+\end{cminted}
+\caption{A simple alarm program, which blocks until every reminder is done.}\label{lst:ch_ex5}
+\end{listing}
+
+It may not be obvious why reading a \verb|TVar| and aborting the
+transaction is more efficient than reading an \verb|MVar| and looping.
+But consider the scheduling behaviour.  The \verb|TVar| approach will
+block until another thread writes to it.  However, the \verb|MVar|
+approach will not block at all.  So in the \verb|MVar| case, the
+thread could be scheduled multiple times in a row, even though this is
+a waste of time.
+
+This is the final version of our program.
