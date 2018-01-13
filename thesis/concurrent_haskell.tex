@@ -825,3 +825,23 @@ thread could be scheduled multiple times in a row, even though this is
 a waste of time.
 
 This is the final version of our program.
+
+\section{Summary}
+
+Going forward, the reader should keep in mind:
+
+\begin{itemize}
+\item Haskell uses a green threading model.
+\item When the main thread terminates, all other threads do too.
+\item The scheduler can be influenced by yielding or delaying.
+\item There are two types of shared variable: \verb|IORef| and
+  \verb|MVar|.  The latter are kind of like semaphores.
+\item \verb|IORef| operations may appear to be re-ordered, depending
+  on the memory model of the processor.
+\item Haskell has STM.
+\item Haskell has asynchronous exceptions, which can be thrown between
+  threads.
+\end{itemize}
+
+We assume familiarity with Concurrent Haskell throughout the rest of
+the thesis.
