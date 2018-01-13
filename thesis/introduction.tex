@@ -1,7 +1,7 @@
 There is a tension between theory and practice in software
 engineering.  Whenever one programmer suggests some sophisticated
 technique or formalism, another will question its applicability to the
-\emph{real world}, a nebulous and undefined place.  Here is an
+\emph{real world}, a nebulous and under-specified place.  Here is an
 example:
 
 \begin{description}
@@ -14,33 +14,33 @@ example:
 Bob's concern is not unfounded.  While model checking can prove the
 absence of bugs, it can be difficult or resource-intensive to use.
 Whereas stress testing, aided by dynamic analyses like Clang's
-ThreadSanitizer\footnote{\url{https://clang.llvm.org/docs/ThreadSanitizer.html}}
-or Go's data race
-detector\footnote{\url{https://golang.org/doc/articles/race_detector.html}},
-is often effective at finding flaws.  Where testing falls down,
-however, is answering questions like:
+ThreadSanitizer\cite{serebryany2009} or Go's data race
+detector\cite{golang2017}, is often effective at finding flaws.  Where
+testing falls down, however, is answering questions like:
 
 \begin{itemize}
 \item How do we ensure that we're covering a variety of schedules?
 \item How do we know a that bug has been fixed?
-\item \emph{How much testing is enough?}
+\item How much testing is enough?
 \end{itemize}
 
-In this thesis, we follow a middle path: between the familiarity of
-testing and the power of model checking.  By leveraging
-\emph{systematic concurrency testing}, we enable programmers to test
-their concurrent programs deterministically, and confidently.
+In this thesis, we follow a middle path between the familiarity of
+testing and the power of model checking.  By using \emph{systematic
+  concurrency testing}, we enable programmers to test their concurrent
+programs deterministically, and confidently.
 
-We use Haskell is used in this thesis.  \Cref{app:haskell} gives a
-brief introduction to Haskell for the reader already somewhat familiar
-with functional programming.
+We use Haskell as the implementation language, and the source of the
+concurrency abstraction we target, in this thesis.  However, our work
+is not tied to Haskell.  \Cref{app:haskell} gives a brief introduction
+to Haskell for the reader already somewhat familiar with functional
+programming in other languages.
 
 \section{Parallelism vs Concurrency}
 \label{sec:intro-parconc}
 
-In many fields, `parallelism' and `concurrency' are synonyms, both
-referring to doing multiple things at once.  In programming, they
-refer to different but related concepts.
+The terms, \emph{parallelism} and \emph{concurrency} are broadly
+synonymous, both referring to doing multiple things at once.  In
+programming, they refer to different but related concepts.
 
 \paragraph{Parallelism}
 A parallel program uses a multiplicity of hardware to compute
@@ -51,9 +51,9 @@ two vectors, performing each multiplication simultaneously: it enables
 parallelism.
 
 \paragraph{Concurrency}
-A concurrent program uses a notion of multiple threads of control to
+A concurrent program uses multiple threads of control to
 structure the program.  These threads conceptually execute
-independently and the same time.  Whether threads actually do execute
+independently and at the same time.  Whether threads actually do execute
 simultaneously is an implementation detail.  A concurrent program can
 execute on a single-core machine through interleaved sequential
 execution just as it can execute on a multi-core machine in parallel.
@@ -61,33 +61,35 @@ A concurrency abstraction can guarantee parallelism (given suitable
 hardware), for example by having the ability to restrict the execution
 of individual threads to given processor cores.
 
-This thesis is concerned with concurrency, but parallelism does rear
-its head in the discussion of \emph{relaxed memory} in
-\Cref{chp:dejafu}.
+This thesis is concerned with concurrency, the \emph{relaxed memory}
+behaviour of modern processors, which shows up in the presence of
+parallelism, appears in \Cref{chp:dejafu}.
 
 \section{Goals and Contributions of this Thesis}
 \label{sec:intro-contributions}
 
-The primary contribution of this thesis is to demonstrate that
-concurrency testing techniques, typically described in the context of
-a simple core language, can be successfully applied to languages with
-rich concurrency abstractions.  This demonstration is in the form of a
-library for testing concurrent Haskell programs.
+The overall motivation of this research has been to develop tools
+which make it easier for programmers to write correct concurrent
+programs.
+
+The primary goal of this thesis is to demonstrate that concurrency
+testing techniques, typically described in the context of a simple
+core language, can be successfully applied to languages with rich
+concurrency abstractions.  This demonstration is in the form of a
+library for testing Concurrent Haskell programs.
 
 Our contributions are:
 
 \begin{itemize}
-\item A library for effectively testing concurrent Haskell programs.
+\item A library for effectively testing Concurrent Haskell programs,
+  in \Cref{chp:dejafu};
 \item A convincing demonstration that concurrency testing techniques
-  work well in a rich setting.
-\item A new scheduling algorithm for randomised testing.
+  work well in a rich setting, in \Cref{chp:dejafu};
+\item A new scheduling algorithm for randomised testing, in
+  \Cref{chp:algorithms};
 \item A tool for discovering properties of concurrent Haskell
-  functions.
+  functions, in \Cref{chp:coco}.
 \end{itemize}
-
-The overall motivation of this research has been to develop tools
-which make it easier for programmers to write correct concurrent
-programs.
 
 \section{Chapter Preview}
 \label{sec:intro-roadmap}
@@ -103,15 +105,14 @@ introduction to property testing in Haskell.
 
 \paragraph{\Cref{part:testing}}
 We present our contributions.  \Cref{chp:dejafu} gives an account of
-the \dejafu{} tool for testing concurrent Haskell programs, covering
+the \dejafu{} tool for testing concurrent Haskell programs, discussing
 the scope, implementation, and some case studies.
 \Cref{chp:algorithms} discusses an alternative scheduling algorithm
 for testing concurrent programs.  Finally, \Cref{chp:coco} gives an
 account of the CoCo tool for discovering properties of concurrent
-Haskell programs, covering the scope, implementation, some case
+Haskell programs, discussing the scope, implementation, some case
 studies, and shows how it connects to \dejafu{}.
 
 \paragraph{\Cref{part:end}}
-We evaluate the work and discuss our conclusions in
-\Cref{chp:conclusions} and suggest possible future work in
-\Cref{chp:future_work}.
+We present our overall conclusions in \Cref{chp:conclusions} and
+suggest possible future work in \Cref{chp:future_work}.
