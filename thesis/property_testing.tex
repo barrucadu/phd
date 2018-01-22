@@ -208,22 +208,18 @@ testing is wider than that.
 \begin{itemize}
 \item QuviQ provide a commercial version of QuickCheck for
   Erlang\cite{arts2006}.
-\item The popular JUnit library for Java provides built-in support for parameterised
-  tests\footnote{\url{https://github.com/junit-team/junit4/wiki/Parameterized-tests}},
-  whereas the
-  junit-quickcheck\footnote{\url{https://github.com/pholser/junit-quickcheck}}
-  library provides a more traditional property testing experience.
+\item The popular JUnit library for Java provides built-in support for
+  parameterised tests\cite{junit2017}, whereas the
+  junit-quickcheck\cite{holser2018} library provides a more
+  traditional property testing experience.
 \item The Go standard library provides a
-  testing/quick\footnote{\url{https://golang.org/pkg/testing/quick/}} module.
-\item The
-  Hypothesis\footnote{\url{https://github.com/HypothesisWorks/hypothesis-python}}
-  tool for Python implements property-based testing, but cannot do automated
-  type-directed input value generation due to Python's dynamic nature.
+  testing/quick\cite{golang2017tq} module.
+\item The Hypothesis\cite{hypothesis2018} tool for Python implements
+  property-based testing, but cannot do automated type-directed input
+  value generation due to Python's dynamic nature.
 \item NUnit, the common .NET unit testing library, allows tests to be
-  parameterised with random numeric
-  values\footnote{\url{https://github.com/nunit/docs/wiki/Random-Attribute}},
-  and with combinations of values of arbitrary
-  types\footnote{\url{https://github.com/nunit/docs/wiki/Values-Attribute}}.
+  parameterised with random numeric values\cite{nunit2017ra}, and with
+  combinations of values of arbitrary types\cite{nunit2017va}.
 \end{itemize}
 
 Although QuickCheck was arguably the first tool to popularise this style of
