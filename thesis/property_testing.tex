@@ -97,7 +97,7 @@ several tools for Haskell.
 ~~existential                 &\NN&\NN&\YY&\YY&\YY\\
 ~~higher order                &\YY&\YY&\YY&\YY&\YY\\ \midrule
 \textbf{Output}          &&&&&\\
-~~generalised counterexamples            &\NN&\YY&\NN&\YN&\NN\\
+~~generalised counterexamples            &\NN&\YY&\NN&\YN&\YN\\
 \bottomrule
 \multicolumn{6}{l}{
 \footnotesize
@@ -176,11 +176,13 @@ local minimum by shrinking randomly generated counterexamples before
 displaying them is a common approach.  However, shrinking and
 enumeration are not the only ways to produce small counterexamples.
 Both SmartCheck\cite{pike2014} and Lazy SmallCheck\cite{runciman2008}
-can generalise counter\-examples.  Generalising counterexamples
-directly can be more efficient than a shrinking process as in
-QuickCheck\cite{pike2014}.  Furthermore, it is often possible to
-produce a generalisation which is simpler than any concrete
-counterexample.  \Cref{lst:gencntr} shows such a generalised
+can generalise counter\-examples.  LeanCheck\cite{braquehais2017lean}
+can generalise counterexamples when used with the
+Extrapolate\cite{braquehais2017ifl} tool.  Generalising
+counterexamples directly can be more efficient than a shrinking
+process as in QuickCheck\cite{pike2014}.  Furthermore, it is often
+possible to produce a generalisation which is simpler than any
+concrete counterexample.  \Cref{lst:gencntr} shows such a generalised
 counterexample.  The property here fails for lists which contain
 duplicates, the concrete value is unimportant.
 
