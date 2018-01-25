@@ -116,13 +116,13 @@ is a simple technique which tends to work well in practice,
 QuickCheck\cite{claessen2000} is an example of a randomised property
 testing tool.  Alternatively, we may assume that there is some
 enumeration likely to expose useful counterexamples.
-SmallCheck\cite{runciman2008} and LeanCheck\cite{braquehais2017lean}
-enumerate values in size order, on the assumption that most bugs are
-exhibited by simple counterexamples.  As simple counterexamples are
-more useful to the programmer than large ones, random approaches must
-have an additional \emph{shrinking} step, to try and remove
-unnecessary complexity from counterexamples, which enumerative
-approaches may not need.
+SmallCheck\cite{runciman2008} and LeanCheck\cite{leancheck} enumerate
+values in size order, on the assumption that most bugs are exhibited
+by simple counterexamples.  As simple counterexamples are more useful
+to the programmer than large ones, random approaches must have an
+additional \emph{shrinking} step, to try and remove unnecessary
+complexity from counterexamples, which enumerative approaches may not
+need.
 
 \paragraph{Property DSL}
 A more expressive property language complicates implementation, but
@@ -209,17 +209,17 @@ testing is wider than that.
 \item QuviQ provide a commercial version of QuickCheck for
   Erlang\cite{arts2006}.
 \item The popular JUnit library for Java provides built-in support for
-  parameterised tests\cite{junit2017}, whereas the
-  junit-quickcheck\cite{holser2018} library provides a more
+  parameterised tests\cite{parameterized_tests}, whereas the
+  junit-quickcheck\cite{junit_quickcheck} library provides a more
   traditional property testing experience.
 \item The Go standard library provides a
-  testing/quick\cite{golang2017tq} module.
-\item The Hypothesis\cite{hypothesis2018} tool for Python implements
-  property-based testing, but cannot do automated type-directed input
-  value generation due to Python's dynamic nature.
+  testing/quick\cite{testing_quick} module.
+\item The Hypothesis\cite{hypothesis_python} tool for Python
+  implements property-based testing, but cannot do automated
+  type-directed input value generation due to Python's dynamic nature.
 \item NUnit, the common .NET unit testing library, allows tests to be
-  parameterised with random numeric values\cite{nunit2017ra}, and with
-  combinations of values of arbitrary types\cite{nunit2017va}.
+  parameterised with random numeric values\cite{random_attribute}, and with
+  combinations of values of arbitrary types\cite{values_attribute}.
 \end{itemize}
 
 Although QuickCheck was arguably the first tool to popularise this style of

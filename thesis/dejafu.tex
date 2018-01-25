@@ -1,9 +1,10 @@
-\begin{bquote}{Thief of Time, Terry Pratchett\nocite{pratchett2001}}
+\begin{displayquote}
   % hack to stop the displayquote from eating the [
-  {[}\dejafu{} is] A martial art in which the user's limbs move in time
-  as well as space, [\ldots] It is best described as ``the feeling
-  that you have been kicked in the head this way before.''
-\end{bquote}
+  {[}\dejafu{} is] A martial art in which the user's limbs move in
+  time as well as space, [\ldots] It is best described as ``the
+  feeling that you have been kicked in the head this way
+  before.''\cite{pratchett2001}
+\end{displayquote}
 
 \noindent
 Specialised tools are necessary to test concurrent programs.  In this
@@ -415,13 +416,13 @@ mutable references directly.  This means that executing our step
 function has effects, and in general contexts should not be re-used.
 This is not a limitation in practice because we never want to re-use
 contexts.  We could include the heap state in our context, by using a
-heterogeneous map type\footnote{Like the \inlpackage{vault} library.},
-however the additional indirection both increases allocation, and
-reduces the efficacy of garbage collection.  By using Haskell mutable
-references directly, when all copies of a reference fall out of scope,
-the referenced value can be garbage collected; whereas if we model
-references as keys into a heap, then such data can never be freed, as
-we cannot tell when it is safe to delete something from our heap.
+heterogeneous map type, however the additional indirection both
+increases allocation, and reduces the efficacy of garbage collection.
+By using Haskell mutable references directly, when all copies of a
+reference fall out of scope, the referenced value can be garbage
+collected; whereas if we model references as keys into a heap, then
+such data can never be freed, as we cannot tell when it is safe to
+delete something from our heap.
 
 \begin{listing}
 \centering
@@ -886,8 +887,8 @@ expect.
 \dejafu{} has quite a few small functions which are used extensively,
 and which have some invariants relating them.  For example, the three
 functions making up the dependency relation in
-\Cref{sec:dejafu-testing}.  We use LeanCheck\cite{braquehais2017lean}
-to check these invariants.
+\Cref{sec:dejafu-testing}.  We use LeanCheck\cite{leancheck} to check
+these invariants.
 
 \paragraph{Integration tests}
 Most of the tests are integration tests, consisting of a small
@@ -906,7 +907,7 @@ into the following classes:
   implementation, ensuring that all expected relaxed behaviours are
   observed.
 \item Tests which selectively discard results.
-\item A copy of the \package{async} test suite, for our
+\item A copy of the async\cite{async} test suite, for our
   \verb|MonadConc| version.
 \item A collection of refinement tests from CoCo, which we shall
   discuss in \Cref{chp:coco}.
@@ -916,13 +917,11 @@ into the following classes:
 
 \paragraph{Example programs}
 Finally, we have a collection of larger integration tests which serve
-also as example usages of \dejafu{}: the \package{auto-update} and
-\textbf{Search
-  Party}\footnote{\url{https://github.com/barrucadu/search-party}}
-libraries, which we shall discuss in \Cref{sec:dejafu-casestudies};
-the Dining Philosophers problem; a message queue; and an example of
-testing typeclass laws using QuickCheck\cite{claessen2000} and
-concurrency.
+also as example usages of \dejafu{}: the auto-update\cite{auto_update}
+and search-party\cite{search_party} libraries, which we shall discuss
+in \Cref{sec:dejafu-casestudies}; the Dining Philosophers problem; a
+message queue; and an example of testing typeclass laws using
+QuickCheck\cite{claessen2000} and concurrency.
 
 \subsection{Correct Execution}
 
@@ -954,14 +953,14 @@ Our stepwise execution of concurrent programs allows a scheduling
 decision to be made between each primitive action, which doesn't
 correspond to how GHC handles scheduling:
 
-\begin{bquote}{Control.Concurrent module documentation\footnote{\url{https://hackage.haskell.org/package/base-4.10.0.0/docs/Control-Concurrent.html\#g:13}}}
+\begin{displayquote}
   GHC implements pre-emptive multitasking: the execution of threads
   are interleaved in a random fashion.  More specifically, a thread may
   be pre-empted whenever it allocates some memory, which unfortunately
   means that tight loops which do no allocation tend to lock out other
   threads (this only seems to happen with pathological benchmark-style
-  code, however).
-\end{bquote}
+  code, however).\cite{control_concurrent}
+\end{displayquote}
 
 So there are executions involving the pre-emption of the evaluation of
 non-terminating expressions which are possible under GHC but not under
@@ -1045,11 +1044,11 @@ core DPOR algorithm, which establishes property (2).
 
 Three case studies are discussed, two of which are from pre-existing
 libraries which have been modified to use the \verb|MonadConc|
-abstraction.  A known bug is reproduced in the \package{auto-update}
-library.  Then, there is a bug which arose unintentionally in the
-implementation of a library for expressing parallel search problems.
-Finally, one of the schedulers in the \package{monad-par} package is
-tested.
+abstraction.  A known bug is reproduced in the
+auto-update\cite{auto_update} library.  Then, there is a bug which
+arose unintentionally in the implementation of a library for
+expressing parallel search problems.  Finally, one of the schedulers
+in the Par monad\cite{marlow2011} package is tested.
 
 \subsection{The auto-update Package}
 
@@ -1104,10 +1103,10 @@ catchSome act = catch act $
   \caption{The implementation of the auto-update package.}\label{lst:example-autoupdate}
 \end{listing}
 
-The \textbf{auto-update} library runs tasks periodically, but only if
-needed.  For example, a single worker thread may get the time every
-second and store it to a shared \verb|CRef|, rather than have many
-threads starting within a second of each other all get the time
+The auto-update\cite{auto_update} library runs tasks periodically, but
+only if needed.  For example, a single worker thread may get the time
+every second and store it to a shared \verb|CRef|, rather than have
+many threads starting within a second of each other all get the time
 independently.  Despite the core functionality being simple, a race
 condition was noticed by users inspecting the code in October 2014.
 
@@ -1152,7 +1151,7 @@ exceptions in the main thread, and nondeterminism.
         [deadlock] S0--------S1-----------S0-
 \end{cminted}
 %$
-\caption{An example of a race condition in the \textbf{auto-update} library.}\label{lst:example-autoupdate1}
+\caption{An example of a race condition in the auto-update library.}\label{lst:example-autoupdate1}
 \end{listing}
 
 In \dejafu{}'s abbreviated trace output, $Sn$ indicates that
@@ -1179,13 +1178,12 @@ concurrent programs!
 
 \subsection{Search Party}
 
-The \textbf{Search Party}\footnote{\url{https://github.com/barrucadu/search-party}}
-library supports speculative parallelism in generate-and-test search
-problems.  It is motivated by the consideration that if multiple
-acceptable solutions exist, it may not matter which one is returned.
-In early versions of the library, only single results could be
-returned, but support for returning all results was later added,
-incorrectly, introducing a bug.
+The search-party\cite{search_party} library supports speculative
+parallelism in generate-and-test search problems.  It is motivated by
+the consideration that if multiple acceptable solutions exist, it may
+not matter which one is returned.  In early versions of the library,
+only single results could be returned, but support for returning all
+results was later added, incorrectly, introducing a bug.
 
 The library provides a collection of combinators used to express a
 generate-and-test problem, which are executed using a concurrent
@@ -1207,7 +1205,7 @@ case maybea of
       process remaining res
   Nothing -> process remaining res
 \end{cminted}
-\caption{A key piece of the \textbf{search-party} worker loop.}\label{lst:example-searchparty1}
+\caption{A key piece of the search-party worker loop.}\label{lst:example-searchparty1}
 \end{listing}
 
 \Cref{lst:example-searchparty1} shows a key part of the worker loop.
@@ -1237,7 +1235,7 @@ is blocked upon when the result of the search is requested.
         [1] S0------S1-----S0---P3-P2------------S0-------
 \end{cminted}
 %>>
-\caption{An example of a race condition in the \textbf{search-party} library.}\label{lst:example-searchparty2}
+\caption{An example of a race condition in the search-party library.}\label{lst:example-searchparty2}
 \end{listing}
 
 When returning all results of a nondeterministic generate-and-test
@@ -1321,10 +1319,10 @@ makeScheds main = do
     \end{cminted}
     \caption{\dejafu{}}\label{lst:example-parmonad-sched-dejafu}
   \end{sublisting}
-  \caption{The \textbf{monad-par} `direct' scheduler initialisation.}\label{lst:example-parmonad-sched}
+  \caption{The Par monad `direct' scheduler initialisation.}\label{lst:example-parmonad-sched}
 \end{listing}
 
-The \package{monad-par} library\cite{marlow2011} provides a
+The Par monad\cite{marlow2011} provides a
 traditional-looking concurrency abstraction, giving the programmer
 threads and mutable state, however it maintains determinism by
 restricting its shared variables to one write, and read operations
@@ -1347,11 +1345,11 @@ library compiled once more.
 Some simplifications were made in the conversion process:
 
 \begin{itemize}
-\item The scheduler uses the \package{mwc-random} library to fairly
-  distribute work to the worker threads.  By default, the initial seed
-  is an effectively random value.  As systematic testing requires that
-  the scheduler be the only source of nondeterminism, we fixed the
-  random seed.
+\item The scheduler uses the mwc-random\cite{mwc_random} library to
+  fairly distribute work to the worker threads.  By default, the
+  initial seed is an effectively random value.  As systematic testing
+  requires that the scheduler be the only source of nondeterminism, we
+  fixed the random seed.
 \item Behaviour of the scheduler can be configured using cpp, but we
   only ported the default configuration.
 \end{itemize}
@@ -1361,10 +1359,10 @@ scheduler initialisation code.  As can be seen, they are similar, even
 though this is a core component of a rather sophisticated library,
 where the types have been changed.  \Cref{tbl:example-parmonad-diff}
 breaks down the changes across both files.  Code changes are broken
-down into `renames,' where the \textbf{concurrency} library simply
-provides a different name for a function, and `logic,' where that was
-not the case.  The logic changes were all places where a call to
-\verb|liftIO| or \verb|lift| was now necessary, and inserting uses of
+down into `renames,' where the concurrency library simply provides a
+different name for a function, and `logic,' where that was not the
+case.  The logic changes were all places where a call to \verb|liftIO|
+or \verb|lift| was now necessary, and inserting uses of
 \verb|getNumCapabilities|.
 
 \begin{table}
@@ -1379,7 +1377,7 @@ not the case.  The logic changes were all places where a call to
     Logic changes & 16 & 0 \\ \midrule
     \emph{Total} & 75 & 26 \\ \bottomrule
   \end{tabular}
-  \caption{Breakdown of changes to port the \textbf{monad-par} `direct' scheduler.}\label{tbl:example-parmonad-diff}
+  \caption{Breakdown of changes to port the Par monad `direct' scheduler.}\label{tbl:example-parmonad-diff}
 \end{table}
 
 No deadlock or nondeterminism was discovered for a small test program,
@@ -1424,7 +1422,7 @@ storage systems for future supercomputers.  They cannot share specific
 details of their work for commercial reasons, but one developer had
 this to say:
 
-\begin{bquote}{Email correspondence about a slow test}
+\begin{displayquote}
   Regarding the test case: we have an implementation of a distributed
   storage cluster, with possibly many nodes and parallel requests.
   The storage system itself is composed of several layers, which can
@@ -1434,8 +1432,9 @@ this to say:
 
   I'd like to add that dejafu tests are by far the most reliable tests
   in our suite, in my experience - I am yet to see a concurrency bug
-  that they didn't spot, while some other tests missed them!
-\end{bquote}
+  that they didn't spot, while some other tests missed
+  them!\cite{tweag2017}
+\end{displayquote}
 
 \subsection{Richness of the Abstraction}
 
@@ -1526,21 +1525,21 @@ can be done to improve this matter.
 \subsection{Library Alternatives}
 
 There are popular Haskell libraries specifically for concurrency.  One
-of these is the \package{async} library, for expressing asynchronous
+of these is the async\cite{async} library, for expressing asynchronous
 computations.  This library is intended to be a higher-level and safer
 way of expressing asynchronous computations with guaranteed cleanup
 than using threading, mutable state, and asynchronous exceptions
 directly.
 
-The \textbf{concurrency} package, which provides \verb|MonadConc|,
-includes an alternative to \textbf{async} using \verb|MonadConc|.
-There is a test suite using \dejafu{}.  The test suite for
-\textbf{async} itself just runs most tests a single time, although one
-of them is run 1000 times.  Using \dejafu{} here to automatically seek
-out interesting schedules is a much more principled approach then
-repetition and hope.  Not all features of \textbf{async} are
-supported, however.  As we do not currently support bound threads,
-those functions that use them have been omitted.
+The concurrency package, which provides \verb|MonadConc|, includes an
+alternative to async using \verb|MonadConc|.  There is a test suite
+using \dejafu{}.  The test suite for async itself just runs most tests
+a single time, although one of them is run 1000 times.  Using
+\dejafu{} here to automatically seek out interesting schedules is a
+much more principled approach then repetition and hope.  Not all
+features of async are supported, however.  As we do not currently
+support bound threads, those functions that use them have been
+omitted.
 
 This is just one library, and providing an alternative library people
 will have to switch to is far from optimal.  However, until library
@@ -1551,24 +1550,24 @@ this if I can't use it with anything I use already?'
 \subsection{Tool Integration}
 
 There are two popular libraries for unit testing in Haskell,
-\package{HUnit} and \package{tasty}.  From the perspective of the
+HUnit\cite{hunit} and Tasty\cite{tasty}.  From the perspective of the
 user, the libraries are similar, but from the perspective of the
 implementer, they have different approaches to integration.  The
-\package{hunit-dejafu} and \package{tasty-dejafu} packages provide
-integration with both.
+hunit-dejafu\cite{hunit_dejafu} and tasty-dejafu\cite{tasty_dejafu}
+packages provide integration with both.
 
 These packages provide a common set of testing functions, an analogue
 of Test.DejaFu but constructing values representing individual tests
 which the frameworks can run, rather than executing and printing
-results directly.  The \package{test-framework} library is also in
-common use, however it supports integration with \textbf{HUnit}, and
-so needs no special support of its own.
+results directly.  The test-framework\cite{test_framework} library is
+also in common use, however it supports integration with HUnit, and so
+needs no special support of its own.
 
-The \textbf{tasty} library is more featureful than \textbf{HUnit},
-supporting progress reporting, giving a message on success as well as
-failure, and command-line arguments.  The \textbf{tasty-dejafu}
-package is similar to the \textbf{hunit-dejafu} package and does not
-make use of these additional features.
+The Tasty library is more featureful than HUnit, supporting progress
+reporting, giving a message on success as well as failure, and
+command-line arguments.  The tasty-dejafu package is similar to the
+hunit-dejafu package and does not make use of these additional
+features.
 
 \section{Conclusions}
 \label{sec:dejafu-conclusions}

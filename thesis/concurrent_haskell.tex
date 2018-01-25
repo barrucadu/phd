@@ -3,8 +3,8 @@ Haskell\cite{peytonjones1996,peytonjones2005}.  As we use Haskell for
 our implementation language, we wish to support as much of Concurrent
 Haskell as possible.  Concurrency is not in the Haskell standard, so
 we are specifically considering GHC here.  These operations are
-available in the \package{concurrency} library.  We cover the basic
-use of concurrency~\sref{concurrent_haskell-threads}, the memory
+available in the concurrency\cite{concurrency} library.  We cover the
+basic use of concurrency~\sref{concurrent_haskell-threads}, the memory
 model~\sref{concurrent_haskell-mmodel}, software transactional
 memory~\sref{concurrent_haskell-stm}, and finally
 exceptions~\sref{concurrent_haskell-exc}.  We then walk through the
@@ -324,7 +324,7 @@ to say:
   The implementation is required to ensure that reordering of memory operations
   cannot cause type-correct code to go wrong.  In particular, when inspecting
   the value read from an \verb|IORef|, the memory writes that created that value
-  must have occurred from the point of view of the current thread.\cite{ghc2017}
+  must have occurred from the point of view of the current thread.\cite{data_ioref}
 \end{displayquote}
 
 In our work, we support the Total Store Order~(TSO) and Partial Store
@@ -375,7 +375,8 @@ use of \verb|IORef|s.
 Modern processor architectures provide an atomic
 \emph{compare-and-swap} instruction, which is typically used in
 implementing lock-free algorithms\cite{dice2013}.  The
-\package{atomic-primops} package provides a model of this instruction.
+atomic-primops\cite{atomic_primops} package provides a model of this
+instruction.
 
 \begin{listing}
 \centering
@@ -569,7 +570,7 @@ Rust does not really have exceptions.  The \verb|panic| function,
 shown in \Cref{lst:excs_rust}, raises an error which, if uncaught,
 kills the current thread.  The \verb|catch_unwind| function can be
 used to execute a closure and recover from a panic, but it is not
-guaranteed to catch all panics\cite{rust2018}, making panics
+guaranteed to catch all panics\cite{catch_unwind}, making panics
 unsuitable as a general control-flow mechanism.  The typical Rust
 approach is, like Haskell, to return a type indicating success or
 failure.

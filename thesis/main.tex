@@ -96,10 +96,6 @@
 \pretocmd{\chapter}{\addtocontents{lol}{\protect\addvspace{10\p@}}}{}{}
 \makeatother
 
-% Quotes
-\usepackage{xparse}
-\NewDocumentEnvironment{bquote}{m}{\begin{displayquote}}{\par\noindent(#1)\end{displayquote}}
-
 % Cross references
 \usepackage[nameinlink]{cleveref}
 
@@ -124,8 +120,6 @@
 
 % Miscellaneous
 \newcommand{\dejafu}{D\'{e}j\`{a}~Fu}
-\newcommand{\package}[1]{\textbf{#1}\footnote{\url{https://hackage.haskell.org/package/#1}}}
-\newcommand{\inlpackage}[1]{\textbf{#1} (\url{https://hackage.haskell.org/package/#1})}
 \newcommand{\arr}{$\rightarrow$}
 \renewcommand{\implies}{\Rightarrow}
 
