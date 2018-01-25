@@ -324,7 +324,7 @@ to say:
   The implementation is required to ensure that reordering of memory operations
   cannot cause type-correct code to go wrong.  In particular, when inspecting
   the value read from an \verb|IORef|, the memory writes that created that value
-  must have occurred from the point of view of the current thread.\cite{ioref}
+  must have occurred from the point of view of the current thread.\cite{ghc2017}
 \end{displayquote}
 
 In our work, we support the Total Store Order~(TSO) and Partial Store
