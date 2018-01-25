@@ -34,13 +34,16 @@ require support from the runtime system.  In particular, we do not
 support:
 
 \begin{itemize}
-\item Blocking a thread until a file descriptor becomes available, as this
-  introduces an additional source of nondeterminism.
-\item Throwing an exception to a thread if it becomes deadlocked, as we cannot
-  reliably detect deadlock involving only a subset of threads without support
-  from the garbage collector.
-\item Querying which capability (OS thread) a Haskell thread is running on, as
-  this introduces an additional source of nondeterminism.
+\item Operations to block a thread until a file descriptor becomes
+  available, as this introduces an additional source of
+  nondeterminism.
+\item Operations to query which capability (OS thread) a Haskell
+  thread is running on, as this introduces an additional source of
+  nondeterminism.
+\item Automatically detecting if a thread is deadlocked on an
+  \verb|MVar| or \verb|TVar| and throwing an exception to it, as we
+  cannot reliably detect deadlock involving only a subset of threads
+  without support from the garbage collector.
 \end{itemize}
 
 We also do not yet support \emph{bound threads}: a Haskell thread
