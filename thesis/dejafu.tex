@@ -871,11 +871,54 @@ nothing is made up,' or:
 \end{description}
 
 There is also the concern of correctness of the implementation with
-respect to the theory.  We do not concern ourselves with that issue in
-this thesis, only noting that humans are fallible and that there have
-been bugs in \dejafu{} before now.  There are almost certainly still
-bugs.  Whenever a bug is discovered, a test reproducing it is added to
-the test suite and the underlying issue is fixed.
+respect to the theory.  We do not attempt to formally verify the
+implementation, but we do have an extensive test suite.  Testing a
+testing tool is a little different to testing a regular program.  Most
+of our tests consist of \emph{nondeterministic} programs, where we
+want to verify that \dejafu{} finds precisely the behaviours we
+expect.
+
+\paragraph{Property tests}
+\dejafu{} has quite a few small functions which are used extensively,
+and which have some invariants relating them.  For example, the three
+functions making up the dependency relation in
+\Cref{sec:dejafu-testing}.  We use LeanCheck\cite{braquehais2017lean}
+to check these invariants.
+
+\paragraph{Integration tests}
+Most of the tests are integration tests, consisting of a small
+concurrent program and a property to check.  A failure in such an
+integration test could in principle be anywhere in \dejafu{}, and so
+hard to isolate and fix, but in practice failures in different
+components tend to manifest differently.  Our integration tests fall
+into the following classes:
+
+\begin{itemize}
+\item Single threaded tests for the \verb|MonadConc| primitives,
+  ensuring that only the single correct behaviour is observed.
+\item Multi-threaded tests for the \verb|MonadConc| primitives,
+  ensuring that the expected nondeterminism is observed.
+\item So-called \emph{litmus tests} for the relaxed memory
+  implementation, ensuring that all expected relaxed behaviours are
+  observed.
+\item Tests which selectively discard results.
+\item A copy of the \package{async} test suite, for our
+  \verb|MonadConc| version.
+\item A collection of refinement tests from CoCo, which we shall
+  discuss in \Cref{chp:coco}.
+\item Finally, a collection of regression tests for bugs which have
+  been fixed.
+\end{itemize}
+
+\paragraph{Example programs}
+Finally, we have a collection of larger integration tests which serve
+also as example usages of \dejafu{}: the \package{auto-update} and
+\textbf{Search
+  Party}\footnote{\url{https://github.com/barrucadu/search-party}}
+libraries, which we shall discuss in \Cref{sec:dejafu-casestudies};
+the Dining Philosophers problem; a message queue; and an example of
+testing typeclass laws using QuickCheck\cite{claessen2000} and
+concurrency.
 
 \subsection{Correct Execution}
 
@@ -893,14 +936,6 @@ others.  \verb|CRef| operations are particularly complicated, as their
 behaviour depends on the underlying memory model, which is
 unspecified.  We chose TSO, but ignore the possibility that the GHC
 optimiser or code generator could affect the memory model.
-
-We justify the correctness of our implementation with comprehensive
-testing: there are many test cases, checking that \dejafu{} exhibits
-behaviours which we consider realistic.  The relaxed memory
-implementation is particularly difficult to test, for that we have a
-collection of \emph{litmus tests} which we can evaluate many thousands
-of times using \verb|IO| and compare to the results \dejafu{}
-produces.
 
 Furthermore, there are some intentional semantic differences for
 practical concerns.  For example, GHC can sometimes detect deadlocks
