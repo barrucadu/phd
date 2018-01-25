@@ -398,7 +398,7 @@ sequencing.  Finally, the \verb|MonadFail| instance alows signalling a pattern
 match failure in a monadic expression.  \dejafu{} aims to support the latest
 three major releases of GHC, and so we use conditional compilation here.
 
-\paragraph{Operational Semantics}
+\paragraph{Operational semantics}
 We give an operational semantics for Haskell concurrency in the form of a step
 function on primitive actions.  Given the current state, which we call the
 \emph{context}, the identifier of the chosen thread, and its primitive action,
@@ -434,7 +434,7 @@ pure id <*> v
 \caption{Expansion of the \texttt{Applicative} identity law.}\label{lst:areturn}
 \end{listing}
 
-\paragraph{Nonterminating Executions}
+\paragraph{Nonterminating executions}
 \dejafu{} is only able to make scheduling decisions at the level of
 primitive actions, which means that if evaluating a primitive action
 does not terminate, \dejafu{} will hang.  We deliberately break the
@@ -488,7 +488,7 @@ newtype Scheduler state = Scheduler
 \caption{The \dejafu{} \texttt{Scheduler} type.}\label{lst:scheduler}
 \end{listing}
 
-\paragraph{Success and Failure}
+\paragraph{Success and failure}
 When testing concurrent computations, we are interested in both
 success and failure.  If a computation succeeds and returns a value,
 we want to know that; if it fails and deadlocks, we also want to know
@@ -551,7 +551,7 @@ models the behaviour of modern x86 processors\cite{owens2009}.  The
 use of a relaxed memory model can require a much larger number of
 schedules when \verb|CRef|s are shared between threads.
 
-\paragraph{Write Buffering}
+\paragraph{Write buffering}
 We model relaxed memory by introducing buffers for thread writes.  When a thread
 writes to a \verb|CRef|, the write is appended to its buffer.  When a thread
 reads from a \verb|CRef|, it reads the value of the newest write in its buffer,
@@ -636,7 +636,7 @@ operations impose a \emph{memory barrier}, committing all writes;
 the same \verb|CRef|; and \emph{unsynchronised} operations never cause
 a commit.
 
-\paragraph{Phantom Threads}
+\paragraph{Phantom threads}
 In a sequentially consistent memory model, the set of runnable threads is
 exactly the set of threads created by forking which are not blocked.  Under
 relaxed memory, however, this is not the case.  For each write buffer, we
@@ -680,7 +680,7 @@ To make the tool easier to use, we provide a collection of different
 testing functions, with varying levels of detail exposed, hoping that
 the defaults will suffice for most users.
 
-\paragraph{Dependency Relation}
+\paragraph{Dependency relation}
 Correct DPOR relies on a dependency relation between pairs of actions
 in a schedule trace.  This relation may have false positives, but
 cannot have false negatives.  False positives may lead to exploring
@@ -762,7 +762,7 @@ variables and memory barriers.  The other cases which are handled by
 exceptions, STM transactions, and getting and setting the number of
 capabilities.
 
-\paragraph{Sleep Sets}
+\paragraph{Sleep sets}
 The sleep set optimisation is a complementary approach to
 DPOR\cite{flanagan2005,godefroid1996} which we use to further reduce
 schedules explored.  The intuition is as follows: if we have a choice
@@ -788,7 +788,7 @@ continue until all transitions in $T$ have been explored, at each step
 adding the previously taken transitions to the sleep set of the new
 state, and removing the dependent transitions.
 
-\paragraph{Schedule Bounding}
+\paragraph{Schedule bounding}
 \dejafu{} supports pre-emption bounding\cite{musuvathi2007}, fair
 bounding\cite{musuvathi2008}, and length bounding.  Fair and length
 bounding allow the testing of cyclic or potentially infinite
@@ -797,7 +797,7 @@ aborting the execution of their program when it is still runnable.
 All three bounds are enabled by default, but can be selectively
 disabled or customised.
 
-\paragraph{Daemon Threads}
+\paragraph{Daemon threads}
 A daemon thread is a thread which is automatically killed after the
 last non-daemon thread terminates.  They do not prevent termination of
 the program.  In Haskell, every thread other than the main thread is a
@@ -929,7 +929,7 @@ a possible execution under \dejafu{}?  Both of these come with the
 caveat that the behaviour can be different, as long as this difference
 can't be observed.
 
-\paragraph{Program Behaviour}
+\paragraph{Program behaviour}
 There is no standard for concurrent Haskell, there is only what GHC
 provides.  The behaviour of many operations is clear, but not so for
 others.  \verb|CRef| operations are particularly complicated, as their
@@ -945,7 +945,7 @@ threads signalling this.  We cannot do this.
 So the behaviour of \dejafu{} is not correct, but we hope it is as
 close as can reasonably be achieved.
 
-\paragraph{Possible Executions}
+\paragraph{Possible executions}
 Our stepwise execution of concurrent programs allows a scheduling
 decision to be made between each primitive action, which doesn't
 correspond to how GHC handles scheduling:
@@ -972,7 +972,7 @@ results for which no schedule will be generated?  This is different to
 the testing framework generating every schedule, as that is precisely
 what DPOR tries to avoid.
 
-\paragraph{Prefix Validity}
+\paragraph{Prefix validity}
 Executions are stored internally as a stack, shown in \Cref{lst:dpor}.
 The sequence of thread IDs corresponding to this stack represents a
 complete execution of the program.  There is a unique initial state,
@@ -1021,7 +1021,7 @@ well-formedness properties hold, and the runnable sets are correctly
 recorded during execution, then a generated schedule prefix will be
 valid.
 
-\paragraph{Schedule Completeness}
+\paragraph{Schedule completeness}
 The DPOR machinery should find every possible result of a given
 program.  However, as schedule bounding is involved, this is not the
 case.  So we have two slightly different notions of completeness:
