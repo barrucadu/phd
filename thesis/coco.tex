@@ -69,7 +69,8 @@ over \verb|MVar|s: put, take, and read.  To \emph{put} is to block
 until the \verb|MVar| is empty and then set its value.  To \emph{take}
 is to block until the \verb|MVar| is full, remove its value, and
 return the value.  To \emph{read} is to \emph{take}, but without
-emptying the \verb|MVar|.
+emptying the \verb|MVar|.  Each function has a non-blocking \emph{try}
+variant, which returns an indicator of success.
 
 \begin{listing}
 \centering
@@ -146,7 +147,6 @@ convenience of reference, we have added numbers to the CoCo
 properties.  These numbers are not included in the normal output of
 the tool.
 
-
 \begin{listing}
 \centering
 \begin{cminted}{text}
@@ -160,11 +160,33 @@ the tool.
 
 Property (1) shows that \verb|readMVar| is idempotent; (2) shows that
 it is not merely a take followed by a put, it is rather a distinct
-operation; (3) and (4) show that it does not modify the \verb|MVar|.
+operation; (3) and (4) show that it does not modify the \verb|MVar|,
+and that it does not block when the \verb|MVar| is full.  Property (4)
+may appear to be type-incorrect, but remember that CoCo does not
+consider equality of term results, only the effects.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{p{7.5em}p{7.5em}p{7.5em}p{7.5em}} \toprule
+  Term       & Seed           & Final State & Deadlocks \\ \midrule
+  Read       & \verb|Nothing| & \verb|Just 42| & No  \\
+             & \verb|Just 0|  & \verb|Just 0|  & No  \\
+  Take / Put & \verb|Nothing| & \verb|Just 42| & No  \\
+             & \verb|Just 0|  & \verb|Just 0|  & No  \\
+             &                & \verb|Just 42| & Yes \\ \bottomrule
+\end{tabular}
+\caption{The behaviours of the terms in property (2).}
+\label{tbl:behaviours}
+\end{table}
+
 We see the effect of the interference in (2): with no other producers,
 this would be an equivalence; it is only when interference by another
 thread is introduced that the equivalence breaks down and the
-distinction is revealed.
+distinction is revealed.  \Cref{tbl:behaviours} shows the possible
+behaviours.  This property is a strict refinement because, while the
+behaviours for the seed value \verb|Nothing| are the same, the
+behaviours of the left term for the seed value \verb|Just 0| are a
+strict subset of the behaviours of the right.
 
 \paragraph{Background expressions}
 Sometimes when expressing properties it is necessary to call upon
@@ -318,8 +340,8 @@ threads: the term thread executing the term itself, and an
 \emph{interference thread}.  The term thread may fork additional
 threads.  The interference thread is essential to distinguish
 refinement from equality in some cases.  For example, the equivalence
-in \Cref{lst:prop_mvar3} holds only when is no concurrent producer for
-the same \verb|MVar|.
+in \Cref{lst:prop_mvar3} holds only when there is no concurrent
+producer for the same \verb|MVar|.
 
 \begin{listing}
 \centering
@@ -400,7 +422,9 @@ problem by first producing all properties between the pair of schemas,
 and then pruning properties which are simple consequences of another.
 Property $P_2$ is made redundant by property $P_1$ if (1) both $P_1$
 and $P_2$ are equivalences or both are refinements; and (2) $P_1$ has
-a more general allocation of variables to holes.
+a more general allocation of variables to holes.  As \verb|->-| is
+\emph{strict} refinement, it is impossible for both \verb|S === T| and
+\verb|S ->- T| to hold.
 
 \paragraph{Smallest schemas}
 To avoid discovering the same property multiple times, we maintain a
@@ -544,14 +568,15 @@ With this signature, CoCo discovers the properties in
 \Cref{lst:lockstack2}, where the initialisation function constructs a
 stack from a list, the observation function converts it back to a
 list, and the interference function sets the contents of the stack to
-a given list.  Here \verb#|||# is concurrent composition.  Property
-(6) may seem surprising: the left term returns the top of stack
-whereas the right term returns the value pushed.  Remember that CoCo
-does not consider equality of results when determining properties,
-only the effect on the state.  Property (7) is a consequence of (6).
-Property (8) is analogous to the \verb|readMVar| properties presented
-in \Cref{sec:coco-example}, as we might expect given how the stack
-operations are defined.
+a given list.  Here \verb|whenJust| is defined as
+\verb|\f s -> maybe (pure ()) (`f` s)| and \verb#|||# is concurrent
+composition.  Property (6) may seem surprising: the left term returns
+the top of stack whereas the right term returns the value pushed.
+Remember that CoCo does not consider equality of results when
+determining properties, only the effect on the state.  Property (7) is
+a consequence of (6).  Property (8) is analogous to the
+\verb|readMVar| properties presented in \Cref{sec:coco-example}, as we
+might expect given how the stack operations are defined.
 
 \paragraph{Buggy functions}
 Suppose we add an \emph{incorrect} \verb|push2| function, which is
@@ -641,12 +666,13 @@ A feature of CoCo that differentiates it from other property-discovery
 tools is the ability to compare two different signatures which have
 compatible observation types.  We can compare the \verb|MVar| and
 \verb|CRef| stacks by simply supplying both signatures to the tool,
-which then reports, amongst others, the correspondences in
-\Cref{lst:stacks}.  Here we use the list observation again.  Functions
-with names ending \verb|M| are for \verb|MVar| stacks, functions with
-names ending \verb|C| for \verb|CRef| stacks.  These properties tell
-us what we want to know: the \verb|CRef| stack is equivalent to the
-\verb|MVar| stack.
+each of which contains \verb|push|, \verb|pop|, \verb|peek|,
+\verb|whenJust|, and \verb#|||#.  CoCo then reports 19 properties,
+including the three in \Cref{lst:stacks}.  Here we use the list
+observation again.  Functions with names ending \verb|M| are for
+\verb|MVar| stacks, functions with names ending \verb|C| for
+\verb|CRef| stacks.  These properties tell us what we want to know:
+the \verb|CRef| stack is equivalent to the \verb|MVar| stack.
 
 \begin{listing}
 \centering
@@ -687,7 +713,7 @@ type C = Concurrency
 
 sig :: Sig (QSemN C) Int Int
 sig = Sig
-  { initialState = new . abs
+  { initialise = new . abs
   , expressions =
     [ lit "wait"   (wait   :: QSemN C -> Int -> C ())
     , lit "signal" (signal :: QSemN C -> Int -> C ())
@@ -699,9 +725,9 @@ sig = Sig
     , lit "0" (0 :: Int)
     , lit "1" (1 :: Int)
     ]
-  , observation = \q _ -> remaining q
-  , backToSeed  = \q _ -> remaining q
-  , setState = \q n -> let i = n `div` 2 in wait q i >> signal q i
+  , observe    = \q _ -> remaining q
+  , interfere  = \q n -> let i = n `div` 2 in wait q i >> signal q i
+  , backToSeed = \q _ -> remaining q
   }
 \end{cminted}
 \caption{CoCo signature for the \texttt{QSemN} type.}
@@ -721,16 +747,16 @@ interfere by taking and then replacing half of the resource.  The
 interference thread is interleaved with the term thread, so it may
 cause the term thread to block.
 
-CoCo finds many properties in this example, so in the remainder of the
+CoCo finds 57 properties in this example, so in the remainder of the
 subsection we only discuss selected properties.
 
 \paragraph{Waiting and signalling}
 CoCo tells us in properties (11) and (12) that the effect of waiting
 for zero resource and of signalling the availability of zero resource
-are the same --- neither affects the state of the semaphore.
-Additionally, property (11) shows that waiting for zero resource is
-not a neutral operation, as if it were CoCo would prune the property
-away.  This suggests that \verb|wait| may block.
+are the same --- neither affects the state of the semaphore.  Property
+(11) shows that waiting for zero resource is not a neutral operation,
+as if it were CoCo would prune the property away.  This suggests that
+\verb|wait| may block.
 
 \begin{listing}
 \centering
@@ -745,19 +771,18 @@ away.  This suggests that \verb|wait| may block.
 \end{listing}
 
 CoCo also finds properties (13) and (14), revealing another
-implementation detail which is not strictly guaranteed by the abstract
-definition of a semaphore.  If we extend our signature with \verb|abs|
-and \verb|negate|, a more general property (15), that signalling a
-positive resource \verb|n| appears to be equivalent to \emph{waiting
-  for a negative resource} \verb|-n|, is found.
+implementation detail, that the programmer can \verb|wait| for a
+negative value instead of calling \verb|signal|.  We might suspect
+that the more general property \verb|signal @ x === wait @ (-x)| holds
+for all positive \verb|x|.  CoCo finds this form, property (15), if we
+extend our signature with \verb|abs| and \verb|negate|.
 
 \paragraph{A lack of composability}
-CoCo reports a strict refinement, property (16), involving
-\verb|signal| and \verb|wait|, which we might expect to be an
-equivalence.  The only interference we have specified may occur is
-taking and then returning half of the original resource.  So surely
-releasing a quantity of resource and then claiming it again should be
-fine?
+CoCo reports some strict refinements involving \verb|signal| and
+\verb|wait|, properties (16--18), where we might expect equivalences.
+We have just seen with property (15) that funny things happen with
+negative numbers, so it should be no surprise that these refinements
+are only equivalences when \verb|x| and \verb|x1| are positive.
 
 \begin{listing}
 \centering
@@ -768,11 +793,6 @@ fine?
 \end{cminted}
 \caption{Properties suggesting a lack of composability.}\label{lst:sem3}
 \end{listing}
-
-We also get two properties, (17) and (18), solely about \verb|signal|.
-Surely signaling the availability of a sum is the same as signaling
-the availability of its constituent parts?  As we are about to see, it
-is due to negative values that these are only refinements.
 
 \paragraph{Types}
 Signalling or awaiting a negative quantity is a breach of the
@@ -936,6 +956,19 @@ all play their part as well.  Furthermore, \dejafu{} implements its
 own optimisations which reduce the time to discover all behaviours of
 a term.
 
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrrrrrrr} \toprule
+  Term size           &  1     &   2    &   3    &   4    &     5   &     6   &      7 &      8 \\ \midrule
+  Schemas             & 15     &  29    &  56    &  88    &   238   &   385   &   1689 &   2740 \\
+  Properties          &  0     &   0    &   0    &   0    &     1   &     1   &     55 &     55 \\
+  Time (s)            &  0.03  &   0.03 &   0.45 &   0.45 &     9.2 &     9.2 &    970 &    970 \\ \midrule
+  Time / schema$^{2}$ & 1.3e-4 & 3.6e-5 & 1.4e-4 & 5.8e-5 & 1.6e-4  & 6.2e-5  & 3.4e-4 & 1.3e-4 \\ \bottomrule
+\end{tabular}
+\caption{Scaling behaviour of the semaphore case study.}
+\label{tbl:coco-scaling}
+\end{table}
+
 Optimisations \textbf{O1} and \textbf{O2} aim to remove uninteresting
 properties from the CoCo output.  Even though \textbf{O1} was not
 motivated by performance, it reduces execution time in the stack and
@@ -945,28 +978,22 @@ reduces the amount of evaluation work to be done.  Optimisations
 are clear wins here.
 
 Despite these optimisations, the semaphore example still takes around
-15 minutes to run.  This is because CoCo does not recognise cases
-where one schema is an instance of another.  \Cref{lst:redundant}
-shows an example.
+15 minutes to run.  \Cref{tbl:coco-scaling} shows how the semaphore
+case study scales as the term size increases.  The execution time
+grows rapidly, but the time to compare each schema against each other
+schema, as happens during property discovery, does not.  So reducing
+the number of schemas is the most effective way to reduce the
+execution time.
 
-\begin{listing}
-\centering
-\begin{cminted}{text}
-signal @ x
-signal @ 0
-signal @ 1
-\end{cminted}
-\caption{Redundant schemas.}\label{lst:redundant}
-\end{listing}
-
-Such schemas arise when the signature includes constants.  The `most
-general term' optimisation does not apply here, as these are three
-\emph{different} schemas, it just so happens that two of the schemas
-are instances of another.  Constants in signatures are necessary as
-CoCo does not synthesise preconditions.  If it did, constants could be
-omitted, as any properties which require a specific value for a
-parameter would be found as a precondition.  Property (11) in the
-semaphore example would instead become:
+One such area for future improvement is in cases where one schema is
+an instance of another.  Such schemas may arise when the signature
+includes constants.  For example, the schema \verb|signal @ 1| is an
+instance of \verb|signal @ x|.  The `most general term' rule does not
+apply here, as these are \emph{different} schemas.  Constants in
+signatures are necessary as CoCo does not synthesise preconditions.
+If it did, constants could be omitted, as any properties which require
+a specific value for a parameter would be found as a precondition.
+Property (11) in the semaphore example would instead become:
 
 \begin{listing}
 \centering
