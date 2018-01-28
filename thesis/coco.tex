@@ -7,11 +7,12 @@ example~\sref{coco-example}.  We explain how properties are
 discovered~\sref{coco-hiw} and argue the correctness of our
 approach~\sref{coco-correctness}.  We then present two further
 examples~\sref{coco-cases}.  Next we discuss how CoCo properties can
-be incorporated into a \dejafu{} test suite.  Finally, we present
-conclusions and evaluate the approach~\sref{coco-conclusions}.
+be incorporated into a \dejafu{} test suite~\sref{coco-dejafu}.
+Finally, we present conclusions and evaluate the
+approach~\sref{coco-conclusions}.
 
-This chapter is derived from our previous work \todo{todo: cite when
-  published}.
+This chapter is derived from our previous work \cite{tfp-coco} and
+\cite{flops-coco}.
 
 \section{Key Concerns of Observing Concurrent Programs}
 \label{sec:coco-concerns}
@@ -30,8 +31,9 @@ what it means for two concurrent programs to be related.
 If we restrict the nondeterminism in our program to schedule
 nondeterminism, we can use systematic concurrency testing
 (SCT)\cite{coons2013,flanagan2005,musuvathi2008,musuvathi2007}
-techniques as implemented in \dejafu{} to produce the set of results
-of a generated program fragment.
+techniques as implemented in \dejafu{}, discussed in
+\Cref{chp:dejafu}, to produce the set of results of a generated
+program fragment.
 
 \paragraph{Interference}
 We do not know what sort of interference may lead to interesting
@@ -84,10 +86,11 @@ readMVar :: MVar Concurrency Int -> Concurrency Int
 
 Allowing shared values of type \verb|Int|, we obtain the type
 signatures in \Cref{lst:mvar_types}.  Here \verb|Concurrency| is an
-implementation of the \verb|MonadConc| typeclass, provided by CoCo.
-The \verb|MVar| type is an abstract type defined in \verb|MonadConc|,
-with the concrete type determined by the monad used.  In this case the
-concrete type is defined as part of \dejafu{}.
+implementation of the \verb|MonadConc| typeclass from
+\Cref{chp:dejafu}, provided by CoCo.  The \verb|MVar| type is an
+abstract type defined in \verb|MonadConc|, with the concrete type
+determined by the monad used.  In this case the concrete type is
+defined as part of \dejafu{}.
 
 \begin{listing}
 \centering
@@ -116,10 +119,11 @@ sig = Sig
 \end{listing}
 
 \paragraph{Signatures}
-When we use CoCo, we must provide the functions and values which may
-appear in properties.  We must also provide a way to initialise the
-state, an observation function, and an interference function.  We call
-this collection of programmer-supplied definitions the
+When we use CoCo, we must provide four things: (1) the functions and
+values which may appear in properties; (2) a way to initialise the
+state; (3) an observation function; and (4) an interference function.
+
+We call this collection of programmer-supplied definitions the
 \emph{signature}.  \Cref{lst:mvar} shows a signature for \verb|MVar|
 operations.  The initialisation function constructs an empty or a full
 \verb|MVar|.  The interference function simply stores a new value.
@@ -141,11 +145,10 @@ execution conditions.
 
 \paragraph{Discovering properties}
 \Cref{lst:mvar_props1} shows the properties which CoCo discovers given
-\verb|putMVar|, \verb|takeMVar|, and \verb|readMVar|.  In this output,
-\verb|@| is the state argument, which is the \verb|MVar|.  For
-convenience of reference, we have added numbers to the CoCo
-properties.  These numbers are not included in the normal output of
-the tool.
+the signatures in \Cref{lst:mvar}.  In this output, \verb|@| is the
+state argument, which is the \verb|MVar|.  For convenience of
+reference, we have added numbers to the CoCo properties.  These
+numbers are not included in the normal output of the tool.
 
 \begin{listing}
 \centering
@@ -216,7 +219,8 @@ consumes, it will never alter the value in a full \verb|MVar|.
 
 The example in this section takes about 1.5 seconds to run, and the
 output displayed here is the output of the tool, aside from the
-property numbers.
+property numbers.  We discuss further performance results in
+\Cref{sec:coco-conclusions}.
 
 \section{How CoCo Works}
 \label{sec:coco-hiw}
@@ -276,23 +280,23 @@ type Term   s = Expr s Void
 \end{listing}
 
 Our expression representation is shown in \Cref{lst:exprrep}.  The
-\verb|Expr| type is parameterised by the state type and a \emph{hole}
-type.  The state parameter ensures expressions that assume different
-execution contexts cannot be inadvertently combined.  The hole
-parameter allows for a statically enforced distinction between schemas
-and terms.  Each \verb|Expr| constructor carries around a type (except
-the state, which is implicit).  In most of the implementation we hide
-the details of this representation and instead provide \emph{smart
-  constructor} functions to ensure only well-typed expressions can be
-constructed.
+\verb|Expr| type is parameterised by a state type \verb|s| and a
+\emph{hole} type \verb|h|.  The state parameter ensures expressions
+that assume different execution contexts cannot be inadvertently
+combined.  The hole parameter allows for a statically enforced
+distinction between schemas and terms.  Each \verb|Expr| constructor
+carries around a representation of its type (except the state, which
+is implicit).  In most of the implementation we hide the details of
+this representation and instead provide \emph{smart constructor}
+functions to ensure only well-typed expressions can be constructed.
 
 \paragraph{Schema generation}
 Generating new schemas is straightforward.  We give expressions a
 notion of \emph{size}, corresponding roughly to the size of the
 \verb|Expr| tree.  Schemas are generated in size order.  The needed
 expressions of size 1 are supplied in the user's signature.  For
-larger sizes we combine appropriately sized pairings of already
-generated schemas and keep the type-correct ones.
+larger sizes we combine appropriately sized subexpressions represented
+by already generated schemas and keep the type-correct ones.
 
 We interleave generation with evaluation and property discovery.  In
 this way we can partition schemas into equivalence classes and use
@@ -320,7 +324,7 @@ For example, the generation of the schema
 \item Combine \verb|push| and \verb|@| to produce \verb|push @|
 \item Combine \verb|push @| and \verb|?| to produce \verb|push @ ?|
 \item Combine \verb|pop @| and \verb|push @ ?| to produce both
-  \verb|pop @ >> push @ ?| and \verb|pop @ >>= \x -> push @ x|.
+  \verb|pop @ >> push @ ?|\\and \verb|pop @ >>= \x -> push @ x|.
 \end{enumerate}
 
 To avoid name clashes, bound variables use de Bruijn
@@ -354,17 +358,17 @@ readMVar @  ===  takeMVar @ >>= \x -> putMVar @ x
 To avoid repeated work, we compute the behaviours of all the terms for
 a schema when it is generated.  We annotate each schema with some
 metadata, including its behaviour-sets, and compare these cached
-behaviours later when discovering properties.  While possibly a
-significant space cost, storing this data reduces the execution time
-of some of our test applications from hours to minutes.  We discuss
-this further in \Cref{sec:coco-conclusions}.
+behaviours later when discovering properties.  Storing this data is a
+space cost, but reduces the execution time of some of our test
+applications from hours to minutes.  We present performance
+measurements in \Cref{tbl:coco_scale}.
 
 \paragraph{Deriving terms from schemas}
 One schema may have many term instances.  \Cref{lst:schematerms} shows
 an example of a schema with two holes of one type and two of another.
-From this, we can produce four semantically distinct terms.  We can
-order the terms by number of distinct variables.  The term with the
-most variables is the \emph{most general term}.
+From this one schema, we can produce four semantically distinct terms.
+We can order the terms by number of distinct variables.  The term with
+the most variables is the \emph{most general term}.
 
 \begin{listing}
 \centering
@@ -455,7 +459,9 @@ most general term instance is (1)~always atomic; (2)~never fails; and
 We use a heuristic method based on execution traces to determine if a
 schema is atomic, and use the seed values to determine if it modifies
 the state.  If a schema is judged to be neutral, we do not use it when
-constructing larger schemas.
+constructing larger schemas.  If a schema is, falsely, judged to not
+be neutral then it will be incorporated into larger schemas: adding to
+the execution cost of CoCo and generating new properties.
 
 \paragraph{Projection to a common namespace}
 We compute the behaviours of every term individually, yet we construct
@@ -473,13 +479,65 @@ properties between them: at most one for each projection.  In
 practice, most of these properties are consequences of more general
 ones.  We only keep the most general.
 
+\subsection{The CoCo Algorithm}
+\label{sec:coco-hiw-algo}
+
+In outline, the CoCo algorithm is:
+
+\begin{enumerate}
+\item For all sizes 1 to the limit:
+  \begin{enumerate}
+  \item Generate all well-typed schemas of this size.
+  \item For each such schema:
+    \begin{enumerate}
+    \item Record the results of evaluating its most general term.
+    \item Check if the schema is neutral and, if so, annotate it.
+    \item For each smaller schema, which has not been annotated as
+      `not smallest':
+      \begin{enumerate}
+      \item Discover properties between the two.
+      \item Display any such properties to the user.
+      \end{enumerate}
+    \end{enumerate}
+  \end{enumerate}
+\end{enumerate}
+
+To implement step 1(b)iii we must keep track of all previously
+generated schemas.  Conveniently, this makes it simple to incorporate
+schemas provided in the user's signature: we simply include them in
+the initial state and thereafter treat them like any other schema.
+
+\paragraph{Property discovery}
+Given two schemas \verb|S| and \verb|T| where \verb|S| is larger than
+\verb|T|, we discover properties between the two like so:
+
+\begin{enumerate}
+\item For each term \verb|St| of \verb|S| and \verb|Tt| of \verb|T|:
+  \begin{enumerate}
+  \item For each projection \verb|P| between \verb|St| and \verb|Tt|:
+    \begin{enumerate}
+    \item Let \verb|Str| be \verb|St| renamed according to \verb|P|.
+    \item Let \verb|Ttr| be \verb|Tt| renamed according to \verb|P|.
+    \item Check if \verb|Str === Ttr|, \verb|Ttr ->- Str|, or
+      \verb|Str ->- Ttr|.
+    \item In the first two cases, annotate \verb|S| as `not smallest'.
+    \end{enumerate}
+  \end{enumerate}
+\item Discard any properties made redundant by a more general one.
+\item Return the remaining properties.
+\end{enumerate}
+
+Our approach differs from QuickSpec\cite{claessen2010,smallbone2017}
+in step 1(a)iii, where we compare sets of term behaviours rather than
+term results.
+
 \section{Soundness and Completeness}
 \label{sec:coco-correctness}
 
 Correctness for CoCo states that only true properties are reported,
 and that all true properties where the terms involved fit into the
-size bound are reported.  As with \dejafu{}, we do not concern
-ourselves here with the formal correctness of the CoCo implementation.
+size bound are reported.  As with \dejafu{}, we do not attempt a proof
+of formal correctness for the CoCo implementation.
 
 \paragraph{Soundness}
 There are two potential sources of unsoundness in CoCo.  Firstly,
@@ -503,11 +561,10 @@ possible behaviours of a term, for each set of inputs considered, are
 found.
 
 \paragraph{Completeness}
-If we assume that CoCo is sound (and so never incorrectly says a
-property is true or false), there are two remaining potential sources
-of incompleteness.  Firstly, some schemas are discarded when
-generating new ones; and secondly, properties are thrown away which
-are judged to be consequences of another.
+There are two potential sources of incompleteness in CoCo.  Firstly,
+some schemas are discarded when generating new ones; and secondly,
+properties are thrown away which are judged to be consequences of
+another.
 
 A property between two terms cannot be discovered if either term is
 simply not generated.  When generating new schemas, CoCo tries all
@@ -520,9 +577,36 @@ typeclass use will be discarded.
 We do not require CoCo to report properties which are implied by
 another.  As many terms correspond to the same schema, and many
 projections correspond to the same pair of terms, in general there
-will be many such redundant properties.  We use a simple syntactic
+will be many such redundant properties.  We use two simple syntactic
 criteria to determine whether one property implies another, rather
-than attempting any logical analysis.
+than attempting any deeper logical analysis.
+
+A property between terms \verb|A1| and \verb|B1| is made redundant by
+another property between \verb|A2| and \verb|B2| if both properties
+are refinements or both are equivalences, and:
+
+\begin{itemize}
+\item If \verb|A1| and \verb|A2| are both renamings of the same term
+  \verb|A| (similarly for \verb|B1| and \verb|B2|), and the renaming
+  which generates \verb|A2| and \verb|B2| is strictly more general
+  than the renaming which generates \verb|A1| and \verb|B1|.
+
+  For example, the property \verb|f x === g x y| is made redundant by
+  \verb|f x === g y z|, as the latter has a strictly more general
+  renaming.  But it is not made redundant by \verb|f x === g y x|.
+
+\item If \verb|A1| and \verb|A2| are both terms generated from the
+  same schema \verb|A| (similarly for \verb|B1| and \verb|B2|), and
+  \verb|A2| is strictly more general than \verb|A1|, and \verb|B2| is
+  strictly more general than \verb|B1|.
+
+  For example, the term \verb|f x x| is less general than \verb|f x y|,
+  so \verb|f x x ->- g x x| is made redundant by
+  \verb|f x y ->- g x y|.
+\end{itemize}
+
+So we consider separately (1) identification of variables between
+terms, and (2) mapping holes to single variables.
 
 \section{Case Studies}
 \label{sec:coco-cases}
@@ -551,8 +635,9 @@ peek (LockStack v) = fmap listToMaybe (readMVar v)
 
 \paragraph{Lock-based stacks}
 Mutable stacks are commonly used for synchronisation amongst multiple
-threads.  A simple mutable stack is just an immutable list inside an
-\verb|MVar| shared variable, as in \Cref{lst:lockstack}.
+threads, for example see \cite{dodds2015}.  A simple mutable stack is
+just an immutable list inside an \verb|MVar| shared variable, as in
+\Cref{lst:lockstack}.
 
 \begin{listing}
 \centering
@@ -626,7 +711,7 @@ previously could.
 (10)    push x1 @  ===  push x @ >> push x1 @
 whenJust push @ m  ===  whenJust (push2 x) @ m
 \end{cminted}
-\caption{Changing the observation changes the properties.}\label{lst:lockstack4}
+\caption{Changing the observation function to \texttt{peek} changes the properties discovered.}\label{lst:lockstack4}
 \end{listing}
 
 It is important to bear in mind that there is no \emph{best}
@@ -665,8 +750,8 @@ peek (CASStack r) = fmap listToMaybe (readCRef r)
 A feature of CoCo that differentiates it from other property-discovery
 tools is the ability to compare two different signatures which have
 compatible observation types.  We can compare the \verb|MVar| and
-\verb|CRef| stacks by simply supplying both signatures to the tool,
-each of which contains \verb|push|, \verb|pop|, \verb|peek|,
+\verb|CRef| stacks by simply supplying \emph{both signatures} to the
+tool, each of which contains \verb|push|, \verb|pop|, \verb|peek|,
 \verb|whenJust|, and \verb#|||#.  CoCo then reports 19 properties,
 including the three in \Cref{lst:stacks}.  Here we use the list
 observation again.  Functions with names ending \verb|M| are for
@@ -686,9 +771,9 @@ pushM x @  ===  pushC x @
 
 A common approach when first writing a program is to do everything in
 a simple and clearly correct fashion.  After checking correctness, we
-may gradually rewrite components to meet performance requirements.  At
-which point testing must establish that the rewritten components
-preserve the behaviour.  The ability to determine observational
+may gradually rewrite components to meet performance requirements.
+Testing must establish that the rewritten components still exhibit the
+original behaviour.  The ability to determine observational
 equivalence of different implementations of the same API is an
 alternative to the more-common unit-testing for this
 task\cite{he1986}.
@@ -697,14 +782,15 @@ task\cite{he1986}.
 \label{sec:coco-cases-semaphore}
 
 A semaphore is a synchronisation primitive used to regulate access to
-some resource.  A semaphore can be thought of as a record of how many
-units of some abstract resource are available, with operations to
-adjust the record in a race-free way.  \emph{Binary semaphores} only
-have two states, and are used to implement locks. \emph{Counting
-  semaphores} have an arbitrary number of states.  An implementation
-of counting semaphores is provided in the Control.Concurrent.QSemN
-library module.  As with the \verb|MVar| and \verb|CRef|, \dejafu{}
-provides a typeclass-generalised version which we use here.
+some resource\cite{ewd123}.  A semaphore can be thought of as a record
+of how many units of some abstract resource are available, with
+operations to adjust the record in a race-free way.  \emph{Binary
+  semaphores} only have two states, and are used to implement
+locks. \emph{Counting semaphores} have an arbitrary number of states.
+An implementation of counting semaphores is provided in the
+Control.Concurrent.QSemN library module.  As with the \verb|MVar| and
+\verb|CRef|, \dejafu{} provides a typeclass-generalised version which
+we use here.
 
 \begin{listing}
 \centering
@@ -830,9 +916,9 @@ be unrepresentable.
 \section{Using CoCo Properties in \dejafu{}}
 \label{sec:coco-dejafu}
 
-The CoCo output is not syntactically valid Haskell.  \texttt{@} is not
-a legal identifier, and the signatures are implicit.  So properties
-cannot simply be copied into a test suite.
+By default, CoCo output is not syntactically valid Haskell.  The
+symbol \texttt{@} is not a legal identifier, and the signatures are
+implicit.  So properties cannot simply be copied into a test suite.
 
 \paragraph{Pretty-printing}
 CoCo properties are represented as a pair of expressions and the
@@ -876,11 +962,11 @@ an initialisation function, an observation function, an interference
 function, and a single expression to evaluate.  \Cref{lst:coco_ppr}
 uses signature functions, which take the expression and produce a
 signature.  These functions are called \texttt{sigL} because the
-general form of a CoCo invocation provides two signatures to compare,
-discovering properties of a single signature is a special case of
-this.  So these properties use the `left signature,' if two signatures
-were being compared, there would also be reference to a \texttt{sigR}
-(the `right signature').
+general form of a CoCo invocation provides two signatures to compare.
+Discovering properties of a single signature is a special case.  So
+these properties use \verb|sigL|, the `left signature,' if two
+signatures were being compared, there would also be reference to a
+\texttt{sigR} (the `right signature').
 
 CoCo provides a function, \texttt{cocoToDejaFu}, to convert a CoCo
 signature into a \dejafu{} signature function.
@@ -902,13 +988,13 @@ CoCo must first generate and evaluate many expressions smaller than
 $n$ and $m$.  \dejafu{} just needs to evaluate the two terms in the
 property.
 
-Similarly to typical property-testing tools like
-QuickCheck\cite{claessen2000}, \dejafu{} uses typeclass polymorphism
-to enable testing properties which take arguments.  If \texttt{f x} is
-testable, and \texttt{x} is of some type which can be enumerated by
-LeanCheck, then \verb|\x -> f x| is testable.
+Like property-testing tools such as QuickCheck\cite{claessen2000},
+\dejafu{} uses typeclass polymorphism to enable testing properties
+which take arguments.  If \texttt{f x} is testable, and \texttt{x} is
+of some type which can be enumerated by LeanCheck\cite{leancheck},
+then \verb|\x -> f x| is testable.
 
-\section{Evaluation and Conclusions}
+\section{Evaluation}
 \label{sec:coco-conclusions}
 
 Our aim is to help programmers overcome the difficulty of testing
@@ -934,8 +1020,9 @@ properties reported by CoCo are surprisingly accurate in practice.
 These properties can provide helpful insights into the behaviour of
 functions.  As demonstrated in the semaphore case study, surprising
 properties can suggest that implementations of some functions rely on
-unstated assumptions.  It can be difficult to read concurrent source
-code and grasp all its consequences.
+unstated assumptions.  Even without such implementation surprises, it
+can be difficult to read concurrent source code and grasp all its
+consequences.
 
 \paragraph{Ease of use}
 Ideally, a testing tool should not force the programmer to structure
@@ -1005,7 +1092,8 @@ x == 0  ==>  wait @ x  ===  wait @ x >> wait @ x
 
 Constants could be removed from the signature, indirectly solving the
 performance problem.  In addition, discovering preconditions would
-make CoCo able to find properties beyond its current reach.
+make CoCo able to find properties beyond its current
+reach\cite{braquehais2017}.
 
 \begin{table}
   \centering
@@ -1020,7 +1108,7 @@ make CoCo able to find properties beyond its current reach.
       \textbf{O4} Off & 26.62 & 2.114 & 8 \\
       \emph{All Off}  & 26.21 & 8.027 & 9 \\ \bottomrule
     \end{tabular}
-    \caption{The \texttt{MVar} example~\sref{coco-example}}\label{tbl:coco_scale_mvar}
+    \caption{The \texttt{MVar} example~\sref{coco-example}.}\label{tbl:coco_scale_mvar}
   \end{subtable}
 
   % [layout hack]: no gap between the tables otherwise
@@ -1037,7 +1125,7 @@ make CoCo able to find properties beyond its current reach.
       \textbf{O4} Off & 32341 & 22.71 &  7 \\
       \emph{All Off}  & 54352 & 57.31 & 29 \\ \bottomrule
     \end{tabular}
-    \caption{The stack example~\sref{coco-cases}}\label{tbl:coco_scale_stack}
+    \caption{The stack example~\sref{coco-cases}.}\label{tbl:coco_scale_stack}
   \end{subtable}
 
   % [layout hack]: no gap between the tables otherwise
@@ -1054,7 +1142,7 @@ make CoCo able to find properties beyond its current reach.
       \textbf{O4} Off &  99490 & 242.6 & 55 \\
       \emph{All Off}  & 102759 & 408.7 & 59 \\ \bottomrule
     \end{tabular}
-    \caption{The semaphore example~\sref{coco-cases}}\label{tbl:coco_scale_sem}
+    \caption{The semaphore example~\sref{coco-cases}.}\label{tbl:coco_scale_sem}
   \end{subtable}
 
   \raggedright \footnotesize
