@@ -549,8 +549,12 @@ We can increase confidence in the correctness of CoCo properties by
 increasing the number of test cases, but the fundamental problem
 remains.  CoCo is not a model checker, and it is always possible that
 the next input tried after we ceased testing would have been a
-counterexample.  For finite types, however, we can consider all
-inputs.
+counterexample.  This problem is made worse by the need to achieve
+acceptable performance.  Evaluating terms takes time, so to improve
+performance we wish to minimise the number of evaluations, and so the
+number of distinct inputs each term is tried with.  If a term takes a
+wide data type as a parameter, there may be constructors of this data
+type which are simply not tested at all.
 
 The incompleteness of \dejafu{} can be solved with additional time.
 \dejafu{} offers a complete mode.  CoCo does not use it because it is
@@ -1155,3 +1159,37 @@ reach\cite{braquehais2017}.
 
   \caption{How optimisations alter CoCo's scaling behaviour.}\label{tbl:coco_scale}
 \end{table}
+
+\section{Summary}
+
+In this chapter we introduced CoCo, our tool for automatically
+discovering properties of concurrency functions operating on shared
+state.  Properties are equivalences and refinements between the
+observable effects of terms, in the presence of concurrent
+interference.  We use an approach similar to
+QuickSpec\cite{smallbone2017} and Speculate\cite{braquehais2017}, but
+instead consider \emph{sets of observations of effects} rather than
+\emph{equality of results}.
+
+CoCo properties are conjectures supported only by a finite number of
+test cases, but are surprisingly accurate in practice.  However, there
+are some weaknesses: for example, data types with many constructors
+are a poor fit for the small number of enumerative tests we perform to
+decide if a property holds or not.  We have not attempted a formal
+proof of correctness of CoCo.
+
+We have demonstrated the approach with three examples: \texttt{MVar}
+operations, concurrent stacks, and semaphores.  The semaphore example
+revealed some surprising details about negative numbers, reinforcing
+our belief that automatically discovered properties aid program
+understanding.
+
+\paragraph{Context}
+CoCo does not stand alone, it is related to our other contributions:
+
+\begin{itemize}
+\item \Cref{chp:dejafu} presents \dejafu{}, the underlying tool which
+  CoCo builds on to test its concurrent expressions.  \dejafu{}
+  supports testing CoCo properties, testing with more parameter values
+  than CoCo does, giving a greater degree of confidence.
+\end{itemize}
