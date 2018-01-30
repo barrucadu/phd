@@ -17,10 +17,8 @@ concurrent program~\sref{dejafu-100}.  We explain how programs using
 our abstraction are executed~\sref{dejafu-execution} and
 tested~\sref{dejafu-testing}, and argue the correctness of the testing
 approach~\sref{dejafu-correctness}.  We present three case
-studies~\sref{dejafu-casestudies}, evaluate the usefulness of
-\dejafu{} for testing pre-existing code~\sref{dejafu-evaluation}, and
-finally draw conclusions and present further
-work~\sref{dejafu-conclusions}.
+studies~\sref{dejafu-casestudies}, and finally evaluate our
+results~\sref{dejafu-evaluation}.
 
 This chapter is derived from our previous work \cite{YCS-2016-503} and
 \cite{walker2015}.
@@ -1886,3 +1884,44 @@ features.
 % \item a convincing demonstration that systematic concurrency
 %   techniques work well in a rich concurrency setting such as Haskell.
 % \end{itemize}
+
+\section{Summary}
+
+In this chapter we introduced \dejafu{}, our tool for testing
+concurrent Haskell programs.  We use a typeclass abstraction over
+concurrency, so we can swap out \verb|IO| and provide our own
+implementation.  Our concurrency model includes most of the
+Control.Concurrent\cite{control_concurrent} library module, although a
+few operations are out of scope, or have their behaviour modified, as
+discussed in \Cref{sec:dejafu-scope}.
+
+\dejafu{} supports bounded partial-order reduction\cite{coons2013}
+with relaxed memory\cite{zhang2015} as its core testing algorithm, but
+also supports controlled random scheduling, implementing an algorithm
+we discuss in \Cref{chp:algorithms}.  We have not attempted a formal
+proof of correctness of \dejafu{}, but have a comprehensive test suite
+and real-world users, suggesting that it works well in practice.
+
+We have discussed four case studies, three of which involved applying
+\dejafu{} to pre-existing code.  Such code must be modified to use the
+\dejafu{} typeclass abstraction, but we have found this to be a
+straightforward and type-directed process in most cases.  Finally, we
+have evaluated \dejafu{} by discussing: the richness of its supported
+concurrency abstraction; one user's experience of writing some
+typeclass-polymorphic code; alternatives to existing concurrency
+libraries, supporting the \dejafu{} abstractions; and the integration
+of \dejafu{} with two popular Haskell testing tools.
+
+\paragraph{Context}
+\dejafu{} does not stand alone, it is related to our other
+contributions:
+
+\begin{itemize}
+\item \Cref{chp:algorithms} discusses a new random scheduling
+  algorithm for incomplete concurrency testing.  The chapter does not
+  directly build on \dejafu{}, but \dejafu{} implements the algorithm.
+\item \Cref{chp:coco} discusses a new property-discovery tool for
+  functions operating on shared concurrent state.  The tool directly
+  builds on \dejafu{} in two ways: (1) to discover these properties,
+  and (2) by providing an interface for \dejafu{} to check them.
+\end{itemize}
