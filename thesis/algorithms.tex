@@ -8,8 +8,6 @@ number of scheduling algorithms~\sref{algorithms-usual}, propose a new
 one based on a \emph{weighted} random selection of
 threads~\sref{algorithms-swarm}, and show that it performs favourably
 in a comparison of standard benchmark programs~\sref{algorithms-eval}.
-Finally we evaluate our new algorithm and draw
-conclusions~\sref{algorithms-conclusion}.
 
 \section{Concurrency Testing with Randomised Scheduling}
 \label{sec:algorithms-usual}
@@ -395,13 +393,12 @@ significant advantage of the Swarm method over PCT is that it does not
 require the programmer to first determine the maximum length of an
 execution.
 
-\section{Evaluation}
-\label{sec:algorithms-conclusion}
+\section{Summary}
 
-We have proposed Swarm, a new random scheduling algorithm for finding
-faults in concurrent programs.  Although random scheduling is
-necessarily incomplete, it can be faster than complete approaches for
-large programs, and retains a strong bug-finding ability.
+In this chapter we introduced Swarm, a new random scheduling algorithm
+for finding faults in concurrent programs.  Although random scheduling
+is necessarily incomplete, it can be faster than complete approaches
+for large programs, and retains a strong bug-finding ability.
 
 Swarm is motivated by the assumption that executions which schedule
 threads unfairly are likely to expose bugs.  When writing a concurrent
@@ -425,3 +422,12 @@ the length of each thread.  Although Swarm performs worse than
 randomised stride, we believe it still has a place in the concurrency
 testing arsenal as an effective algorithm which does not require first
 estimating or measuring some parameter of the program under test.
+
+\paragraph{Context}
+Swarm does not stand alone, it is related to our other contributions:
+
+\begin{itemize}
+\item \Cref{chp:dejafu} uses Swarm to provide its random testing mode.
+  Complete testing is the default.  Swarm was added for cases where
+  the state-space is too large to systematically explore.
+\end{itemize}
