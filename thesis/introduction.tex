@@ -1,8 +1,7 @@
 There is a tension between theory and practice in software
 engineering.  Whenever one programmer suggests some sophisticated
 technique or formalism, another will question its applicability to the
-\emph{real world}, a nebulous and under-specified place.  Here is an
-example:
+\emph{real world}, a nebulous and under-specified place.  For example:
 
 \begin{description}
 \item[Alice] ``If you want a reliable concurrent program, you have to
@@ -25,19 +24,19 @@ questions like:
 \item How much testing is enough?
 \end{itemize}
 
-A concern in academia is the tension between theoretical novelty and
-practical utility.  Too often programs written during reearch are
-abandoned as unpolished prototypes.  This practice harms the spread of
-ideas from theory into practice, which is particularly regrettable
-when the ideas are intended to make programmers' jobs easier.
-
 In this thesis, we follow a middle path between the familiarity of
 testing and the power of model checking.  By using \emph{systematic
   concurrency testing}, we enable programmers to test their concurrent
-programs deterministically, and confidently.  We also adopt a stance
-more in favour of practical utility than is perhaps typical.  By
-producing polished and featureful tools, we enable programmers to
-benefit immediately from our work.
+programs deterministically, and confidently.
+
+A concern in academia is the tension between theoretical novelty and
+practical utility.  Too often programs written during research are
+abandoned as unpolished prototypes.  This practice harms the spread of
+ideas from theory into practice, which is particularly regrettable
+when the ideas are intended to make programmers' jobs easier.  We
+adopt a stance more in favour of practical utility than is perhaps
+typical.  By producing polished and featureful tools, we enable
+programmers to benefit immediately from our work.
 
 We use Haskell as the implementation language, and the source of the
 concurrency abstraction we target, in this thesis.  However, our work
@@ -48,9 +47,9 @@ programming in other languages.
 \section{Parallelism vs Concurrency}
 \label{sec:intro-parconc}
 
-The terms, \emph{parallelism} and \emph{concurrency} are broadly
-synonymous, both referring to doing multiple things at once.  In
-programming, they refer to different but related concepts.
+The terms \emph{parallelism} and \emph{concurrency} are broadly, but
+not quite, synonymous.  Following the lead of \cite{peytonjones1996},
+we use them to refer to different but related concepts:
 
 \paragraph{Parallelism}
 A parallel program uses a multiplicity of hardware to compute
@@ -61,19 +60,22 @@ two vectors, performing each multiplication simultaneously: it enables
 parallelism.
 
 \paragraph{Concurrency}
-A concurrent program uses multiple threads of control to
-structure the program.  These threads conceptually execute
-independently and at the same time.  Whether threads actually do execute
-simultaneously is an implementation detail.  A concurrent program can
-execute on a single-core machine through interleaved sequential
-execution just as it can execute on a multi-core machine in parallel.
-A concurrency abstraction can guarantee parallelism (given suitable
-hardware), for example by having the ability to restrict the execution
-of individual threads to given processor cores.
+A concurrent program uses multiple threads of control to structure the
+program.  These threads conceptually execute independently and at the
+same time.  But whether threads do execute simultaneously is an
+implementation detail.  A concurrent program can execute on a
+single-core machine through interleaved sequential execution just as
+it can execute on a multi-core machine in parallel.  A concurrency
+abstraction can guarantee parallelism (given suitable hardware), for
+example by having the ability to restrict the execution of individual
+threads to given processor cores.
 
-This thesis is concerned with concurrency, the \emph{relaxed memory}
-behaviour of modern processors, which shows up in the presence of
-parallelism, appears in \Cref{chp:dejafu}.
+It is tempting to think of parallelism as being \emph{semantically
+  invisible}: not changing the result of a program, merely making it
+faster.  However, on modern processors, parallelism is semantically
+\emph{visible}.  This thesis is mostly concerned with concurrency, but
+the \emph{relaxed memory} behaviour of modern processors, an artefact
+of parallelism, appears in \Cref{chp:dejafu}.
 
 \section{Goals and Contributions of this Thesis}
 \label{sec:intro-contributions}
