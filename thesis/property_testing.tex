@@ -19,10 +19,10 @@ properties~\sref{property_testing-gen}.
 Property-based testing\cite{claessen2000}, sometimes called
 \emph{parameterised unit testing}, is an approach to testing where the
 programmer gives general laws (or properties) which should hold for
-all input values.  For example, \Cref{lst:prop_sort_len} says that a
-sort function should preserve length.  This approach is unlike typical
-unit testing, which can be thought of as checking specific pairs of
-input--output values.
+all input values.  For example, the property in
+\Cref{lst:prop_sort_len} says that a sort function should preserve
+length.  Property-testing is unlike typical unit testing, which can be
+thought of as checking specific pairs of input--output values.
 
 \begin{listing}
 \centering
@@ -51,8 +51,8 @@ prop_ord_insert2 x    = forAll orderedList (\xs -> ordered (insert x xs))
 \end{listing}
 
 While implication is a useful technique, it can skew the input
-distribution.  For example, the empty lists and lists of length one
-are ordered, but only 50\% of lists of length two are.  An alternative
+distribution.  For example, the empty list and lists of length one are
+ordered, but only 50\% of lists of length two are.  An alternative
 approach is to use a custom value generator.  By only generating input
 values which satisfy the precondition, we can avoid skewing the
 distribution, and improve our confidence that the property does hold
@@ -111,18 +111,17 @@ Legend:\hspace{1em}
 \endgroup
 
 \paragraph{Input value generation}
-Inputs can either be generated randomly or enumerated.  Randomisation
-is a simple technique which tends to work well in practice,
-QuickCheck\cite{claessen2000} is an example of a randomised property
-testing tool.  Alternatively, we may assume that there is some
+Inputs can either be generated randomly or enumerated.  Although
+simple, randomisation tends to work well in practice.
+QuickCheck\cite{claessen2000} is an example of a tool using random
+value generation.  Alternatively, we may assume that there is some
 enumeration likely to expose useful counterexamples.
 SmallCheck\cite{runciman2008} and LeanCheck\cite{leancheck} enumerate
 values in size order, on the assumption that most bugs are exhibited
-by simple counterexamples.  As simple counterexamples are more useful
-to the programmer than large ones, random approaches must have an
-additional \emph{shrinking} step, to try and remove unnecessary
-complexity from counterexamples, which enumerative approaches may not
-need.
+by simple counterexamples.  Simple counterexamples are more useful to
+the programmer than large ones, so random approaches must have an
+additional \emph{shrinking} step, to try to reduce a counterexample to
+a local minimum.
 
 \paragraph{Property DSL}
 A more expressive property language complicates implementation, but
@@ -161,12 +160,12 @@ prop_map_fuse xs f g = map g (map f xs) == map (g . f) xs
 \end{listing}
 
 In the context of concurrency, another way in which a property could
-be \emph{higher-order} is in taking an explicit schedule as an
+be \emph{higher-order} is by taking an explicit schedule as an
 argument.  A list of scheduling decisions cannot be generated up
 front, as the property-testing tool cannot know which threads are
-runnable.  So instead we can generate a scheduler
-function\cite{ankuzik2014}.  This is one possible way to implement
-random testing of concurrent programs.
+runnable.  So instead we can generate a scheduler function, as in
+\cite{ankuzik2014}.  This is one possible way to implement random
+testing of concurrent programs.
 
 \paragraph{Output}
 How a tool presents its output is of great importance.  Randomly
@@ -176,8 +175,8 @@ local minimum by shrinking randomly generated counterexamples before
 displaying them is a common approach.  However, shrinking and
 enumeration are not the only ways to produce small counterexamples.
 Both SmartCheck\cite{pike2014} and Lazy SmallCheck\cite{runciman2008}
-can generalise counter\-examples.  LeanCheck\cite{braquehais2017lean}
-can generalise counterexamples when used with the
+can generalise counter\-examples.  LeanCheck\cite{leancheck} can
+generalise counterexamples when used with the
 Extrapolate\cite{braquehais2017ifl} tool.  Generalising
 counterexamples directly can be more efficient than a shrinking
 process as in QuickCheck\cite{pike2014}.  Furthermore, it is often
@@ -215,8 +214,8 @@ testing is wider than that.
 \item The Go standard library provides a
   testing/quick\cite{testing_quick} module.
 \item The Hypothesis\cite{hypothesis_python} tool for Python
-  implements property-based testing, but cannot do automated
-  type-directed input value generation due to Python's dynamic nature.
+  implements property-based testing, but does not do type-directed
+  input value generation.
 \item NUnit, the common .NET unit testing library, allows tests to be
   parameterised with random numeric values\cite{random_attribute}, and with
   combinations of values of arbitrary types\cite{values_attribute}.
