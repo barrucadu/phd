@@ -1,12 +1,12 @@
 In this chapter we give an overview of Concurrent
-Haskell\cite{peytonjones1996,peytonjones2005}.  As we use Haskell for
-our implementation language, we wish to support as much of Concurrent
-Haskell as possible.  Concurrency is not in the Haskell standard, so
-we are specifically considering GHC here.  These operations are
-available in the concurrency\cite{concurrency} library.  We cover the
-basic use of concurrency~\sref{concurrent_haskell-threads}, the memory
+Haskell\cite{peytonjones2005,peytonjones1996}.  We use Haskell as the
+implementation language, and the source of the concurrency abstraction
+we target, in this thesis.  Concurrency is not in the Haskell
+standard, the operations we discuss are available in GHC and may not
+be in other compilers.  We cover the basic use of
+concurrency~\sref{concurrent_haskell-threads}, the memory
 model~\sref{concurrent_haskell-mmodel}, software transactional
-memory~\sref{concurrent_haskell-stm}, and finally
+memory~\sref{concurrent_haskell-stm}, and
 exceptions~\sref{concurrent_haskell-exc}.  We then walk through the
 development of a small example
 program~\sref{concurrent_haskell-example}.
@@ -84,8 +84,10 @@ styles, as shown in \Cref{lst:basic_rust}.  The Haskell-style
 immediately begins executing a thread, and returns an identifier.  The
 alternative Java-style \verb|thread::Builder| interface allows
 creating a thread without starting it.  Rust enforces an
-\emph{ownership type} model, and the compiler gives an error if a
-thread closure captures a variable from its outer scope.
+\emph{ownership type} system.  The compiler gives an error if a thread
+closure captures a variable from its outer scope which is used later
+in the outer scope.  Preventing variables from being used across
+scopes is the source of much of Rust's memory safety.
 
 \paragraph{Capabilities}
 In a real machine, there are multiple processors and cores.  It may be
@@ -151,7 +153,9 @@ In Java, we can use the \verb|Thread.yield| and \verb|Thread.sleep|
 methods, shown in \Cref{lst:schedule_java}, to affect scheduling.  We
 can also adjust the \emph{priority} of a thread, where the initial
 priority is inherited from its creator.  Threads with higher priority
-are executed in preference to threads with lower priority:
+are executed in preference to threads with lower priority.  Haskell
+threads have no notion of priority.  However, GHC uses a round-robin
+scheduler, so no one thread can starve another.
 
 \begin{listing}[h!]
 \centering
@@ -172,24 +176,19 @@ until it is unparked by another thread.  There is a variant of
 delay-unless-woken construct.
 
 Haskell threads have no notion of parking.  However, parking is not an
-essential primitive.  It can be implemented with what we have seen so
-far.  We can associate with each thread an \verb|MVar|.  Parking
-corresponds to \verb|takeMVar|.  Unparking corresponds to
+essential primitive.  It can be implemented by associating an
+\verb|MVar|~\sref{concurrent_haskell-mmodel} with each thread.
+Parking corresponds to \verb|takeMVar|.  Unparking corresponds to
 \verb|tryPutMVar|.  Parking with a timeout can be implemented by
 forking a thread to unpark after a delay.
 
-Haskell threads have no notion of priority.  However, GHC uses a
-round-robin scheduler, so one thread cannot starve another for
-execution time.
-
 \paragraph{Termination}
 Both Java and Rust can use a thread handle to block until that thread
-terminates.  This is called \emph{joining}.
-
-Haskell provides no join operation, but one can be implemented using
-by associating an \verb|MVar| with each thread, like parking.  Before
-a thread terminates it will execute a \verb|putMVar|, and joining
-corresponds to \verb|readMVar|.
+terminates.  This is called \emph{joining}.  Haskell provides no join
+operation, but one can be implemented using by associating an
+\verb|MVar| with each thread, like parking.  Before a thread
+terminates it will execute a \verb|putMVar|, and joining corresponds
+to \verb|readMVar|.
 
 \section{Shared State and the Memory Model}
 \label{sec:concurrent_haskell-mmodel}
@@ -237,7 +236,7 @@ shown in \Cref{lst:smref_rust}.  Threads can modify the pointer by
 cloning the shared \verb|Arc| value, extracting the inner
 \verb|AtomicPtr|, and updating the value inside.  All mutation
 operations take as a parameter the type of memory consistency to
-enforce, which we shall discuss shortly. \label{page:rust_mem}.
+enforce, which we shall discuss shortly. \label{page:rust_mem}
 
 \paragraph{Shared references under mutual exclusion}
 An \verb|MVar| is a mutable location in memory with two possible
@@ -269,8 +268,7 @@ The blocking behaviour of \verb|MVar|s means that computations can
 become deadlocked.  For example, deadlock occurs if every thread tries
 to take from the same \verb|MVar|, with no threads writing to it.
 This form of deadlock can be detected, as we shall see in
-\Cref{chp:dejafu}.  As there are no blocking \verb|IORef| primitives,
-use of them cannot cause a deadlock.
+\Cref{chp:dejafu}.
 
 \begin{listing}
 \centering
@@ -286,8 +284,8 @@ sem.release(/* quantity */);
 \end{listing}
 
 Java does not provide an exact analogue of \verb|MVar|, but it does
-provide semaphores, shown in \Cref{lst:mute_java}, which can be used
-to control access to a shared resource.
+provide semaphores\cite{ewd123}, shown in \Cref{lst:mute_java}, which
+can be used to control access to a shared resource.
 
 \begin{listing}
 \centering
@@ -327,13 +325,15 @@ to say:
   must have occurred from the point of view of the current thread.\cite{data_ioref}
 \end{displayquote}
 
-In our work, we support the Total Store Order~(TSO) and Partial Store
-Order~(PSO) models~\sref{dejafu-execution}.  Many other operations are
-\emph{synchronised}, and act as a \emph{barrier} to re-ordering.  Such
-operations include reading or writing to an \verb|MVar|, executing an
-STM transaction, and throwing an asynchronous exception.  There are
-also atomic, synchronised, \verb|IORef| operations, shown in
-\Cref{lst:atomic_haskell}.
+Many non-\verb|IORef| operations are \emph{synchronised}, and act as a
+\emph{barrier} to re-ordering.  Such operations include reading from
+or writing to an \verb|MVar|, executing a software
+transaction~\sref{concurrent_haskell-stm}, and throwing an
+asynchronous exception~\sref{concurrent_haskell-exc}.  There are also
+synchronised \verb|IORef| operations, shown in
+\Cref{lst:atomic_haskell}.  In our work, we support the Total Store
+Order~(TSO)\cite{owens2009} and Partial Store Order~(PSO)\cite{sparc}
+models~\sref{dejafu-execution}.
 
 \begin{listing}
 \centering
@@ -346,9 +346,9 @@ atomicModifyIORef :: IORef a -> (a -> (a, b)) -> IO b
 
 Java allows specifying how individual variables should be
 synchronised.  \Cref{lst:atomic_java} shows a \verb|volatile| integer.
-Operations on normal shared variables may appear out-of-order to
-different threads, however any operations on a \verb|volatile|
-variable will be in-order.
+Operations on normal variables may appear out-of-order to different
+threads, however any operations on a \verb|volatile| variable will be
+in-order.
 
 \begin{listing}
 \centering
@@ -375,7 +375,7 @@ use of \verb|IORef|s.
 Modern processor architectures provide an atomic
 \emph{compare-and-swap} instruction, which is typically used in
 implementing lock-free algorithms\cite{dice2013}.  The
-atomic-primops\cite{atomic_primops} package provides a model of this
+atomic-primops package\cite{atomic_primops} provides a model of this
 instruction.
 
 \begin{listing}
@@ -409,9 +409,10 @@ public void increment() {
 \caption{Compare-and-swap in Java.}\label{lst:cas_java}
 \end{listing}
 
-Java provides variants of all the primitive types which support
-compare-and-swap.  \Cref{lst:cas_java} shows the \verb|AtomicInteger|
-type, an atomically modifiable 32-bit signed integer.
+Java provides an ``atomic'' variant of each primitive type.  These
+atomic types support compare-and-swap.  \Cref{lst:cas_java} shows the
+\verb|AtomicInteger| type, an atomically modifiable 32-bit signed
+integer.
 
 \begin{listing}
 \centering
@@ -435,15 +436,14 @@ cases, as synchronisation is expensive.
 Shared variables are nice, until we need more than one.  As we can
 only claim one \verb|MVar| atomically (or write to one \verb|IORef|
 atomically), it seems we need to introduce additional synchronisation.
-This is unwieldy and prone to bugs.
-
-\emph{Software transactional memory} (STM)\cite{harris2005,shavit1995}
-is the solution.  STM is based on the idea of atomic
-\emph{transactions}.  An STM transaction consists of one or more
-operations over a collection of \emph{transaction variables}, where a
-transaction may be aborted part-way through, with all its effects
-rolled back.  Arbitrary effects are not permitted, which is enforced
-by having a distinct type for STM actions.
+This is unwieldy and prone to bugs.  \emph{Software transactional
+  memory} (STM)\cite{harris2005,shavit1995} is the solution.  STM is
+based on the idea of atomic \emph{transactions}.  A transaction
+consists of one or more operations over a collection of
+\emph{transaction variables}, where a transaction may be aborted
+part-way through, with all its effects rolled back.  Arbitrary effects
+are not permitted, which is enforced by having a distinct type for STM
+actions.
 
 Neither Java nor Rust provide an STM implementation in their standard
 libraries, but there are third-party implementations.  However, as
@@ -468,7 +468,7 @@ writeTVar :: TVar a -> a -> STM ()
 \caption{Transactional variables in Haskell.}\label{lst:tvars_haskell}
 \end{listing}
 
-Transactions are atomic, so all reads will see a consistent state, and
+Transactions are atomic, so all reads will see a consistent state and,
 in the presence of writes, intermediate states cannot be observed by
 another thread.
 
@@ -504,7 +504,7 @@ atomically :: STM a -> IO a
 This means we can do complex state operations involving multiple
 shared variables without worrying about atomicity.  However, using STM
 requires the program to be structured in a way which separates state
-modifications from other \verb|IO|.  Furthermore, due to how
+modifications from other IO operations.  Furthermore, due to how
 transactions are aborted and restarted when a conflict occurs, large
 transactions can be slow\cite{le2015}.
 
@@ -585,7 +585,7 @@ killThread :: ThreadId -> IO ()
 \end{listing}
 
 In addition to \emph{synchronous} exceptions, Haskell has
-\emph{asynchronous} exceptions, shown in \Cref{lst:excsa_haskell}
+\emph{asynchronous} exceptions, shown in \Cref{lst:excsa_haskell},
 which can be thrown to another thread.  These functions block until
 the target thread is in an appropriate state to receive the exception.
 Asynchronous exceptions can be caught with \verb|catch|, just like
@@ -598,17 +598,16 @@ The preferred approach is the \verb|Thread.interrupt| method, which
 will either throw an exception or set a flag, depending on what the
 target thread is doing.  For example, if the target thread is blocked
 inside a \verb|Thread.sleep| call, it will receive an
-\verb|InterruptedException|.
-
-Rust does not provide any way to tell a thread to terminate.
+\verb|InterruptedException|.  Rust does not provide any way to tell a
+thread to terminate.
 
 \paragraph{Masking}
 A thread has a masking state, which can be used to block exceptions
-from other threads.  There are three masking states: \emph{unmasked},
-in which a thread can have exceptions thrown to it;
-\emph{interruptible}, in which a thread can only have exceptions
-thrown to it if it is blocked; and \emph{uninterruptible}, in which a
-thread cannot have exceptions thrown to it.
+from other threads.  There are three masking states: (1)
+\emph{unmasked}, in which a thread can have exceptions thrown to it;
+(2) \emph{interruptible}, in which a thread can only have exceptions
+thrown to it if it is blocked; and (3) \emph{uninterruptible}, in
+which a thread cannot have exceptions thrown to it.
 
 \begin{listing}
 \centering
@@ -633,7 +632,8 @@ subcomputation with exceptions unmasked.  The API is shown in
 \paragraph{Software transactional memory}
 STM can also use exceptions, as shown in \Cref{lst:excstm_haskell}.
 If an exception propagates uncaught to the top of a transaction, that
-transaction is aborted.
+transaction is aborted.  The \verb|orElse| function does not catch
+exceptions.
 
 \begin{listing}
 \centering
@@ -643,8 +643,6 @@ catchSTM :: Exception e => STM a -> (e -> STM a) -> STM a
 \end{cminted}
 \caption{STM exceptions in Haskell.}\label{lst:excstm_haskell}
 \end{listing}
-
-The \verb|orElse| function does not catch exceptions.
 
 \section{Example Program}
 \label{sec:concurrent_haskell-example}
@@ -671,11 +669,11 @@ setReminder s = do
 \end{listing}
 %$
 
-\Cref{lst:ch_ex1} shows a simple program which prompts the user for a
-number of seconds and prints a message, as well as ringing the
-terminal bell, after that time.  This is a concurrent program.  The
-user can keep entering new delays before old ones have elapsed.
-Execution proceeds as follows:
+\Cref{lst:ch_ex1} shows a simple program, adapted from
+\cite{marlow2013}, which prompts the user for a number of seconds and
+prints a message, as well as ringing the terminal bell, after that
+time.  This is a concurrent program.  The user can keep entering new
+delays before old ones have elapsed.  Execution proceeds as follows:
 
 \begin{enumerate}
 \item Get a number of seconds from the user.
@@ -790,9 +788,10 @@ a condition holds, which is inefficient.
 \paragraph{Software transactional memory}
 We can solve the two problems with the \verb|MVar|-counter approach
 using STM instead.  Transactions are atomic, so we can modify the
-counter atomically.  Transactions can be blocked until any referenced
-variables are updated, which is more efficient than repeatedly
-checking.  \Cref{lst:ch_ex5} shows the new \verb|main| function.
+counter atomically.  When aborted, a transaction blocks until any
+referenced variables are updated, which is more efficient than
+repeatedly checking.  \Cref{lst:ch_ex5} shows the new \verb|main|
+function.
 
 \begin{listing}
 \centering
@@ -826,6 +825,10 @@ thread could be scheduled multiple times in a row, even though this is
 a waste of time.
 
 This is the final version of our program.
+
+% [layout hack]: prevent just the heading and opening sentence from
+% being on this page.
+\vfill\pagebreak
 
 \section{Summary}
 
