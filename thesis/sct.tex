@@ -6,7 +6,7 @@ give an introduction to concurrency testing through \emph{controlled
 the foundation upon which we build our work.  We first give a
 high-level overview~\sref{sct-fundamentals}, then discuss specific
 implementation approaches, both complete~\sref{sct-dpor} and
-incomplete~\sref{sct-bounding}.  Finally we discuss two tools for
+incomplete~\sref{sct-bounding}.  We then discuss two tools for
 concurrency testing in functional languages~\sref{sct-functional}.
 
 This chapter is presented in a very different style to
@@ -54,10 +54,10 @@ Dynamic partial-order reduction (DPOR)\cite{flanagan2005,godefroid1996} is a
 constructing schedules, we only need to consider different orderings of a pair
 of actions if the order in which they are performed could affect the
 result of the program.  We call this relation between actions
-the \emph{dependency relation}:
+the \emph{dependency relation}.
 
 \begin{displayquote}
-  \textbf{Definition} (dependency relation\cite{flanagan2005})
+  \textbf{Definition} (Dependency Relation\cite{flanagan2005})
 
   \noindent
   Let $\mathcal T$ be the set of transitions in a concurrent system.  A binary,
@@ -97,8 +97,8 @@ same variable where at least one is a write, or:
 \end{align*}
 
 Where $x \dependent y$ is read as ``$x$ and $y$ are dependent.''  This
-choice of notation would suggest a symbol $\leftrightarrow$ meaning
-independence, but that doesn't seem to be used in the literature.
+choice of notation would suggest a symbol $\leftrightarrow$ for
+independence, but that doesn't seem to be in common use.
 
 Our dependency relation for Haskell~\sref{dejafu-testing} is rather
 more complex, as there are more actions than just reads and writes.
@@ -107,9 +107,9 @@ reads and writes, with a collection of special cases for software
 transactional memory and exceptions.  Additionally, a Haskell program
 terminates when the main thread terminates, which complicates matters
 further.  A na\"{\i}ve implementation of this, imposing a dependency
-between the final action of the main thread dependent and everything
-else, leads to too many executions being tried to be of practical use.
-We discuss these issues further in \Cref{sec:dejafu-testing}.
+between the final action of the main thread and everything else, leads
+to too many executions being tried to be of practical use.  We discuss
+these issues further in \Cref{sec:dejafu-testing}.
 
 \subsection{Total and Partial Orders}
 
@@ -117,24 +117,27 @@ Characterising the execution of a concurrent program by the ordering
 of its dependent actions gives us a \emph{partial} order over the
 actions in the entire program.  An execution trace is just one
 possible \emph{total} order, a refinement of the constraining partial
-order.  The goal of partial-order reduction, then, is to only try one
-total order for each distinct partial order, by intelligently making
-scheduling decisions to permute the order of dependent actions.
+order.  We call the equivalence class of total orders corresponding to
+the same partial order a \emph{Mazurkiewicz
+  trace}\cite{mazurkiewicz1986}.  The goal of partial-order reduction,
+then, is to only try one total order for each distinct Mazurkiewicz
+trace, by intelligently making scheduling decisions to permute the
+order of dependent actions.
 
 DPOR is so called because it gathers information about the
 dependencies between threads dynamically at run-time, to avoid the
 imprecision of static analyses\cite{flanagan2005}.  It works by
 executing the program until completion, making arbitrary choices to
-resolve scheduler nondeterminism, dynamically collecting information
-about how threads have communicated during this specific execution.
-This execution trace is then examined to add backtracking points along
-the trace that identify alternative scheduling decisions that need to
-be explored because they might lead to other executions which
-correspond to a different partial-order.  The algorithm repeats until
-all backtracking points have been explored and no new ones are found.
-So it only works if all executions are terminating and the number of
-distinct executions is finite.  DPOR is complete.  When it terminates,
-all distinct states of the program will have been explored.
+resolve scheduling nondeterminism, dynamically collecting information
+about how threads have behaved during this specific execution.  This
+execution trace is then examined to identify places where alternative
+scheduling decisions need to be explored because they might lead to
+other executions which correspond to a different partial-order.  The
+algorithm repeats until all backtracking points have been explored and
+no new ones are found.  So it only works if all executions are
+terminating and the number of distinct executions is finite.  DPOR is
+complete.  When it terminates, all distinct states of the program will
+have been explored.
 
 \subsection{Relaxed Memory Models}
 
@@ -183,11 +186,11 @@ executions.  Consider these three threads:
 \verb|p: write x       q: write x      r: read x|
 \end{center}
 
-All pairs of actions are dependent, and so DPOR would explore all
+All pairs of actions are dependent, and so DPOR would explore all six
 interleavings: \texttt{pqr}, \texttt{prq}, \texttt{qpr}, \texttt{qrp},
 \texttt{rpq}, \texttt{rqp}.  However, if we consider which write is
-read by \texttt{r}, many of these interleavings are equivalent.  For
-example, \texttt{pqr} results in the same value being read as
+read by thread \texttt{r}, many of these interleavings are equivalent.
+For example, \texttt{pqr} results in the same value being read as
 \texttt{qrp}.  In fact we only need to explore half of the
 interleavings to find all the distinct values read.  Program execution
 is driven by what values different threads read.  An unread write
@@ -237,8 +240,8 @@ schedules within the bound.
 A common schedule bounding approach is \emph{pre-emption
   bounding}\cite{musuvathi2007}, which limits the number of
 pre-emptive context switches.  Empirical evidence shows that small
-bounds, and small numbers of threads, are effective for finding bugs
-in many real-world programs\cite{thomson2014}.
+bounds, and small numbers of threads, are effective for finding many
+real-world bugs\cite{thomson2014}.
 
 Another common approach is \emph{fair bounding}\cite{musuvathi2008},
 which bounds the difference between how many times any two threads may
