@@ -665,15 +665,15 @@ setReminder s = do
   threadDelay (10^6 * s)        -- 3
   putStrLn "Time is up!\BEL"    -- 4
 \end{cminted}
-\caption{A simple alarm program.}\label{lst:ch_ex1}
+\caption[A simple alarm program.]{A simple alarm program.  Adapted from~\cite{marlow2013}.}\label{lst:ch_ex1}
 \end{listing}
 %$
 
-\Cref{lst:ch_ex1} shows a simple program, adapted from
-\cite{marlow2013}, which prompts the user for a number of seconds and
-prints a message, as well as ringing the terminal bell, after that
-time.  This is a concurrent program.  The user can keep entering new
-delays before old ones have elapsed.  Execution proceeds as follows:
+\Cref{lst:ch_ex1} shows a simple program which prompts the user for a
+number of seconds and prints a message, as well as ringing the
+terminal bell, after that time.  This is a concurrent program.  The
+user can keep entering new delays before old ones have elapsed.
+Execution proceeds as follows:
 
 \begin{enumerate}
 \item Get a number of seconds from the user.

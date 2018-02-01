@@ -141,7 +141,7 @@ actions.
       \vfill
     };
   \end{tikzpicture}
-  \caption[How DPOR prunes the space of schedules.]{How DPOR prunes the space of schedules.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.}\label{fig:dpor}
+  \caption[How DPOR prunes the space of schedules.]{How DPOR prunes the space of schedules.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.  Adapted from \cite{coons2013}.}\label{fig:dpor}
 \end{figure}
 
 Our dependency relation for Haskell~\sref{dejafu-testing} is rather
@@ -353,7 +353,7 @@ which cannot be determined \emph{a priori}\cite{coons2013}.
       \vfill
     };
   \end{tikzpicture}
-  \caption[The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.]{The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.  Transition $t_3$ may be pruned in state $s_1$ because it causes a pre-emption.  If it is, the unique states $s_3$ and $s_5$ are never reached, despite being reachable within the bound from state $s_0$.}\label{fig:bpor_unsound}
+  \caption[The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.]{The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.  Transition $t_3$ may be pruned in state $s_1$ because it causes a pre-emption.  If it is, the unique states $s_3$ and $s_5$ are never reached, despite being reachable within the bound from state $s_0$.  Adapted from \cite{coons2013}.}\label{fig:bpor_unsound}
 \end{figure}
 
 The solution is to add \emph{conservative} backtracking points to
