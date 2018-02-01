@@ -81,14 +81,14 @@ In other words, independent transitions cannot enable (unblock) or
 disable (block) each other, and enabled independent transitions
 commute.  When implementing DPOR, we typically identify a sufficient
 condition for dependency, rather than work with this relational
-definition directly.  These conditions are determined by what sorts of
-things the concurrent language in use can express.
+definition directly.
 
 Typically, the presentation of algorithms assumes a simple core
 concurrent language of just reads and writes.  This gives rise to a
-dependency relation such as: $x$ and $y$ are dependent if and only if
-they are actions in the same thread, or they are actions involving the
-same variable where at least one is a write, or:
+relation such as: $x$ and $y$ are dependent if and only if they are
+actions in the same thread, or they are actions involving the same
+variable where at least one is a write.  We can express this
+dependency relation like so:
 
 \begin{align*}
   x \dependent y \iff& \mathrm{thread\_id}(x) = \mathrm{thread\_id}(y)~\lor\\
@@ -96,9 +96,53 @@ same variable where at least one is a write, or:
      \land \left(\mathrm{is\_write}(x) \lor \mathrm{is\_write}(y)\right)\right)
 \end{align*}
 
-Where $x \dependent y$ is read as ``$x$ and $y$ are dependent.''  This
-choice of notation would suggest a symbol $\leftrightarrow$ for
-independence, but that doesn't seem to be in common use.
+The notation $x \dependent y$ is read as ``$x$ and $y$ are
+dependent.''  This choice of notation would suggest $\leftrightarrow$
+for independence, but that doesn't seem to be in common use.
+
+\Cref{fig:dpor} shows an example of DPOR in action.  There are two
+threads: thread 1 performs reads from two variables \verb|x| and
+\verb|y|, and thread 2 writes to \verb|y|.  As \verb|read x| is
+independent from \verb|write y|, DPOR prunes one ordering of those
+actions.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[ball/.style = {circle, draw, align=center, anchor=north, inner sep=0, text width=0.5cm}]
+    \node[ball]              (A) at (0,0)   {\small $s_0$};
+    \node[ball]              (B) at (-1,-1) {\small $s_1$};
+    \node[ball]              (C) at (-2,-2) {\small $s_2$};
+    \node[ball]              (D) at (-2,-3) {\small $s_4$};
+    \node[ball, opacity=0.4] (E) at (1,-1) {};
+    \node[ball]              (F) at (0,-2) {\small $s_3$};
+    \node[ball]              (G) at (0,-3) {\small $s_5$};
+
+    \node (init) at (0,0.75) {};
+    \draw[->, thick, draw, dashed] (init.south) to [out=270,in=90] (A.north);
+
+    \draw[->, thick, draw]              (A.south) to [out=270,in=90] node[midway,above] {\small $t_1$} (B.north);
+    \draw[->, thick, draw]              (B.south) to [out=270,in=90] node[midway,above] {\small $t_2$} (C.north);
+    \draw[->, thick, draw]              (C.south) to [out=270,in=90] node[midway,left]  {\small $t_3$} (D.north);
+    \draw[->, thick, draw, opacity=0.4] (A.south) to [out=270,in=90] node[midway,above] {\small $t_3$} (E.north);
+    \draw[->, thick, draw]              (B.south) to [out=270,in=90] node[midway,above] {\small $t_3$} (F.north);
+    \draw[->, thick, draw, opacity=0.4] (E.south) to [out=270,in=90] node[midway,above] {\small $t_1$} (F.north);
+    \draw[->, thick, draw]              (F.south) to [out=270,in=90] node[midway,left]  {\small $t_2$} (G.north);
+
+    \node[anchor=west,text width=2cm, text depth=1.5cm, inner sep=0] (note1) at (-5,0) {
+      \textbf{Thread 1}\\
+      $t_1$ \hfill read $x$\\
+      $t_2$ \hfill read $y$
+      \vfill
+    };
+
+    \node[anchor=east,text width=2cm, text depth=1.5cm, inner sep=0] (note2) at (5,0) {
+      \textbf{Thread 2}\\
+      $t_3$ \hfill write $y$\\
+      \vfill
+    };
+  \end{tikzpicture}
+  \caption[How DPOR prunes the space of schedules.]{How DPOR prunes the space of schedules.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.}\label{fig:dpor}
+\end{figure}
 
 Our dependency relation for Haskell~\sref{dejafu-testing} is rather
 more complex, as there are more actions than just reads and writes.
@@ -264,14 +308,53 @@ third type.
 
 \subsection{Integration with DPOR}
 
-Schedule bounding can be combined with DPOR to produce a technique which is
-complete within its bound.  The na\"{\i}ve way to integrate these techniques
-would be to first use partial-order techniques to prune the search space, and
-then to additionally filter things out with schedule bounding.  However, this is
-unsound.  This approach misses parts of the search space reachable within the
-bound.  This is because the introduction of the bound introduces new
-dependencies between actions, which cannot be determined \emph{a
-  priori}\cite{coons2013}.
+Schedule bounding can be combined with DPOR to produce a technique
+which is complete within its bound.  The na\"{\i}ve way to integrate
+these techniques would be to first use partial-order techniques to
+prune the search space, and then to additionally filter things out
+with schedule bounding.  However, this is unsound.  As
+\Cref{fig:bpor_unsound} shows, this approach misses parts of the
+search space reachable within the bound.  This is because the
+introduction of the bound creates new dependencies between actions,
+which cannot be determined \emph{a priori}\cite{coons2013}.
+
+\begin{figure}
+  \centering
+  \begin{tikzpicture}[ball/.style = {circle, draw, align=center, anchor=north, inner sep=0, text width=0.5cm}]
+    \node[ball]              (A) at (0,0)   {\small $s_0$};
+    \node[ball]              (B) at (-1,-1) {\small $s_1$};
+    \node[ball]              (C) at (-2,-2) {\small $s_2$};
+    \node[ball]              (D) at (-2,-3) {\small $s_4$};
+    \node[ball, opacity=0.4] (E) at (1,-1) {};
+    \node[ball, opacity=0.4] (F) at (0,-2) {\small $s_3$};
+    \node[ball, opacity=0.4] (G) at (0,-3) {\small $s_5$};
+
+    \node (init) at (0,0.75) {};
+    \draw[->, thick, draw, dashed] (init.south) to [out=270,in=90] (A.north);
+
+    \draw[->, thick, draw]              (A.south) to [out=270,in=90] node[midway,above] {\small $t_1$} (B.north);
+    \draw[->, thick, draw]              (B.south) to [out=270,in=90] node[midway,above] {\small $t_2$} (C.north);
+    \draw[->, thick, draw]              (C.south) to [out=270,in=90] node[midway,left]  {\small $t_3$} (D.north);
+    \draw[->, thick, draw, opacity=0.4] (A.south) to [out=270,in=90] node[midway,above] {\small $t_3$} (E.north);
+    \draw[->, thick, draw, opacity=0.4] (B.south) to [out=270,in=90] node[midway,above] {\small $t_3$} (F.north);
+    \draw[->, thick, draw, opacity=0.4] (E.south) to [out=270,in=90] node[midway,above] {\small $t_1$} (F.north);
+    \draw[->, thick, draw, opacity=0.4] (F.south) to [out=270,in=90] node[midway,left]  {\small $t_2$} (G.north);
+
+    \node[anchor=west,text width=2cm, text depth=1.5cm, inner sep=0] (note1) at (-5,0) {
+      \textbf{Thread 1}\\
+      $t_1$ \hfill read $x$\\
+      $t_2$ \hfill read $y$
+      \vfill
+    };
+
+    \node[anchor=east,text width=2cm, text depth=1.5cm, inner sep=0] (note2) at (5,0) {
+      \textbf{Thread 2}\\
+      $t_3$ \hfill write $y$\\
+      \vfill
+    };
+  \end{tikzpicture}
+  \caption[The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.]{The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.  Transition $t_3$ may be pruned in state $s_1$ because it causes a pre-emption.  If it is, the unique states $s_3$ and $s_5$ are never reached, despite being reachable within the bound from state $s_0$.}\label{fig:bpor_unsound}
+\end{figure}
 
 The solution is to add \emph{conservative} backtracking points to
 account for the bound in addition to any normal backtracking points
@@ -280,9 +363,11 @@ function.  In the case of pre-emption bounding, it is sufficient to
 try all possibilities at the last context switch before a normal
 backtracking point\cite{coons2013}.  This is because context switches
 influence the number of pre-emptions needed to reach a given program
-state, depending on which thread gets scheduled.  In practice the
-addition of backtracking points in this way tends not to greatly
-increase the search space\cite{coons2013}.
+state, depending on which thread gets scheduled.  So in
+\Cref{fig:bpor_unsound}, the transition $t_3$ in state $s_0$ would be
+added as a conservative backtracking point, undoing the work of DPOR
+in that case.  In practice the addition of backtracking points in this
+way tends not to greatly increase the search space\cite{coons2013}.
 
 \section{In Functional Languages}
 \label{sec:sct-functional}
