@@ -575,10 +575,10 @@ two threads and two \verb|CRef|s.
       \node (v) [draw,shape=circle] at (-1,-4) {$v$};
       \node (w) [draw,shape=circle] at (1,-4)  {$w$};
 
-      \draw [->] (t1.south) -- (v.north);
-      \draw [->] (t1.south) -- (w.north west);
-      \draw [->] (t2.south) -- (v.north east);
-      \draw [->] (t2.south) -- (w.north);
+      \draw [->, thick] (t1.south) to [out=270,in=90] (v.north);
+      \draw [->, thick] (t1.south) to [out=270,in=90] (w.north);
+      \draw [->, thick] (t2.south) to [out=270,in=90] (v.north);
+      \draw [->, thick] (t2.south) to [out=270,in=90] (w.north);
     \end{tikzpicture}
     \caption{Sequential Consistency}
   \end{subfigure}
@@ -593,15 +593,15 @@ two threads and two \verb|CRef|s.
       \node (bt1) [draw] at (-1,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $v$ \end{tabular}};
       \node (bt2) [draw] at (1,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $v$ \end{tabular}};
 
-      \draw [->] (t1) -- (bt1);
-      \draw [->] (t1) -- (bt1);
-      \draw [->] (t2) -- (bt2);
-      \draw [->] (t2) -- (bt2);
+      \draw [->, thick] (t1) to [out=270,in=90] (bt1);
+      \draw [->, thick] (t1) to [out=270,in=90] (bt1);
+      \draw [->, thick] (t2) to [out=270,in=90] (bt2);
+      \draw [->, thick] (t2) to [out=270,in=90] (bt2);
 
-      \draw [->] (bt1.south) -- (v);
-      \draw [->] (bt1.south) -- (w);
-      \draw [->] (bt2.south) -- (v);
-      \draw [->] (bt2.south) -- (w);
+      \draw [->, thick] (bt1.south) to [out=270,in=90] (v);
+      \draw [->, thick] (bt1.south) to [out=315,in=90] (w);
+      \draw [->, thick] (bt2.south) to [out=225,in=90] (v);
+      \draw [->, thick] (bt2.south) to [out=270,in=90] (w);
     \end{tikzpicture}
     \caption{Total Store Order}
   \end{subfigure}
@@ -618,15 +618,15 @@ two threads and two \verb|CRef|s.
       \node (bt2v) [draw] at (0.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $v$ \\\midrule $v$ \end{tabular}};
       \node (bt2w) [draw] at (1.5,-1.8) {\footnotesize\begin{tabular}{c} \ldots \\\midrule $w$ \\\midrule $w$ \end{tabular}};
 
-      \draw [->] (t1) -- (bt1v);
-      \draw [->] (t1) -- (bt1w);
-      \draw [->] (t2) -- (bt2v);
-      \draw [->] (t2) -- (bt2w);
+      \draw [->, thick] (t1) to [out=270,in=90] (bt1v);
+      \draw [->, thick] (t1) to [out=270,in=90] (bt1w);
+      \draw [->, thick] (t2) to [out=270,in=90] (bt2v);
+      \draw [->, thick] (t2) to [out=270,in=90] (bt2w);
 
-      \draw [->] (bt1v.south) -- (v);
-      \draw [->] (bt1w.south) -- (w);
-      \draw [->] (bt2v.south) -- (v);
-      \draw [->] (bt2w.south) -- (w);
+      \draw [->, thick] (bt1v.south) to [out=270,in=90] (v);
+      \draw [->, thick] (bt1w.south) to [out=270,in=90] (w);
+      \draw [->, thick] (bt2v.south) to [out=270,in=90] (v);
+      \draw [->, thick] (bt2w.south) to [out=270,in=90] (w);
     \end{tikzpicture}
     \caption{Partial Store Order}
   \end{subfigure}
