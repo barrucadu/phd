@@ -129,16 +129,16 @@ actions.
     \draw[->, thick, draw]              (F.south) to [out=270,in=90] node[midway,left]  {\small $t_2$} (G.north);
 
     \node[anchor=west,text width=2cm, text depth=1.5cm, inner sep=0] (note1) at (-5,0) {
+      \small
       \textbf{Thread 1}\\
       $t_1$ \hfill read $x$\\
       $t_2$ \hfill read $y$
-      \vfill
     };
 
     \node[anchor=east,text width=2cm, text depth=1.5cm, inner sep=0] (note2) at (5,0) {
+      \small
       \textbf{Thread 2}\\
       $t_3$ \hfill write $y$\\
-      \vfill
     };
   \end{tikzpicture}
   \caption[How DPOR prunes the space of schedules.]{How DPOR prunes the space of schedules.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.  Adapted from \cite{coons2013}.}\label{fig:dpor}
@@ -341,16 +341,16 @@ which cannot be determined \emph{a priori}\cite{coons2013}.
     \draw[->, thick, draw, opacity=0.4] (F.south) to [out=270,in=90] node[midway,left]  {\small $t_2$} (G.north);
 
     \node[anchor=west,text width=2cm, text depth=1.5cm, inner sep=0] (note1) at (-5,0) {
+      \small
       \textbf{Thread 1}\\
       $t_1$ \hfill read $x$\\
       $t_2$ \hfill read $y$
-      \vfill
     };
 
     \node[anchor=east,text width=2cm, text depth=1.5cm, inner sep=0] (note2) at (5,0) {
+      \small
       \textbf{Thread 2}\\
       $t_3$ \hfill write $y$\\
-      \vfill
     };
   \end{tikzpicture}
   \caption[The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.]{The na\"{\i}ve, unsound, way to combine DPOR with schedule bounding.  Transition $t_3$ is pruned in state $s_0$ because it is independent with transition $t_1$.  Transition $t_3$ may be pruned in state $s_1$ because it causes a pre-emption.  If it is, the unique states $s_3$ and $s_5$ are never reached, despite being reachable within the bound from state $s_0$.  Adapted from \cite{coons2013}.}\label{fig:bpor_unsound}
