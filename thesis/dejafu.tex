@@ -1701,7 +1701,7 @@ prop_monad_ap2 (apply -> f) (apply -> g) a = go (<*>) `eq'` go ap where
   go combine = do
     flagvar <- newEmptyMVar
     let cf = do { flag <- tryPutMVar flagvar (); pure (if flag then f else g) }
-    let ca = do { putMVar flagvar (); pure a }
+    let ca = do { tryPutMVar flagvar (); pure a }
     let (Concurrently result) = Concurrently cf `combine` Concurrently ca
     pure result
 \end{cminted}
