@@ -1098,6 +1098,187 @@ Case studies 1, 3, and 4 involve porting existing code to the
 
 \subsection{The auto-update Package}
 
+The auto-update library\cite{auto_update} runs tasks periodically, but
+only if needed.  For example, a web server may handle each request in
+a new thread, and log the time that the request arrives.  Rather than
+have every such new thread check the time, one thread could be created
+to update a single shared \verb|CRef| every second.  However, if the
+request frequency is less than once per second, this is wasted work.
+The auto-update library allows defining an action with a frequency,
+which will be executed appropriately, regardless of how busy the
+system is.
+
+The entire implementation, excluding comments and imports, is
+reproduced at the end of the subsection in \Cref{lst:autoupdate}.  The
+library defines a function, \verb|mkAutoUpdate|, which forks a worker
+thread to perform the action at a frequency, but only if the value is
+required.  The function returns an \verb|IO| action to read the
+current result, if necessary blocking until there is one.  The
+transformation to the \verb|MonadConc| typeclass is straightforward,
+and we omit it here.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+test_autoupdate :: MonadConc m => m ()
+test_autoupdate = do
+  auto <- mkAutoUpdate defaultUpdateSettings
+  auto
+\end{cminted}
+\caption{An example usage of the auto-update library.}\label{lst:autoupdate_example1}
+\end{listing}
+
+\Cref{lst:autoupdate_example1} shows an example usage of the
+\verb|MonadConc| version of the library.  The
+\verb|defaultUpdateSettings| value describes an auto-updater which
+runs every second, producing the value \verb|()| (read ``unit'').
+Internally, an \verb|IORef| is created to hold the most recent value,
+and a thread created to update this value.  An \verb|MVar| is used to
+communicate to the thread that the updater should run: this is what
+gives the rate limiting.  So we create an auto-updater which produces
+\verb|()|, and immediately demand the value.
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+> autocheck test_autoupdate
+
+[fail] Never Deadlocks
+        [deadlock] S0--------S1-----------S0-
+[pass] No Exceptions
+[fail] Consistent Result
+        () S0--------S1--------p0--
+
+        [deadlock] S0--------S1-----------S0-
+\end{cminted}
+\caption[Using \dejafu{} to run a collection of standard tests.]{Using \dejafu{} to run a collection of standard tests.  The \texttt{autocheck} function looks for deadlocks, uncaught exceptions in the main thread, and nondeterminism.  Each result is displayed with a simplified view of a representative execution trace.}\label{lst:autoupdate_example2}
+\end{listing}
+
+\Cref{lst:autoupdate_example2} shows one way in which we can use
+\dejafu{} to explore the behaviour of our small example.  The
+\verb|autocheck| function looks for some common sources of error:
+deadlocks, uncaught exceptions in the main thread, and nondeterminism.
+In this example, \dejafu{} discovers a deadlock.
+
+Each result is displayed with a simplified view of a representative
+execution trace:
+
+\begin{itemize}
+\item \verb|Sn|: indicates that thread \verb|n| started executing
+  after the previously executing thread blocked or terminated.
+  Threads are numbered sequentially from zero as they are created, and
+  may be given names.
+\item \verb|Pn|: indicates that thread \verb|n| started executing by
+  pre-empting the previously executing thread.
+\item \verb|pn|: indicates that thread \verb|n| started executing
+  after the previously executing thread yielded or delayed.
+\item \verb|-|: indicates the execution of one primitive action.
+\end{itemize}
+
+More detailed execution traces are also available, which contain a
+summary of the primitive actions which occurred and the alternative
+scheduling decisions available.
+
+So, now knowing what the traces represent, we can decipher the output
+in \Cref{lst:autoupdate_example2}.  The deadlock is the more
+interesting case, as it is hopefully unintentional, so let's look at
+that one.  We can see from the trace that thread 0 executed for a
+while, then thread 1, then thread 0 again.  As these are all \verb|S|
+points, each thread executed until it blocked.  So we can look at the
+source code in \Cref{lst:autoupdate_example1} and
+\Cref{lst:autoupdate} to see what happened.
+
+Following the execution by eye, we see the following sequence of
+concurrent events:
+
+\begin{enumerate}
+\item Thread 0:
+  \begin{enumerate}
+  \item Line 16: \verb|currRef <- newIORef Nothing|
+  \item Line 17: \verb|needsRunning <- newEmptyMVar|
+  \item Line 18: \verb|lastValue <- newEmptyMVar|
+  \item Line 20: \verb|void $ forkIO $ ...|
+  \item Line 35: \verb|mval <- readIORef currRef|
+  \item Line 39: \verb|void $ tryPutMVar needsRunning ()|
+  \item Line 40: \verb|readMVar lastValue|
+  \item \textbf{Thread 0 is now blocked, as \texttt{lastValue} is empty.}
+  \end{enumerate}
+\item Thread 1:
+  \begin{enumerate}
+  \item Line 21: \verb|takeMVar needsRunning|
+  \item Line 25: \verb|writeIORef currRef $ Just a|
+  \item Line 26: \verb|void $ tryTakeMVar lastValue|
+  \item Line 27: \verb|putMVar lastValue a|
+  \item \textbf{Thread 0 is now unblocked, as \texttt{lastValue} is full.}
+  \item Line 29: \verb|threadDelay $ updateFreq us|
+  \item Line 31: \verb|writeIORef currRef Nothing|
+  \item Line 32: \verb|void $ takeMVar lastValue|
+  \item \textbf{Thread 0 is still unblocked, even though \texttt{lastValue} is now empty again.}
+  \item \textbf{Thread 1 now loops.}
+  \item Line 21: \verb|takeMVar needsRunning|
+  \item \textbf{Thread 1 is now blocked, as \texttt{needsRunning} is empty.}
+  \end{enumerate}
+\item Thread 0:
+  \begin{enumerate}
+  \item Line 40: \verb|readMVar lastValue|
+  \item \textbf{Thread 0 is now blocked, as \texttt{lastValue} is empty.}
+  \end{enumerate}
+\end{enumerate}
+
+Both threads are blocked, so the computation is deadlocked.  The other
+result shown in \Cref{lst:autoupdate_example2} occurs if thread 0
+starts executing after thread 1 delays.  So the root cause of this
+deadlock is clear: deadlock may occur if the call to
+\verb|threadDelay| on line 29 completes before the other thread
+resumes execution.  Despite this bug being rather simple, not
+requiring any pre-emptions at all to trigger, it arose in practice.
+How easy it is to make mistakes when implementing concurrent programs!
+
+\begin{table}
+  \centering
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
+      Bounded DPOR   &  49 & 18 & 0.006 &  119 \\
+      Unbounded DPOR &  80 & 20 & 0.008 &  124 \\
+      Swarm$\dagger$ & 100 & 20 & 0.008 & 1297 \\ \bottomrule
+    \end{tabular}
+    \caption{Keeping all execution traces in memory.}\label{tbl:autoupdate_perf1}
+  \end{subtable}
+
+  % [layout hack]: no gap between the tables otherwise
+  \vspace{2.5em}
+
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
+      Bounded DPOR   &  49 & 18 & 0.006 &  71 \\
+      Unbounded DPOR &  80 & 20 & 0.006 &  63 \\
+      Swarm$\dagger$ & 100 & 20 & 0.006 & 108 \\ \bottomrule
+    \end{tabular}
+    \caption{Only keeping buggy execution traces in memory.}\label{tbl:autoupdate_perf2}
+  \end{subtable}
+  \caption[Performance of the auto-update case study with three different exploration tactics.]{Performance of the auto-update case study with three different exploration tactics.  Swarm scheduling is a randomised approach discussed in \Cref{chp:algorithms}.}\label{tbl:autoupdate_perf}
+\end{table}
+
+\Cref{tbl:autoupdate_perf} shows performance measurements for our test
+case in six different configurations: three different algorithms to
+explore the space of schedules, keeping or discarding execution
+traces.  Both the library itself and our test case are small, so it is
+perhaps no surprise to see that in all configurations, execution only
+takes a fraction of a second.  We can see the effect of the schedule
+bounding: when the bounds are disabled, the number of schedules tried
+almost doubles, and two new deadlocking executions are found.
+
+To reduce memory usage, \dejafu{} is able to discard results or
+execution traces which the user considers uninteresting in some way.
+\Cref{tbl:autoupdate_perf2} shows the impact of this change, where we
+have designated non-deadlocking traces as uninteresting.  The effect
+is particularly significant in the Swarm case, suggesting that Swarm
+may tend to find longer execution traces than DPOR.
+
 \begin{listing}
   \centering
   \begin{minipage}{0.5\textwidth}
@@ -1148,84 +1329,11 @@ catchSome act = catch act $
   \e -> pure $ throw (e :: SomeException)
   \end{minted}
   \end{minipage}
-  \caption{The implementation of the auto-update package.}\label{lst:example-autoupdate}
+  \caption{The implementation of the auto-update package.}\label{lst:autoupdate}
 \end{listing}
 
-The auto-update\cite{auto_update} library runs tasks periodically, but
-only if needed.  For example, a single worker thread may get the time
-every second and store it to a shared \verb|CRef|, rather than have
-many threads starting within a second of each other all get the time
-independently.  Despite the core functionality being simple, a race
-condition was noticed by users inspecting the code in October 2014.
-
-The entire implementation, excluding comments and imports, is
-reproduced in \Cref{lst:example-autoupdate}.  The \verb|mkAutoUpdate|
-function spawns a worker thread, which performs the update action at
-the given frequency, only if the \verb|needsRunning| flag has been
-set.  It returns an action to attempt to read the current result, if
-necessary blocking until there is one.  The transformation to the
-\verb|MonadConc| typeclass is straightforward.
-
-The race condition occurs if the reading thread is pre-empted by the
-worker thread after putting into \verb|needsRunning|, and does not run
-again until after the delay.  In this case the worker thread blocks on
-taking for a second time from \verb|needsRunning|.  The reader thread
-is unable to read from \verb|lastValue| as the worker thread emptied
-it as the last action it performed.  This test was chosen as it is one
-of the simplest things a user may wish to do with the library: to
-create the worker, and to then read the computed value.
-\Cref{lst:example-autoupdate1} shows how this race condition is
-reported by \dejafu{}.  The \verb|autocheck| function is used to
-search for deadlocks, uncaught exceptions in the main thread, and
-nondeterminism.
-
-% [layout hack]: get the full-page listing here, rather than at the
-% end of the section.
-%\pagebreak
+% [layout hack]: get lst:autoupdate here.
 \FloatBarrier
-
-\begin{listing}
-\centering
-\begin{cminted}{text}
-> autocheck $ do
-    auto <- mkAutoUpdate defaultUpdateSettings
-    auto
-
-[fail] Never Deadlocks
-        [deadlock] S0--------S1-----------S0-
-[pass] No Exceptions
-[fail] Consistent Result
-        () S0--------S1--------p0--
-
-        [deadlock] S0--------S1-----------S0-
-\end{cminted}
-%$
-\caption{An example of a race condition in the auto-update library.}\label{lst:example-autoupdate1}
-\end{listing}
-
-In \dejafu{}'s abbreviated trace output,
-$Sn$ indicates that thread
-$n$ started after the previously executing thread terminated or
-blocked; whereas $pn$ indicates that thread
-$n$ pre-empted the previously exeucting thread after it yielded.  To
-read this trace, it is helpful to look at the
-$S$ points, rather than to count the steps.  Using this tactic, we see
-that a deadlock occurs if thread zero (the initial thread) runs until
-it blocks (which is the \verb|readMVar lastValue| call on line 40),
-then thread one (the worker thread) runs until it blocks (the second
-time \verb|takeMVar needsRunning| on line 21 is reached).  At this
-point the initial thread is runnable, as it was unblocked by the write
-to \verb|lastValue| on line 27.  The initial thread is scheduled, and
-immediately blocks because the worker thread took the value.  Both
-threads are now blocked, and so the computation is deadlocked.
-
-This deadlock may arise in any use of the library, as the occurrence
-of deadlock depends only on the timing of the delay, and not on the
-computation performed.  If the call to \verb|threadDelay| on line 29
-completes before the reading thread has resumed execution, deadlock
-will occur.  Despite this bug being rather simple, not requiring any
-pre-emptions at all to trigger, it arose in practice.  How easy it is
-to make mistakes when implementing concurrent programs!
 
 \subsection{Search Party}
 
