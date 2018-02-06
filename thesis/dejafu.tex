@@ -1334,6 +1334,233 @@ catchSome act = catch act $
 
 \subsection{The Par Monad}
 
+The Par monad\cite{marlow2011} provides a traditional-looking
+concurrency abstraction, giving the programmer threads and mutable
+state, however it is deterministic.  Determinism is enforced by
+restricting shared state: it is an error to write more than once to
+the same variable, and read operations block until a value has been
+written.  Programs written using the Par monad will either give a
+deterministic result, or terminate with a multiple-write error.  These
+shared variables, called \verb|IVar|s, implement
+futures\cite{marlow2011}.  Despite its limitations, the library can be
+effective in speeding up pure code\cite{marlow2011}.
+
+The library provides six different schedulers.  We ported the
+``direct'' scheduler, a work-stealing scheduler, to the
+\verb|MonadConc| typeclass.  This was a straightforward and
+compiler-driven refactoring.  Changing function types to use
+\verb|MonadConc| rather than \verb|IO| led to compiler errors showing
+where the next changes needed to be made.  We iterated this process of
+fixing errors and recompiling until the library successfully compiled
+once more.  Changes were needed in two of the source files.
+
+Some simplifications were made in the conversion process:
+
+\begin{itemize}
+\item The scheduler creates a pseudorandom number generator for each
+  worker thread.  As systematic testing requires that the scheduler be
+  the only source of nondeterminism, we fixed the random seeds: the
+  first worker thread gets the seed zero, the second gets the seed
+  one, and so on.
+\item The scheduler uses the C pre-processor to choose between
+  different implementations of some of its functionality.  There are
+  nine flags, each of which can be enabled or disabled.  We only
+  ported the default configuration.
+\item The scheduler includes some debugging code for detecting and
+  reporting errors.  We removed it.
+\end{itemize}
+
+\begin{table}
+  \centering
+  \begin{tabular}{lrr} \toprule
+    & Direct.hs & DirectInternal.hs \\ \midrule
+    Language extensions & 1 & 0 \\
+    Module imports & 6 & 1 \\
+    Type definitions & 7 & 13 \\
+    Type signatures & 32 & 7 \\
+    Function renames & 13 & 5 \\
+    Logic changes & 16 & 0 \\ \midrule
+    \emph{Total} & 75 & 26 \\ \bottomrule
+  \end{tabular}
+  \caption{Breakdown of changes to port the Par monad ``direct'' scheduler.}\label{tbl:parmonad_diff}
+\end{table}
+
+\Cref{lst:parmonad} shows the original and converted versions of the
+scheduler initialisation code.  As can be seen, they are similar, even
+though this is a core component of a rather sophisticated library,
+where the types have been changed.  \Cref{tbl:parmonad_diff} breaks
+down the changes across both files.  Code changes are broken down into
+``renames,'' where the concurrency library simply provides a different
+name for a function, and ``logic,'' where that was not the case.  The
+logic changes were either: (1) places where a call to \verb|liftIO| or
+\verb|lift| was now necessary; or (2) inserting uses of
+\verb|getNumCapabilities|.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+parfilter :: (MonadConc m, NFData a) => (a -> Bool) -> [a] -> Par m [a]
+parfilter _ []  = pure []
+parfilter f [x] = pure (if f x then [x] else [])
+parfilter f xs  = do
+    let (as, bs) = halve xs
+    v1 <- Par.spawn (parfilter f as)
+    v2 <- Par.spawn (parfilter f bs)
+    left  <- Par.get v1
+    right <- Par.get v2
+    pure (left ++ right)
+  where
+    halve xs = splitAt (length xs `div` 2) xs
+\end{cminted}
+\caption{An example usage of the Par monad library.}\label{lst:parmonad_example1}
+\end{listing}
+
+\Cref{lst:parmonad_example1} shows an example usage of the library.
+This \verb|parfilter| function filters a list in parallel, using a
+divide-and-conquer approach.  If the list is not empty or a singleton,
+it is split in half and a new thread created to filter each half.  The
+results of each new thread are combined to produce the overall result.
+The library requires all shared state have an instance of the
+\verb|NFData| typeclass, which provides an operation to evaluate data
+to normal form.  The Par monad gains its speed by evaluating data in
+separate threads.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+test_parmonad :: (MonadConc m, MonadIO m) => [Int] -> m Bool
+test_parmonad xs = do
+    let p x = x `mod` 2 == 0
+    s <- runPar (parfilter p xs)
+    pure (s == filter p xs)
+\end{cminted}
+\caption{A test case comparing parallel filter to a normal filter.}\label{lst:parmonad_example2}
+\end{listing}
+
+\Cref{lst:parmonad_example2} shows a test case for \verb|parfilter|.
+A parallel filter should produce the same result as a normal filter.
+\Cref{tbl:parmonad_perf} shows performance measurements for our test
+case, with the input list \verb|[0..5]|, in six different
+configurations.  The numbers do not look so good for DPOR.  Swarm
+managed to find two deadlocking executions out of 100, whereas bounded
+DPOR found none in 6140.  Unbounded DPOR did not complete at all: it
+rapidly consumed all the memory of the host system when keeping traces
+in memory, and was still running after two days while discarding
+traces.
+
+\begin{table}
+  \centering
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (MB)} \\ \midrule
+      Bounded DPOR   & 6140 & 0 & 35.1 &            339 \\
+      Unbounded DPOR &      &   &      & {$\geq$ 16GiB} \\
+      Swarm          &  100 & 2 & 0.17 &             21 \\ \bottomrule
+    \end{tabular}
+    \caption{Keeping all execution traces in memory.}\label{tbl:parmonad_perf1}
+  \end{subtable}
+
+  % [layout hack]: no gap between the tables otherwise
+  \vspace{2.5em}
+
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
+      Bounded DPOR   & 6140 & 0 &           27.9 &  842 \\
+      Unbounded DPOR &      &   & {$\geq$ 48hrs} &      \\
+      Swarm          &  100 & 2 &           0.14 & 1600 \\ \bottomrule
+    \end{tabular}
+    \caption{Only keeping buggy execution traces in memory.}\label{tbl:parmonad_perf2}
+  \end{subtable}
+  \caption[Performance of the Par monad case study with three different exploration tactics.]{Performance of the Par monad case study with three different exploration tactics.  Unbounded DPOR was aborted in both cases, after consuming too many resources.}\label{tbl:parmonad_perf}
+\end{table}
+
+When we inspect one of the execution traces leading to deadlock, we
+gain two clues for why DPOR performs poorly: (1) the trace is 793
+entries long, but the length bound for DPOR is 250; and (2) there are
+473 calls to \verb|liftIO|, \dejafu{} considers all \verb|IO| actions
+dependent and so tries every possible interleaving of those.
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+(Continue,[],LiftIO)
+(Continue,[],LiftIO)
+(Continue,[],LiftIO)
+(Continue,[],ReadCRef 2)
+(Continue,[],LiftIO)
+(Continue,[],NewMVar 7)
+(Continue,[],ModCRef 4)
+(Continue,[],GetNumCapabilities 2)
+(Continue,[],BlockedTakeMVar 7)
+\end{cminted}
+\caption{The final ten entries of the deadlocking Par monad trace.}\label{lst:parmonad_example3}
+\end{listing}
+
+Following the code by eye as we read a 793-entry trace is not a
+feasible approach here.  So instead, let's look at the last few
+entries in the trace, shown in \Cref{lst:parmonad_example3}.  Each
+trace entry is a tuple consisting of: the scheduling decision made,
+the alternative decisions possible, and what the thread did.  As this
+is right before deadlock, it is not surprising that there are no other
+threads which could be scheduled.  There are only four calls to
+\verb|getNumCapabilities| in the code we ported.  So we can look at
+each, to find one where the surrounding context matches the trace.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+go 0 _ | _IDLING_ON =
+  do m <- newEmptyMVar
+     r <- modifyHotVar idle (\is -> (m:is, is))
+     numCapabilities <- getNumCapabilities
+     if length r == numCapabilities - 1
+       then do
+         mapM_ (\vr -> putMVar vr True) r
+       else do
+         done <- takeMVar m
+         if done
+           then do
+             return ()
+           else do
+             i <- getnext (-1::Int)
+             go (maxtries numCapabilities) i
+\end{cminted}
+\caption[The source of the deadlock in the Par monad.]{The source of the deadlock in the Par monad.  In the ``then'' branch of the conditional, the \texttt{idle} list is not emptied when waking every blocked thread.}\label{lst:parmonad_example4}
+\end{listing}
+
+\Cref{lst:parmonad_example4} is our match.  When a thread is unable to
+steal work, it creates an empty \verb|MVar| which it adds to a shared
+list, called \verb|idle|; if that list already has an entry for every
+other thread, they are woken by writing a value to their \verb|MVar|;
+otherwise, the thread blocks by calling \verb|takeMVar| on its new,
+empty, \verb|MVar|.
+
+The final fragment of our execution trace corresponds to this code
+where the condition \verb|length r == numCapabilities - 1| is false.
+But how can that be false?  \emph{The list is never emptied!}  Think
+about what happens if every thread reaches this logic \emph{twice}:
+
+\begin{enumerate}
+\item \verb|n - 1| threads add themselves to the list, and block.
+\item The final thread adds itself to the list, wakes up the other
+  threads.
+\item \textbf{The list is not emptied, even though every thread is woken.}
+\item \verb|n - 1| threads add themselves to the list, again, and
+  block.
+\item The final thread adds itself to the list.  It does \emph{not}
+  trigger the wake-up logic, because the list is not the right length,
+  and so it also blocks.
+\item \textbf{Every thread is now blocked.}
+\end{enumerate}
+
+This problem is solved by writing \verb|[]| to \verb|idle| before
+waking the threads.  The write must happen before, otherwise there is
+a new race condition: one of the woken threads could add itself to the
+list again, and then its \verb|MVar| be lost when the list is cleared.
+
 \begin{listing}
   \begin{sublisting}{\textwidth}
     \centering
@@ -1359,7 +1586,7 @@ makeScheds main = do
                    ]
    pure allscheds
     \end{cminted}
-    \caption{Original}\label{lst:example-parmonad-sched-orig}
+    \caption{Original}\label{lst:parmonad_orig}
   \end{sublisting}
 
   % [layout hack]: no gap between the listings otherwise
@@ -1391,74 +1618,13 @@ makeScheds main = do
                    ]
    pure allscheds
     \end{cminted}
-    \caption{\dejafu{}}\label{lst:example-parmonad-sched-dejafu}
+    \caption{\dejafu{}}\label{lst:parmonad_dejafu}
   \end{sublisting}
-  \caption{The Par monad `direct' scheduler initialisation.}\label{lst:example-parmonad-sched}
+  \caption{The Par monad ``direct'' scheduler initialisation.}\label{lst:parmonad}
 \end{listing}
 
-The Par monad\cite{marlow2011} provides a traditional-looking
-concurrency abstraction, giving the programmer threads and mutable
-state, however it maintains determinism by restricting its shared
-variables to one write, and read operations block until a value has
-been written.  These shared variables, called \verb|IVar|s, are used
-to implement futures\cite{marlow2011}, rather than general mutable
-state.  The package uses a work-stealing scheduler\cite{marlow2011}
-running on multiple operating system threads, fully evaluating values
-on their own threads before inserting them into an \verb|IVar|.
-Despite its limitations, the library can be effective in speeding up
-pure code\cite{marlow2011}.
-
-The library provides several different schedulers.  We ported the
-`direct' scheduler to the \verb|MonadConc| typeclass so it could be
-tested.  This was a straightforward and compiler-driven refactoring.
-Changing function types to reference \verb|MonadConc| rather than
-\verb|IO| led to compiler errors showing where the next changes needed
-to be made.  We iterated this process of fixing errors and recompiling
-until the library compiled once more.  Changes were needed in two of
-the source files.
-
-Some simplifications were made in the conversion process:
-
-\begin{itemize}
-\item The scheduler uses the mwc-random\cite{mwc_random} library to
-  fairly distribute work to the worker threads.  By default, the
-  initial seed is an effectively random value.  As systematic testing
-  requires that the scheduler be the only source of nondeterminism, we
-  fixed the random seed.
-\item Behaviour of the scheduler can be configured using the C
-  pre-processor, but we only ported the default configuration.
-\end{itemize}
-
-\Cref{lst:example-parmonad-sched} shows the original and converted
-versions of the scheduler initialisation code.  As can be seen, they
-are similar, even though this is a core component of a rather
-sophisticated library, where the types have been changed.
-\Cref{tbl:example-parmonad-diff} breaks down the changes across both
-files.  Code changes are broken down into `renames,' where the
-concurrency library simply provides a different name for a function,
-and `logic,' where that was not the case.  The logic changes were
-either (1) places where a call to \verb|liftIO| or \verb|lift| was now
-necessary, or (2) inserting uses of \verb|getNumCapabilities|.
-
-\begin{table}
-  \centering
-  \begin{tabular}{lrr} \toprule
-    & Direct.hs & DirectInternal.hs \\ \midrule
-    Language extensions & 1 & 0 \\
-    Module imports & 6 & 1 \\
-    Type definitions & 7 & 13 \\
-    Type signatures & 32 & 7 \\
-    Function renames & 13 & 5 \\
-    Logic changes & 16 & 0 \\ \midrule
-    \emph{Total} & 75 & 26 \\ \bottomrule
-  \end{tabular}
-  \caption{Breakdown of changes to port the Par monad `direct' scheduler.}\label{tbl:example-parmonad-diff}
-\end{table}
-
-No deadlock or nondeterminism was discovered for a small test program,
-with a variety of initial random seeds tried.  If there are failures
-in the Par monad, they may require more than 2 capabilities to
-manifest.
+% [layout hack]: get lst:parmonad here.
+\FloatBarrier
 
 \subsection{Property-testing Concurrency}
 
