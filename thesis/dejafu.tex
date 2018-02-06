@@ -955,10 +955,9 @@ into the following classes:
 \paragraph{Example programs}
 Finally, we have a collection of larger integration tests which serve
 also as example usages of \dejafu{}: the auto-update\cite{auto_update}
-and search-party\cite{search_party} libraries, which we shall discuss
-in \Cref{sec:dejafu-casestudies}; the Dining Philosophers problem; a
-message queue; and an example of testing typeclass laws using
-QuickCheck\cite{claessen2000} and concurrency.
+library, which we discuss in \Cref{sec:dejafu-casestudies}; the Dining
+Philosophers problem; a message queue; and an example of testing
+typeclass laws using QuickCheck\cite{claessen2000} and concurrency.
 
 \subsection{Correct Execution}
 
@@ -1081,20 +1080,18 @@ core DPOR algorithm, which establishes property (2).
 \section{Case Studies}
 \label{sec:dejafu-casestudies}
 
-We now discuss four case studies, demonstrating typical uses of
+We now discuss three case studies, demonstrating typical uses of
 \dejafu{}:
 
 \begin{enumerate}
 \item We reproduce a bug in the auto-update\cite{auto_update} library.
-\item We discuss a bug from the search-party\cite{search_party} for
-  expressing parallel search problems.
 \item We test one of the Par monad\cite{marlow2011} schedulers.
 \item Finally, we use property-based testing to reproduce a bug in the
   async\cite{async} library.
 \end{enumerate}
 
-Case studies 1, 3, and 4 involve porting existing code to the
-\verb|MonadConc| abstraction.
+Each case study involved porting existing code to the \verb|MonadConc|
+abstraction.
 
 \subsection{The auto-update Package}
 
@@ -1335,102 +1332,6 @@ catchSome act = catch act $
 % [layout hack]: get lst:autoupdate here.
 \FloatBarrier
 
-\subsection{Search Party}
-
-The search-party\cite{search_party} library supports speculative
-parallelism in generate-and-test search problems.  It is motivated by
-the consideration that if multiple acceptable solutions exist, it may
-not matter which one is returned.  In early versions of the library,
-only single results could be returned, but support for returning all
-results was later added, incorrectly, introducing a bug.
-
-\begin{listing}
-\centering
-\begin{cminted}{haskell}
--- | Convert a prefix of a result stream into a list.
-takeStream :: MonadConc m => Int -> Stream m a -> m [a]
-
--- | Find all elements of a list matching a predicate.
-(@!) :: MonadConc m => [a] -> (a -> Bool) -> m (Stream m a)
-\end{cminted}
-\caption{search-party combinators for concurrent generate-and-test.}\label{lst:example-searchparty0}
-\end{listing}
-
-The library provides a collection of combinators used to express a
-generate-and-test problem, which are executed using a concurrent
-producer/consumer pattern.  The subset of the library used in this
-case study appears in \Cref{lst:example-searchparty0}.  One worker
-thread is created for each capability, which share a list of work
-items and communicate results back to the main thread.
-
-\begin{listing}
-\centering
-\begin{minipage}{0.5\textwidth}
-\begin{minted}[linenos]{haskell}
-case maybea of
-  Just a -> do
-    atomically $ do
-      val <- tryTakeTMVar res
-      case val of
-        Just (Just as) -> putTMVar res $ Just (a:as)
-        _ -> putTMVar res $ Just [a]
-    unless shortcircuit $
-      process remaining res
-  Nothing -> process remaining res
-\end{minted}
-\end{minipage}
-\caption{A key piece of the search-party worker loop.}\label{lst:example-searchparty1}
-\end{listing}
-
-\Cref{lst:example-searchparty1} shows a key part of the worker loop.
-Here \verb|maybea| is a value indicating whether the computation just
-evaluated was successful.  A \verb|TMVar| is a \verb|TVar| containing
-a \verb|Maybe| value, which aborts the transaction if it fails.  The
-intended behaviour of this code that, if a computation is successful,
-its result is added to the list in the \verb|res| \verb|TMVar| in
-lines 6 and 7.  This \verb|TMVar| is exposed indirectly to the user of
-the library, as it is blocked upon when the result of the search is
-requested.
-
-\begin{listing}
-\centering
-\begin{cminted}{text}
-> let check = alwaysSameOn (fmap sort)
-> let test xs = takeStream (length xs) =<< xs @! const True
-> dejafu "Result Lists" check (test [0..2])
-
-[fail] Result Lists
-        [] S0------S1-----S0-------
-
-        [0] S0------S1-----S0---P3------------S0-------
-
-        [0,1] S0------S1-----S0---P3------------S0--P3------S0--------
-
-        [1] S0------S1-----S0---P3-P2------------S0-------
-\end{cminted}
-%>>
-\caption{An example of a race condition in the search-party library.}\label{lst:example-searchparty2}
-\end{listing}
-
-When returning all results of a nondeterministic generate-and-test
-computation, different executions may produce this list in different
-orders.  However, the lists should contain the same elements.  We can
-check this property with \dejafu{}.  \Cref{lst:example-searchparty2}
-shows a test, and a failure, for this property.  The problem was a
-lack of any indication that a list-producing computation had finished.
-As results were written directly to the \verb|TMVar| on lines 6 and 7,
-partial result lists could be read depending on how the worker threads
-and the main thread were interleaved.
-
-In this case, fixing the failure did not require any interactive
-debugging.  Only one place had been modified in introducing the new
-functionality, and the bug was found by re-reading the code with the
-possibility of error in mind.  The solution was to introduce another
-\verb|TVar| to signal completion of the search.  However, the ability
-to produce a test case which reliably reproduces the problem gives
-confidence that it will not be accidentally reintroduced.
-
-\FloatBarrier
 \subsection{The Par Monad}
 
 \begin{listing}
@@ -2045,7 +1946,7 @@ we discuss in \Cref{chp:algorithms}.  We have not attempted a formal
 proof of correctness of \dejafu{}, but have a comprehensive test suite
 and real-world users, suggesting that it works well in practice.
 
-We have discussed four case studies, three of which involved applying
+We have discussed three case studies, all of which involved applying
 \dejafu{} to pre-existing code.  Such code must be modified to use the
 \dejafu{} typeclass abstraction, but we have found this to be a
 straightforward and type-directed process in most cases.  Finally, we
