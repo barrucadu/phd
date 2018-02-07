@@ -1628,43 +1628,51 @@ makeScheds main = do
 
 \subsection{Property-testing Concurrency}
 
-The async\cite{async} library defines a type called
-\verb|Concurrently|, a simple wrapper around \verb|IO|, which allows
-concurrently composing actions with the \verb|Applicative| \verb|<*>|
-operator.  \Cref{lst:concurrently} gives the implementation of
-\verb|<*>| for \verb|Concurrently|.  Both the function and the
-argument to apply it to are computed concurrently in separate threads,
-and then combined.
+The async library\cite{async} allows programmers to write asynchronous
+code without needing to worry about details such as threads, shared
+state, or exceptions.  \Cref{lst:async_example} shows a typical usage
+of the library.  The \verb|async| function begins executing an
+\verb|IO| action in a new thread.  The \verb|wait| function blocks
+until the action is done and returns the result.  If the action throws
+an exception, \verb|wait| also throws the exception.  There is a third
+basic operation: \verb|cancel|, which terminates the thread associated
+with an asynchronous action.
 
 \begin{listing}
 \centering
 \begin{cminted}{haskell}
-newtype Concurrently a = Concurrently (IO a)
-
-(<*>) :: Concurrently (a -> b) -> Concurrently a -> Concurrently b
-(Concurrently f) <*> (Concurrently a) = Concurrently $ do
-  fvar <- newEmptyMVar
-  avar <- newEmptyMVar
-  forkIO (f >>= putMVar fvar)
-  forkIO (a >>= putMVar avar)
-  f' <- readMVar fvar
-  a' <- readMVar avar
-  pure (f' a')
+downloadBoth :: URL -> URL -> IO (String, String)
+downloadBoth url1 url2 = do
+  a1 <- async (download url1)
+  a2 <- async (download url2)
+  page1 <- wait a1
+  page2 <- wait a2
+  pure (page1, page2)
 \end{cminted}
-%$
-\caption{Applicative concurrent composition for the \texttt{Concurrently} type.}\label{lst:concurrently}
+\caption[A typical usage of the async library.]{A typical usage of the async library.  Both URLs are downloaded concurrently in separate threads.}\label{lst:async_example}
 \end{listing}
 
-In addition to \verb|Applicative|, the \verb|Concurrently| type also
-had a \verb|Monad| instance.  In Haskell, we like for our typeclasses
-to have \emph{laws} specifying how instances should behave.  These
-laws are not checked by the compiler: GHC is no theorem prover.
-Rather, it is up to the author of a typeclass instance to ensure that
-they follow all appropriate laws.  Failure by a library author to
-follow the laws can lead to unexpected behaviour for users.  It should
-come as no surprise that there is a law relating \verb|Applicative| to
-\verb|Monad|: namely, that \verb|(<*>) = ap|.  The definition of
-\verb|ap| is given in \Cref{lst:ap}.
+Using these three building blocks of \verb|async|, \verb|wait|, and
+\verb|cancel|, the library provides a collection of higher-level
+abstractions which are widely used in the Haskell ecosystem.  One of
+these higher-level abstractions is the \verb|Concurrently| type, a
+simple wrapper around \verb|IO|, which allows concurrently composing
+actions with the \verb|Applicative| \verb|<*>| operator.  The two
+arguments to \verb|<*>| are computed concurrently in separate threads,
+and then combined.  \Cref{lst:concurrently} gives the implementation
+of \verb|Concurrently|.
+
+In Haskell, we like our typeclasses to have \emph{laws} specifying how
+instances should behave.  Without such a specification, it is
+impossible to write typeclass-polymorphic functions with any
+reasonable expectation of what will happen.  These laws are not
+checked by the compiler: GHC is no theorem prover.  Rather, it is up
+to the author of a typeclass instance to ensure that they follow all
+appropriate laws.  Failure by a library author to follow the laws can
+lead to unexpected behaviour for users.  As \verb|Applicative| is a
+superclass of \verb|Monad|, it should come as no surprise that there
+is a law relating the two: specifically, that \verb|<*> = ap|.  The
+definition of \verb|ap| is given in \Cref{lst:ap}.
 
 \begin{listing}
 \centering
@@ -1678,61 +1686,20 @@ ap f a = do
 \caption{The \texttt{ap} function.}\label{lst:ap}
 \end{listing}
 
-Unfortunately, a user found that this \verb|ap| law did \emph{not}
-hold for the \verb|Concurrently|
-monad\footnote{\url{https://github.com/simonmar/async/pull/26}}.  With
-the benefit of hindsight, the cause is clear: \verb|(<*>)| runs its
+The \verb|ap| law does \emph{not} hold for the \verb|Concurrently|
+monad\footnote{\url{https://github.com/simonmar/async/pull/26}}!  With
+the benefit of hindsight, the cause is clear: \verb|<*>| runs its
 arguments concurrently, whereas \verb|ap| has no choice but to run its
 arguments sequentially.  If the two arguments can concurrently
-interfere with each other, then the \verb|(<*>)| case will exhibit
-more nondeterminism than the \verb|ap| case.
+interfere with each other, then \verb|<*>| exhibits more
+nondeterminism than \verb|ap|.
 
-Could \dejafu{} have helped here?  We believe so.
-\Cref{lst:concurrently2} shows the \verb|Concurrently| type and its
-\verb|(<*>)|, generalised to work for any \verb|MonadConc|.  The trick
-here is to parameterise \verb|Concurrently| with the monad type it
-will eventually operate in.  The only change to the body of
-\verb|(<*>)| is renaming \verb|forkIO| to \verb|fork|.
-
-\begin{listing}
-\centering
-\begin{cminted}{haskell}
-newtype Concurrently m a = Concurrently (m a)
-
-(<*>) :: MonadConc m => Concurrently m (a -> b) -> Concurrently m a -> Concurrently m b
-(Concurrently f) <*> (Concurrently a) = Concurrently $ do
-  fvar <- newEmptyMVar
-  avar <- newEmptyMVar
-  fork (f >>= putMVar fvar)
-  fork (a >>= putMVar avar)
-  f' <- readMVar fvar
-  a' <- readMVar avar
-  pure (f' a')
-\end{cminted}
-%$
-\caption{The \texttt{Concurrently} type, generalised to any \texttt{MonadConc}.}\label{lst:concurrently2}
-\end{listing}
-
-We can now proceed to test the laws.  We used
-QuickCheck\cite{claessen2000} for this, but any property-testing tool
-which can generate functions and check monadic properties would do.
-\Cref{lst:aplaw1} shows a \emph{passing} property: there is no
-concurrent interference between the two arguments to \verb|(<*>)| and
-\verb|ap|, and so the flaw does not manifest.
-
-Until now, in the first two case studies, we have only seen \dejafu{}
-used to generate visual traces.  The \verb|resultsSet| function is
-another part of \dejafu{} which takes a \verb|MonadConc| action and
-gives the set of its distinct results, with no traces.  So the
-\verb|eq'| function in \Cref{lst:aplaw1} takes two \verb|ConcIO a|
-values and checks that they produce the same sets of results.  The
-\verb|ConcIO| type is an instance of \verb|MonadConc| which \dejafu{}
-uses for testing purposes: it allows running a concurrent computation
-and extracting a result in \verb|IO|.  For the reader unfamiliar with
-\verb|QuickCheck|: \verb|Fun a b| represents a function of type
-\verb|a -> b|; and \verb|monadicIO| converts an \verb|IO| action into
-a \verb|Property| value, which passes if every call to \verb|assert|
-inside it passes.
+Could \dejafu{} have helped here?  We believe so.  By changing the
+\verb|Concurrently| type to be polymorphic over the underlying monad,
+we can substitute in any \verb|MonadConc|.  We can then test the laws.
+We used QuickCheck\cite{claessen2000} for this, but any
+property-testing tool which can generate functions and check monadic
+properties would do.
 
 \begin{listing}
 \centering
@@ -1741,54 +1708,59 @@ prop_monad_ap1 :: Ord b => Fun a b -> a -> Property
 prop_monad_ap1 (apply -> f) a = (pure f <*> pure a) `eq` (pure f `ap` pure a)
 
 eq :: Ord a => Concurrently ConcIO a -> Concurrently ConcIO a -> Property
-eq (Concurrently left) (Concurrently right) = eq' left right
-
-eq' :: Ord a => ConcIO a -> ConcIO a -> Property
-eq' left right = monadicIO $ do
+eq (Concurrently left) (Concurrently right) = monadicIO $ do
   l <- resultsSet defaultWay defaultMemType left
   r <- resultsSet defaultWay defaultMemType right
   assert (l == r)
 \end{cminted}
 %$
-\caption{The \texttt{(<*>)} / \texttt{ap} law, with no concurrency.}\label{lst:aplaw1}
+\caption{The \texttt{<*> = ap} law, with no concurrent interference.}\label{lst:aplaw1}
 \end{listing}
+
+\Cref{lst:aplaw1} shows a \emph{passing} property.  There is no
+concurrent interference between the two arguments to \verb|<*>| and
+\verb|ap|, so the flaw does not manifest.  Our \verb|eq| function
+checks that two \verb|Concurrently| actions produce the same sets of
+results.  For the reader unfamiliar with \verb|QuickCheck|:
+\verb|Fun a b| represents a function of type \verb|a -> b|; and
+\verb|monadicIO| converts an \verb|IO| action into a test which passes
+if it contains no failing assertions.
 
 Our \verb|prop_monad_ap1| property is uninteresting in a sense because
 it is clearly free from concurrency errors: the very errors which we
 want to detect!  It is free of them because the arguments to
-\verb|(<*>)| and \verb|ap| are pure values, so there can be no
-concurrent interference between them.  In order to observe the law
-breaking, we must create a race condition.
+\verb|<*>| and \verb|ap| are pure values, so there can be no
+concurrent interference between them.  To observe the law being
+broken, we must create a race condition.
 
 \begin{listing}
 \centering
 \begin{cminted}{haskell}
-prop_monad_ap2 :: Ord b => Fun a b -> Fun a b -> a -> Bool
-prop_monad_ap2 (apply -> f) (apply -> g) a = go (<*>) `eq'` go ap where
+prop_monad_ap2 :: Ord b => Fun a b -> Fun a b -> a -> Property
+prop_monad_ap2 (apply -> f) (apply -> g) a = go (<*>) `eq` go ap where
   go combine = do
     flagvar <- newEmptyMVar
     let cf = do { flag <- tryPutMVar flagvar (); pure (if flag then f else g) }
     let ca = do { tryPutMVar flagvar (); pure a }
-    let (Concurrently result) = Concurrently cf `combine` Concurrently ca
-    pure result
+    pure (Concurrently cf `combine` Concurrently ca)
 \end{cminted}
-\caption{The \texttt{(<*>)} / \texttt{ap} law, with concurrency.}\label{lst:aplaw2}
+\caption{The \texttt{<*> = ap} law, with concurrency.}\label{lst:aplaw2}
 \end{listing}
 
-\Cref{lst:aplaw2} contains such a race condition.  Rather than
-generate one function and one value with QuickCheck, we instead
-generate two functions and one value.  Then, when executing the
-concurrent action, we use an \verb|MVar| to decide whether to apply
-the first function or the second.  If the combining function,
-\verb|(<*>)| or \verb|ap|, executes its arguments concurrently then we
-would expect to see both functions tried; if it executes its arguments
-sequentially, we will only see the results of the first function.
+\Cref{lst:aplaw2} contains a race condition.  We now generate two
+functions with QuickCheck.  When executing the concurrent action, we
+use an \verb|MVar| to decide which function to use.  If the
+\verb|MVar| is empty we use the first function, if it is full we use
+the second.  If the combining function, \verb|<*>| or \verb|ap|,
+executes its arguments concurrently then we will see both functions
+tried; if it executes its arguments sequentially, we will only see the
+first function.
 
 \begin{listing}
 \begin{sublisting}{\textwidth}
 \centering
 \begin{cminted}{text}
-> quickCheck (prop_monad_ap2 :: Fun Int String -> Fun Int String -> Int -> Property)
+> quickCheck prop_monad_ap2
 *** Failed! Falsifiable (after 3 tests and 8 shrinks):
 {_->""}
 {_->"a"}
@@ -1811,21 +1783,134 @@ fromList [Right "a"]
 \end{cminted}
 \caption{The \dejafu{} output.}\label{lst:aplaw3_dejafu}
 \end{sublisting}
-\caption{The result of the failing \texttt{(<*>)} / \texttt{ap} property.}\label{lst:aplaw3}
+\caption{The result of the failing \texttt{<*> = ap} property.}\label{lst:aplaw3}
 \end{listing}
 
 Indeed, we do see the bug.  \Cref{lst:aplaw3} gives the QuickCheck and
-\dejafu{} outputs.
+\dejafu{} outputs.  \Cref{tbl:concurrently_perf} shows performance
+measurements for a variant of our test case.  We cannot give the
+property itself to \dejafu{}, so we extract the \verb|MonadConc|
+computation and hard-code the parameters generated by QuickCheck,
+shown in \Cref{lst:concurrently_example}.  As in the auto-update case
+study, this is a small test case, so it is perhaps unsurprising that
+it is fast and requires little memory.  Once again, we see that Swarm
+requires more memory than DPOR, even taking the increased number of
+schedules tried into account.
 
-We have the benefit of hindsight here, leading us towards the correct
-test case to write in order to exhibit the bug.  We must ask, is it
-unrealistic to expect a user to have the foresight to write a test
-like this when they are first writing their \verb|Monad| instance?  We
-think not.  When implementing functions for combining concurrent
-monadic actions, it is no great leap to wonder what happens if there
-are races between these actions.  The property may appear contrived,
-but it is a natural way to investigate the effect of a race condition
-in the \verb|(<*>)| / \verb|ap| law.
+We have the benefit of hindsight in this case study, leading us to the
+correct test.  Is it unrealistic to expect a user to have the
+foresight to write a test like this in the beginning?  We think not.
+When implementing functions for combining concurrent actions, it is no
+great leap to wonder what happens if there are races between these
+actions.  The property may appear contrived, but it is a natural way
+to investigate the effect of a race condition in the \verb|<*> = ap|
+law.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+test_concurrently :: MonadConc m => m Bool
+test_concurrently = do
+    l <- go (<*>)
+    r <- go ap
+    pure (l == r)
+  where
+    go combine = runConcurrently $ do
+      flagvar <- newEmptyMVar
+      let cf = do { flag <- tryPutMVar flagvar (); pure (if flag then f else g) }
+      let ca = do { tryPutMVar flagvar (); pure a }
+      pure (Concurrently cf `combine` Concurrently ca)
+
+    f = \_ -> ""
+    g = \_ -> "a"
+    a = 0
+\end{cminted}
+%$
+\caption{The \texttt{<*> = ap} test case, with the generated functions hard-coded.}\label{lst:concurrently_example}
+\end{listing}
+
+\begin{table}
+  \centering
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Failures} & {Time (s)} & {Max Residency (kB)} \\ \midrule
+      Bounded DPOR   &  17 &  2 & 0.002 &  131 \\
+      Unbounded DPOR &  30 &  3 & 0.004 &  135 \\
+      Swarm          & 100 & 37 & 0.012 & 1360 \\ \bottomrule
+    \end{tabular}
+    \caption{Keeping all execution traces in memory.}\label{tbl:concurrently_perf1}
+  \end{subtable}
+
+  % [layout hack]: no gap between the tables otherwise
+  \vspace{2.5em}
+
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Failures} & {Time (s)} & {Max Residency (kB)} \\ \midrule
+      Bounded DPOR   &  17 &  2 & 0.004 &  92 \\
+      Unbounded DPOR &  30 &  3 & 0.009 &  85 \\
+      Swarm          & 100 & 37 & 0.011 & 648 \\ \bottomrule
+    \end{tabular}
+    \caption{Only keeping buggy execution traces in memory.}\label{tbl:concurrently_perf2}
+  \end{subtable}
+  \caption[Performance of the \texttt{<*> = ap} test case.]{Performance of the \texttt{<*> = ap} test case with three different exploration tactics.}\label{tbl:concurrently_perf}
+\end{table}
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+newtype Concurrently a = Concurrently { runConcurrently :: IO a }
+
+instance Functor Concurrently where
+  fmap f (Concurrently a) = Concurrently (fmap f a)
+
+instance Applicative Concurrently where
+  pure = Concurrently . pure
+
+  Concurrently fs <*> Concurrently as =
+    Concurrently (fmap (\(f, a) -> f a) (concurrently fs as))
+
+instance Monad Concurrently where
+  return = pure
+
+  Concurrently a >>= f =
+    Concurrently (a >>= runConcurrently . f)
+
+concurrently :: IO a -> IO b -> IO (a, b)
+concurrently left right = concurrently' left right (collect []) where
+  collect [Left a, Right b] _ = pure (a, b)
+  collect [Right b, Left a] _ = pure (a, b)
+  collect xs m = do
+    e <- takeMVar m
+    case e of
+      Left ex -> throw ex
+      Right r -> collect (r:xs) m
+
+concurrently'
+  :: IO a
+  -> IO b
+  -> (MVar (Either SomeException (Either a b)) -> IO r)
+  -> IO r
+concurrently' left right collect = do
+  done <- newEmptyMVar
+  mask $ \restore -> do
+    let run a r = restore (a >>= putMVar done . Right . r)
+                  `catch` (putMVar done . Left)
+    lid <- fork (run left  Left)
+    rid <- fork (run right Right)
+    let stop = killThread rid >> killThread lid
+    r <- restore (collect done) `onException` stop
+    stop
+    pure r
+\end{cminted}
+%$
+\caption{The implementation of the \texttt{Concurrently} type.}\label{lst:concurrently}
+\end{listing}
+
+% [layout hack]: get lst:concurrently here.
+\FloatBarrier
 
 \section{Evaluation}
 \label{sec:dejafu-evaluation}
