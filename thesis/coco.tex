@@ -387,8 +387,7 @@ We use a simple reduce-and-conquer algorithm to eliminate holes one
 type at a time:
 
 \begin{enumerate}
-\item Pick a type.  Find the set of all holes of that type, each
-  represented by its position in the \verb|Expr| tree.
+\item Pick a type and find the set of all holes of that type.
 \item For each partition of the hole-set make a distinct copy of the
   schema and in each case assign to each subset in the partition a
   distinct variable name.
@@ -481,6 +480,15 @@ ones.  We only keep the most general.
 
 \subsection{The CoCo Algorithm}
 \label{sec:coco-hiw-algo}
+
+The CoCo algorithm is much like that of any other property-discovery
+tool for the most part.  As we have seen, the key difference is that
+we compare sets of behaviours, rather than equality of results.  We
+have some additional complication as we evaluate terms independently,
+and so need to project pairs of terms into a common namespace before
+we can compare them, but this is not an inherent aspect of CoCo: one
+could implement a CoCo which does not cache term results like we do,
+it would just be slow.
 
 In outline, the CoCo algorithm is:
 
@@ -615,7 +623,10 @@ terms, and (2) mapping holes to single variables.
 \section{Case Studies}
 \label{sec:coco-cases}
 
-We now discuss two case studies of using CoCo.
+We discuss the process and results of applying CoCo to two concurrent
+data structures: mutable stacks, and semaphores.  We chose these as
+they are common primitives used in the implementation of concurrent
+algorithms.
 
 \subsection{Concurrent Stacks}
 \label{sec:coco-cases-stack}
@@ -728,10 +739,10 @@ understanding of our code.
 \paragraph{Choice of implementation}
 Due to their blocking behaviour, \verb|MVar|s can have poor
 performance under contention.  An alternative concurrency primitive is
-the \verb|CRef|.  An atomic compare-and-swap operation updates
-\verb|CRef| values efficiently even with contention.
-\Cref{lst:crefstack} shows our implementation, which is similar to the
-\verb|MVar| stack.
+the \verb|CRef|.  An atomic compare-and-swap operation allows threads
+using \verb|CRef| values to make progress with little overhead, even
+with contention.  \Cref{lst:crefstack} shows our implementation, which
+is similar to the \verb|MVar| stack.
 
 \begin{listing}
 \centering
@@ -1028,6 +1039,19 @@ unstated assumptions.  Even without such implementation surprises, it
 can be difficult to read concurrent source code and grasp all its
 consequences.
 
+\paragraph{Wide data types}
+CoCo can be made to go wrong.  CoCo only performs a limited number of
+executions for each generated schema, so wide data types pose a
+problem.  In the \verb|MVar| example in \Cref{sec:coco-example}, we
+used \verb|maybe newEmptyMVar newMVar| as our initialisation function.
+We handle the two cases of \verb|Maybe| differently: in the
+\verb|Nothing| case, we produce an empty \verb|MVar|; in the
+\verb|Just| case, we produce a full \verb|MVar|.  However, if we had
+used a type which had more constructors than CoCo performs tests, then
+some of those constructors would simply never be tested.  If each
+constructor causes some different behaviour, then we will not observe
+all the behaviours.
+
 \paragraph{Ease of use}
 Ideally, a testing tool should not force the programmer to structure
 their code in a specific way.  CoCo requires the use of the
@@ -1035,6 +1059,17 @@ concurrency typeclass used by \dejafu{}, which is not widespread in
 practice.  However, it has been our experience that porting standard
 Haskell code to the necessary abstraction is a type-directed and
 mechanical process, requiring little insight.
+
+\paragraph{Interference functions}
+The choice of interference function has a great effect on the
+discovered properties.  Unless two terms are atomic, it is a little
+suspicious for them to be equivalent.  So, to get a fuller
+understanding of the behaviour of their concurrency functions, the
+programmer must run CoCo with multiple interference functions.  We
+have found that interference functions which do one type of
+interference, such as emptying an \verb|MVar|, tend to give more
+easily understandable results than interference functions which
+perform multiple operations.
 
 \paragraph{Scaling}
 While a na\"{\i}ve CoCo would scale poorly, our optimisations greatly
@@ -1099,6 +1134,43 @@ performance problem.  In addition, discovering preconditions would
 make CoCo able to find properties beyond its current
 reach\cite{braquehais2017}.
 
+\section{Summary}
+
+In this chapter we introduced CoCo, our tool for automatically
+discovering properties of concurrency functions operating on shared
+state.  Properties are equivalences and refinements between the
+observable effects of terms, in the presence of concurrent
+interference.  We use an approach similar to
+QuickSpec\cite{smallbone2017} and Speculate\cite{braquehais2017}, but
+instead consider \emph{sets of observations of effects} rather than
+\emph{equality of results}.
+
+CoCo properties are conjectures supported only by a finite number of
+test cases, but are surprisingly accurate in practice.  However, there
+are some weaknesses: for example, data types with many constructors
+are a poor fit for the small number of enumerative tests we perform to
+decide if a property holds or not.  We have not attempted a formal
+proof of correctness of CoCo.
+
+We have demonstrated the approach with three examples: \texttt{MVar}
+operations, concurrent stacks, and semaphores.  The semaphore example
+revealed some surprising details about negative numbers, reinforcing
+our belief that automatically discovered properties aid program
+understanding.
+
+\paragraph{Context}
+CoCo does not stand alone, it is related to our other contributions:
+
+\begin{itemize}
+\item \Cref{chp:dejafu} presents \dejafu{}, the underlying tool which
+  CoCo builds on to test its concurrent expressions.  \dejafu{}
+  supports testing CoCo properties, testing with more parameter values
+  than CoCo does, giving a greater degree of confidence.
+\end{itemize}
+
+% This table takes up a full page, so put it at the end of the
+% chapter.
+
 \begin{table}
   \centering
   \begin{subtable}{\textwidth}
@@ -1159,37 +1231,3 @@ reach\cite{braquehais2017}.
 
   \caption{How optimisations alter CoCo's scaling behaviour.}\label{tbl:coco_scale}
 \end{table}
-
-\section{Summary}
-
-In this chapter we introduced CoCo, our tool for automatically
-discovering properties of concurrency functions operating on shared
-state.  Properties are equivalences and refinements between the
-observable effects of terms, in the presence of concurrent
-interference.  We use an approach similar to
-QuickSpec\cite{smallbone2017} and Speculate\cite{braquehais2017}, but
-instead consider \emph{sets of observations of effects} rather than
-\emph{equality of results}.
-
-CoCo properties are conjectures supported only by a finite number of
-test cases, but are surprisingly accurate in practice.  However, there
-are some weaknesses: for example, data types with many constructors
-are a poor fit for the small number of enumerative tests we perform to
-decide if a property holds or not.  We have not attempted a formal
-proof of correctness of CoCo.
-
-We have demonstrated the approach with three examples: \texttt{MVar}
-operations, concurrent stacks, and semaphores.  The semaphore example
-revealed some surprising details about negative numbers, reinforcing
-our belief that automatically discovered properties aid program
-understanding.
-
-\paragraph{Context}
-CoCo does not stand alone, it is related to our other contributions:
-
-\begin{itemize}
-\item \Cref{chp:dejafu} presents \dejafu{}, the underlying tool which
-  CoCo builds on to test its concurrent expressions.  \dejafu{}
-  supports testing CoCo properties, testing with more parameter values
-  than CoCo does, giving a greater degree of confidence.
-\end{itemize}
