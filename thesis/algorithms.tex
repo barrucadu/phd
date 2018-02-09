@@ -436,27 +436,46 @@ extreme, if we introduce a weight change after every scheduling point,
 we have simply produced a complicated version of uniform random
 scheduling.
 
-% [layout hack]: get summary onto next page
-\pagebreak
-
+\vfill\pagebreak
 \section{Summary}
 
-In this chapter we introduced Swarm, a new random scheduling algorithm
-for finding faults in concurrent programs.  Although random scheduling
-is necessarily incomplete, it can be faster than complete approaches
-for large programs, and retains a strong bug-finding ability.
+In this chapter we presented swarm scheduling, our scheduling
+algorithm for finding faults in concurrent programs:
 
-Swarm is motivated by the assumption that executions which schedule
-threads unfairly are likely to expose bugs.  When writing a concurrent
-program, it is easy to imagine every thread as progressing at roughly
-the same rate, but this is not necessarily true.  Our results suggest
-that our assumption holds.
+\begin{itemize}
+\item We propose that unfair schedules are likely to reveal
+  concurrency bugs more effectively than fair schedules.  Unfair
+  schedules cause different threads to make progress at different
+  rates, resulting in interleavings the programmer is unlikely to have
+  considered~\sref{algorithms-eval}.
+
+\item Swarm scheduling uses weighted random scheduling, but changes
+  the weights every $x+1$ executions.  Frequent weight changes result
+  in exploring the greatest amount of variation in scheduling bias so,
+  by our hypothesis, are the most effective in finding
+  bugs~\sref{algorithms-swarm}.
+
+\item We find that one parameterisation of the swarm scheduling
+  algorithm performs as well as PCT\cite{burckhardt2010}, despite not
+  knowing anything about the program under test.  We argue that this
+  makes swarm scheduling easier to use, while giving just as good
+  results~\sref{algorithms-bench}.
+\end{itemize}
+
+The complete systematic approach to testing is not necessarily
+suitable for all programs.  Programs with large state-spaces, or
+programs which have sources of nondeterminism other than the
+scheduler, cannot readily be tested with such techniques.  For such
+programs, random testing is commonly used.  By introducing swarm
+scheduling, we hope that effective random testing of concurrent
+programs will become simpler.
 
 \paragraph{Context}
 Swarm does not stand alone, it is related to our other contributions:
 
 \begin{itemize}
-\item \Cref{chp:dejafu} uses Swarm to provide its random testing mode.
-  Complete testing is the default.  Swarm was added for cases where
-  the state-space is too large to systematically explore.
+\item \Cref{chp:dejafu} uses swarm scheduling to provide its random
+  testing mode.  Complete testing is the default.  Swarm scheduling
+  was added for cases where the state-space is too large to
+  systematically explore.
 \end{itemize}

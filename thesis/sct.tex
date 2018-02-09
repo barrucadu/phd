@@ -420,35 +420,35 @@ threads.  Furthermore, it allows the user to specify cases which
 should be automatically allowed to execute.  CHD does not function
 with any GHC newer than version 5 (released between 2001 and 2003).
 
+\vfill\pagebreak
 \section{Summary}
 
 Going forward, the reader should keep in mind:
 
 \begin{itemize}
-\item \emph{Controlled scheduling} refers to driving the scheduling of
-  threads in a concurrent program in a way which the programmer can
-  control.
-\item Deterministically testing concurrent programs relies on
-  controlled scheduling.
-\item \emph{Systematic concurrency testing}
-  (SCT)\cite{coons2013,flanagan2005,musuvathi2008,musuvathi2007} is an
-  umbrella term for a family of techniques relating to
-  deterministically testing concurrent programs, using controlled
-  scheduling.
-\item \emph{Dynamic partial-order reduction}
-  (DPOR)\cite{flanagan2005,godefroid1996}, which falls under the SCT
-  umbrella, is a technique to explore different behaviours of a
-  concurrent program by permuting the order of dependent actions.
-\item \emph{Schedule bounding}\cite{emmi2011,musuvathi2008,musuvathi2007} is
-  a technique to reduce the number of schedules to try by throwing
-  away those which exceed some bound.  In \Cref{chp:dejafu} we discuss
-  a concurrency testing tool for Haskell, built on DPOR and schedule
-  bounding.
-\item Controlled scheduling may be used to implement \emph{random}
-  testing algorithms, which use a random seed to make scheduling
-  decisions.  In \Cref{chp:algorithms} we propose a new random
-  scheduling algorithm.
+\item Controlled scheduling techniques use a user-level scheduler to
+  drive the execution of concurrent program.  This can be done by
+  overriding the concurrency primitives of the source language;
+  instrumenting the program source code; or instrumenting the compiled
+  program~\sref{sct-fundamentals}.
+
+\item Systematic concurrency testing (SCT) is an umbrella term for a
+  collection of techniques for exploring the behaviours of concurrent
+  programs, through controlled scheduling~\sref{sct-fundamentals}.
+
+\item Dynamic partial-order reduction (DPOR), which falls under the
+  SCT umbrella, is a technique to discover all distinct states of a
+  concurrent program.  DPOR takes advantage of mutually commuting
+  operations to reduce space of schedules to explore~\sref{sct-dpor}.
+
+\item Schedule bounding is a technique to reduce the space of
+  schedules to explore by simply discarding any which exceed some
+  chosen bound, such as the number of pre-emptive context switches.
+  Schedule bounding will not, in general, find all distinct states of
+  a concurrent program~\sref{sct-bounding}.
 \end{itemize}
 
-Completeness, sequential consistency, and relaxed memory models appear
-in \Cref{chp:dejafu}, but are defined where they are used.
+We revisit DPOR and schedule bounding in \Cref{chp:dejafu}, where we
+discuss our tool for testing concurrent Haskell programs.  We revisit
+controlled scheduling more generally in \Cref{chp:algorithms}, where
+we propose a new scheduling algorithm for exposing concurrency bugs.

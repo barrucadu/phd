@@ -826,25 +826,66 @@ a waste of time.
 
 This is the final version of our program.
 
-% [layout hack]: prevent just the heading and opening sentence from
-% being on this page.
 \vfill\pagebreak
-
 \section{Summary}
 
 Going forward, the reader should keep in mind:
 
 \begin{itemize}
-\item Haskell uses a green threading model.
-\item When the main thread terminates, all other threads do too.
-\item The scheduler can be influenced by yielding or delaying.
-\item There are two types of shared variable: \verb|IORef| and
-  \verb|MVar|.  The latter are kind of like semaphores.
-\item \verb|IORef| operations may appear to be re-ordered, depending
-  on the memory model of the processor.
-\item Haskell has STM.
-\item Haskell has asynchronous exceptions, which can be thrown between
-  threads.
+\item GHC uses a green threading model.  Multiple Haskell threads are
+  multiplexed onto a smaller number of operating system threads.  Two
+  Haskell threads can execute in parallel if they are mapped to
+  different operating system
+  threads~\sref{concurrent_haskell-threads}.
+
+% talk about daemon threads in this chapter?
+% \item So-called daemon threads do not prevent the termination of a
+%   program: a program terminates when all non-daemon threads do.  In
+%   GHC's threading model, all Haskell threads other than the main
+%   thread are daemon thread~\sref{concurrent_haskell-threads}.
+
+\item Haskell threads may explicitly yield control to another thread,
+  or block themselves until some delay has
+  elapsed~\sref{concurrent_haskell-threads}.
+
+\item An \verb|IORef| is a mutable reference, used for communication
+  between threads.  \verb|IORef| operations come in two kinds:
+  synchronised and unsynchronised.  Depending on the memory model of
+  the processor the program is running on, unsynchronised operations
+  may appear to happen out-of-order~\sref{concurrent_haskell-mmodel}.
+
+\item An \verb|MVar| is another kind of mutable reference, but only
+  has synchronised operations.  An \verb|MVar| may be full or empty:
+  attempting to write to a full \verb|MVar|, or attempting to read
+  from an empty \verb|MVar|, blocks.  \verb|MVar|s are used to
+  implement mutual exclusion~\sref{concurrent_haskell-mmodel}.
+
+\item A \verb|TVar| is yet another kind of mutable reference, used to
+  implement software transactional memory.  Unlike \verb|IORef| and
+  \verb|MVar| operations, \verb|TVar| operations can be composed, and
+  the whole executed atomically.  Transactions do not permit arbitrary
+  effects, only effects on \verb|TVar|s~\sref{concurrent_haskell-stm}.
+
+\item Haskell has exceptions.  Like Java, arbitrary exception types
+  can be created.  When an exception is thrown, control jumps back to
+  the nearest enclosing suitable exception handler.  If there is no
+  such handler, the thread is
+  terminated~\sref{concurrent_haskell-exc}.
+
+\item So-called asynchronous exceptions can be thrown from one thread
+  to another.  An asynchronous exception is raised in the target
+  thread like a normal exception: control jumps back to a suitable
+  exception handler, or kills the
+  thread~\sref{concurrent_haskell-exc}.
+
+\item A thread can prevent the delivery of asynchronous exceptions by
+  changing its masking state.  There are three states: (1) unmasked,
+  allowing asynchronous exceptions to be delivered; (2) masked
+  interruptible, only allowing an asynchronous exception to be
+  delivered when the thread is blocked; and (3) masked
+  uninterruptible, not allowing asynchronous exceptions at all.
+  Throwing an asynchronous exception to a thread not in a suitable
+  state to receive it blocks~\sref{concurrent_haskell-exc}.
 \end{itemize}
 
 We assume familiarity with Concurrent Haskell throughout the rest of

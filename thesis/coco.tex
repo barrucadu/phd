@@ -1134,29 +1134,49 @@ performance problem.  In addition, discovering preconditions would
 make CoCo able to find properties beyond its current
 reach\cite{braquehais2017}.
 
+\vfill\pagebreak
 \section{Summary}
 
-In this chapter we introduced CoCo, our tool for automatically
-discovering properties of concurrency functions operating on shared
-state.  Properties are equivalences and refinements between the
-observable effects of terms, in the presence of concurrent
-interference.  We use an approach similar to
-QuickSpec\cite{smallbone2017} and Speculate\cite{braquehais2017}, but
-instead consider \emph{sets of observations of effects} rather than
-\emph{equality of results}.
+In this chapter we presented CoCo, our tool for automatically
+discovering properties of functions operating on shared mutable state:
 
-CoCo properties are conjectures supported only by a finite number of
-test cases, but are surprisingly accurate in practice.  However, there
-are some weaknesses: for example, data types with many constructors
-are a poor fit for the small number of enumerative tests we perform to
-decide if a property holds or not.  We have not attempted a formal
-proof of correctness of CoCo.
+\begin{itemize}
+\item The properties we discover are equivalences and refinements
+  between the observable effects of terms, in the presence of
+  concurrent interference~\sref{coco-concerns}.
 
-We have demonstrated the approach with three examples: \texttt{MVar}
-operations, concurrent stacks, and semaphores.  The semaphore example
-revealed some surprising details about negative numbers, reinforcing
-our belief that automatically discovered properties aid program
-understanding.
+\item We use an approach similar to QuickSpec\cite{smallbone2017} and
+  Speculate\cite{braquehais2017}, but instead consider sets of
+  observations of effects rather than equality of results.  We use
+  \dejafu{} to discover these sets of effects~\sref{coco-hiw}.
+
+\item CoCo properties are conjectures supported only by a finite
+  number of test cases, but are surprisingly accurate in practice.
+  However, there are some weaknesses: for example, data types with
+  many constructors are a poor fit for the small number of enumerative
+  tests we perform to decide if a property holds or not.  We have not
+  attempted a formal proof of correctness of
+  CoCo~\sref{coco-correctness}.
+
+\item CoCo is most suited to discovering properties about concurrent
+  data structures.  We have demonstrated CoCo with three such
+  examples: \verb|MVar| operations, concurrent stacks, and semaphores.
+  The semaphore example revealed some surprising details about
+  negative numbers, reinforcing our belief that automatically
+  discovered properties aid program understanding~\sref{coco-cases}.
+
+\item We provide an integration between \dejafu{} and CoCo, so users
+  can take the properties which CoCo discovers and ensure that such
+  properties continue to hold in the future~\sref{coco-dejafu}.
+\end{itemize}
+
+Property-based testing and property discovery tools have become very
+popular in the Haskell community.  However, these tools work best with
+pure functions, and only provide limited support for testing effects.
+Although CoCo is a little rough around the edges, and can be a little
+confusing to use and interpret, we are helping to extend the reach of
+property-testing.  One day, testing concurrent data structures should
+be as simple as testing pure ones.
 
 \paragraph{Context}
 CoCo does not stand alone, it is related to our other contributions:

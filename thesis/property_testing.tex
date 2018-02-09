@@ -391,15 +391,30 @@ evidence consists of counterexamples; positive evidence consists of
 witnesses.  Bach crucially requires functions to have at most one
 output for each distinct input, to construct negative evidence.
 
+\vfill\pagebreak
 \section{Summary}
 
 Going forward, the reader should keep in mind:
 
 \begin{itemize}
-\item Properties are universally quantified boolean functions which
-  are expected to hold for all input values.
-\item Property discovery tools, typically, take a description of a
-  program API and return properties which appear to hold, based on
-  testing.  In \Cref{chp:coco} we describe a property discovery tool
-  where the API may involve concurrency.
+\item Property-based testing, also called parameterised unit testing,
+  is a style of testing which uses universally quantified boolean
+  predicates as test cases~\sref{property_testing-intro}.
+
+\item There are two approaches to generating parameter values for
+  properties: random, and enumerative.  Random value generation
+  requires an additional shrinking step, to reduce counterexamples to
+  a local minima, whereas enumerative approaches will always discover
+  the smallest counterexample~\sref{property_testing-tools}.
+
+\item The programmer does not necessarily need to come up with
+  properties themselves.  Property discovery tools as input a
+  description of a program API and return properties which appear to
+  hold.  These generated properties can be used to further program
+  understanding~\sref{property_testing-gen}.
 \end{itemize}
+
+We briefly revisit property-based testing in \Cref{chp:dejafu} in a
+case study.  We discuss property discovery more significantly in
+\Cref{chp:coco}, where we present a tool to discover properties about
+the effects of concurrency functions.
