@@ -1,95 +1,7 @@
-\begin{displayquote}
-  Program testing can be a very effective way to show the presence of
-  bugs, but is hopelessly inadequate for showing their
-  absence.\cite{ewd340}
-\end{displayquote}
-
-\noindent
 We set out to make it easier for programmers to write correct
 concurrent programs, but have we achieved that?  In this chapter we
-summarise and review our contributions, giving some overall
-evaluation.
-
-\paragraph{Systematic concurrency testing with rich semantics}
-\Cref{chp:dejafu} introduces \dejafu{}.  This is a Haskell tool for
-testing Haskell programs, but the underlying techniques are not
-Haskell specific.  However, Haskell has an unusually rich concurrency
-abstraction, whereas SCT techniques are typically described in the
-literature for simple concurrency abstractions.  Even real programming
-languages tend to have simple concurrency abstractions.  For example,
-Maple\cite{yu2012} is able to test arbitrary pthread programs by
-considering just 19 primitive actions, whereas the expression of
-Haskell concurrency in \dejafu{} requires 33 (not counting STM).
-
-In Haskell, there are many different operations with partially
-overlapping behaviour.  It is not clear that a typical SCT algorithm
-would work effectively in this context.  \dejafu{} provides a
-convincing demonstration that SCT can be applied to languages with
-rich concurrency abstractions.  This is an important stepping-stone to
-implementing SCT tools for other similarly rich languages.
-
-\paragraph{Effective bug finding with randomised scheduling}
-\Cref{chp:algorithms} introduces the swarm scheduling algorithm.
-Benchmark results suggest it performs as well as the PCT
-algorithm\cite{burckhardt2010} in terms of bug-finding ability.
-Crucially, PCT requires the user to supply parameters derived from the
-program under test, whereas swarm scheduling does not.  This
-program-agnosticism makes swarm scheduling simpler to implement and
-use than PCT, while still finding the bugs.
-
-\paragraph{Discovering properties of concurrent programs}
-\Cref{chp:coco} introduces CoCo.  By synthesising program terms and
-performing property-based testing, CoCo can give the programmer new
-insights into their code.  Like \dejafu{}, this is a Haskell tool, but
-the underlying techniques are not Haskell specific.  The underlying
-idea is that we can compare sets of program behaviours to make
-meaningful claims about the relation between the source programs.
-This approach applies not just to concurrent programs, but to
-nondeterministic programs in general.
-
-\paragraph{The inevitable exponentials}
-Concurrent programs are nondeterministic, and this is where the
-difficulty of writing correct concurrent programs comes from.
-Fundamentally, testing a concurrent program requires executing it
-multiple times with different schedules.  This adds significant
-overhead compared to sequential tests, where a single execution
-suffices.  Even worse, the number of executions required in the worst
-case is exponential in a number of different
-factors\cite{musuvathi2007}.
-
-\dejafu{} implements schedule
-bounding\cite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
-reduction\cite{flanagan2005,godefroid1996} to improve the average
-case, but the worst case remains a possibility.  Empirical studies
-show that small test cases with two threads and two pre-emptive
-context switches suffice for finding many real-world concurrency
-bugs\cite{thomson2014}.  So in theory there is a terrible asymptotic
-worst case, but in practice test cases are often small enough for this
-not to be a significant concern.
-
-\paragraph{The interpretation game}
-It can be difficult to look at a passing concurrency test and know
-what it is telling us.  We see this with CoCo, where the programmer
-may need to run the tool with a variety of different interference
-functions to see the full picture.  Properties found with one sort of
-concurrent interference may not generalise to cases with different
-interference.  Similarly, passing concurrency tests in \dejafu{} may
-not generalise to cases where the concurrent environment is different.
-
-It can be difficult to look at a failing concurrency test and diagnose
-the problem.  We see this with \dejafu{}, where the resulting
-execution traces can expose low-level details of the implementation of
-library functions.  Traces may become invalid when library
-dependencies change, even if the key scheduling decisions remain the
-same.  Which information is truly important is not obvious.  The
-\textsc{Concurrit}\cite{elmas2013} tool offers an alternative approach
-here, where executions are represented by a small collection of
-scheduling constraints, rather than a full trace.  Although intended
-for reproducing bugs, \textsc{Concurrit} constraints could be a much
-simpler way to present faulty traces.
-
-\paragraph{Contributions}
-In summary, we contribute:
+review our contributions and draw some overall conclusions.  In
+summary, we contribute:
 
 \begin{itemize}
 \item A library (\dejafu{}) for effectively testing concurrent Haskell
@@ -101,3 +13,121 @@ In summary, we contribute:
 \item A tool (CoCo) for discovering properties of concurrent Haskell
   functions.
 \end{itemize}
+
+\paragraph{Systematic concurrency testing with rich semantics}
+\Cref{chp:dejafu} introduced \dejafu{}.  This is a Haskell tool for
+testing Haskell programs, but the underlying techniques are not
+Haskell specific.  Haskell has an unusually rich concurrency
+abstraction, whereas SCT techniques are typically described in the
+literature for simple concurrency abstractions.  Even real programming
+languages tend to have simple concurrency abstractions.  For example,
+Maple\cite{yu2012} is able to test arbitrary pthread programs by
+considering just 19 primitive actions, whereas the expression of
+Haskell concurrency in \dejafu{} requires 34 just for concurrency, and
+a further 9 for STM.  The number of primitive actions a concurrency
+testing tool must consider is only an indirect measure of the
+complexity of the concurrency model it supports, but such a large
+difference is suggestive.
+
+In Haskell, there are many different operations with partially
+overlapping behaviour.  It is not clear that a typical SCT algorithm
+would work effectively in this context.  \dejafu{} provides a
+convincing demonstration that SCT can be applied to languages with
+rich concurrency abstractions.
+
+\paragraph{Effective bug finding with randomised scheduling}
+\Cref{chp:algorithms} introduced the swarm scheduling algorithm.
+Benchmark results suggest it performs as well as the PCT
+algorithm\cite{burckhardt2010} in terms of bug-finding ability.
+Crucially, PCT requires the user to supply parameters derived from the
+program under test, whereas swarm scheduling does not.  The freedom
+from any such requirement makes swarm scheduling simpler to implement
+and use than PCT, yet it still finds bugs just as effectively.
+
+\paragraph{Discovering properties of concurrent programs}
+\Cref{chp:coco} introduced CoCo.  By synthesising program terms and
+performing property-based testing, CoCo can give the programmer new
+insights into their code.  Like \dejafu{}, this is a Haskell tool, but
+the underlying techniques are not Haskell specific.  The underlying
+idea is that we can compare sets of program behaviours to make
+meaningful claims about the relation between the source programs.
+
+The CoCo approach applies not just to concurrent programs, but to
+nondeterministic programs in general.  If we have an efficient, but
+nondeterministic, algorithm for a problem, we may wish to be able to
+use it in place of a slow, but deterministic, algorithm.  The
+deterministic algorithm is a refinement of the nondeterministic
+algorithm, which may introduce additional behaviours.  Rather than
+using a concurrency testing tool like \dejafu{} to discover
+behaviours, we could use symbolic execution.
+
+\paragraph{The inevitable exponentials}
+Concurrent programs are nondeterministic, and this is where the
+difficulty of writing correct concurrent programs comes from.
+Fundamentally, testing a concurrent program requires executing it
+multiple times with different schedules.  This multiplicity adds
+significant overhead compared to sequential tests, where a single
+execution suffices.  Even worse, a concurrent program with $n$ threads
+which each execute for at most $k$ steps can have as many as
+$\frac{(nk)!}{(k!)^{n}}$ executions\cite{musuvathi2007}!
+
+\dejafu{} implements schedule
+bounding\cite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
+reduction\cite{flanagan2005,godefroid1996} to improve the average
+case, but the worst case remains a possibility.  Empirical studies
+show that small test cases with two threads and two pre-emptive
+context switches suffice for finding many real-world concurrency
+bugs\cite{thomson2014}.  There is a small-scope hypothesis here: that
+most concurrency bugs do not need a greatly complicated test case with
+dozens of threads manipulating some shared state; rather, we just need
+a handful of actions to happen in the wrong order.  This is the
+intuition behind PCT\cite{burckhardt2010}.  So there is a terrible
+asymptotic worst case, but in practice test cases are often small.
+When test cases \emph{are} too large for systematic testing to
+effectively explore the state-space, then we can use a random
+approach.
+
+\paragraph{The difficulty of interpreting success}
+It can be difficult to look at the result of a successful concurrency
+test and know what it is telling us.  We saw this with CoCo in
+\Cref{sec:coco-example}, where the programmer may need to run the tool
+with a variety of interference functions to see the full picture.
+Properties found with one sort of concurrent interference may not
+generalise to cases with different interference.  Similarly,
+successful concurrency tests in \dejafu{} may not generalise to cases
+where the concurrent environment is different.
+
+\paragraph{The difficulty of interpreting failure}
+It can be difficult to look at a failing concurrency test and diagnose
+the problem.  We saw this with \dejafu{} in
+\Cref{sec:dejafu-casestudies-par}, where the resulting execution
+traces can be very large and difficult to follow.  Traces are a
+low-level construct: they may become invalid when library dependencies
+change, even if the key scheduling decisions remain the same.  Which
+information is truly important?  It is not obvious.
+
+\paragraph{Overall conclusions}
+Concurrency errors, sometimes called ``Heisenbugs'' due to their
+unpredictable behaviour, can be among the most difficult to
+debug\cite{musuvathi2008osdi}.  The ideas behind concurrency testing
+have been around for some time now\cite{godefroid1996}, and yet
+concurrency testing tools are not widely used.  By contributing a new
+tool, we hope to help address this problem.
+
+In hindsight, the greatest weakness of our Haskell work is the
+\verb|MonadConc| typeclass.  Requiring programmers to modify their
+code, even in a straightforward way, is a barrier to entry that many
+will not wish to overcome.  Furthermore, when typeclass-polymorphic
+code is compiled, the definitions of typeclass member functions cannot
+be inlined, as they are not known\cite{peytonjones2002}.  If we were
+starting \dejafu{} today, we would strongly consider basing it on the
+recent Backpack work\cite{yang2017}, which lessens the code
+modification problem and solves the optimisation problem.
+
+% ---> further work
+%
+% The \textsc{Concurrit}\cite{elmas2013} tool offers an alternative
+% approach here, where executions are represented by a small collection
+% of scheduling constraints, rather than a full trace.  Although
+% intended for reproducing bugs, \textsc{Concurrit} constraints could be
+% a much simpler way to present faulty traces.
