@@ -343,10 +343,10 @@ if (p != NULL) {
 p = NULL;
 \end{minted}
 \end{minipage}
-\caption{Two threads accessing a shared pointer.}\label{lst:cthreads}
+\caption{Two threads using a shared pointer.}\label{lst:cthreads}
 \end{listing}
 
-\Cref{lst:cthreads} shows two threads accessing a shared pointer.  If
+\Cref{lst:cthreads} shows two threads using a shared pointer.  If
 Thread 2 executes \verb|p = NULL| after Thread 1 checks that
 \verb|p != NULL| but before it executes the assigment
 \verb|p->x += 10|, then an error will occur.  Correct executions of
