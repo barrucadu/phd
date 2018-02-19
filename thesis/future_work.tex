@@ -1,3 +1,8 @@
+We have made our contributions, and even found some users.  But
+\dejafu{}, and concurrency testing in general, is not done yet.  We
+now discuss future directions for the tools we have developed, and end
+with a hopeful vision for concurrency testing in the future.
+
 \paragraph{Measuring the quality of test suites}
 How do we come to believe that a test suite is strong evidence for the
 correctness of some program?  Any testing regimen is only as good as
@@ -6,82 +11,160 @@ of code coverage.  Code which is not covered at all usually has more
 bugs than code which is covered by even low-quality
 tests\cite{ahmed2016}.  For concurrent programs, what metric do we
 use?  If it is some notion of coverage, what is the space being
-covered?  There are a few candidates:
+covered?  Here are a two candidates:
 
 \begin{itemize}
-\item Schedule-sensitive branches are often unintentional and
+\item \emph{Schedule-sensitive branches} are often unintentional and
   erroneous points of synchronisation between concurrent
   threads\cite{huang2015ssb}.  A good concurrency test suite should
   try all cases in a schedule-sensitive branch.
 
-\item Shared state which is not guarded by appropriate synchronisation
-  can lead to invalid or corrupt data.  If we have functions which
-  operate on some mutable state of the same type, then a good
+\item \emph{Unguarded shared state} without a synchronisation
+  mechanism can lead to invalid or corrupt data.  If we have functions
+  which operate on some mutable state of the same type, then a good
   concurrency test suite should check what happens when those states
-  are shared and the functions executed concurrently.
+  are shared and the functions are executed concurrently.
 \end{itemize}
 
-Being able to identify cases where a concurrency test suite is lacking
-could greatly help with improving the overall quality of a piece of
-software.
+Both statement coverage and mutation score have only a weak negative
+correlation with bug fixes\cite{ahmed2016}, but there \emph{is} a
+statistically significant difference between uncovered code and code
+with some, even if low, coverage\cite{ahmed2016}.  Being able to
+identify the uncovered gaps of a concurrency test suite could greatly
+help with improving the overall quality of a piece of software.
 
 \paragraph{Maximal causality reduction for \dejafu{}}
 The MCR algorithm\cite{huang2015} explores a provably minimal number
 of schedules required for completeness.  Typically this is orders of
-magnitude fewer than dynamic partial-order reduction.  MCR is tricky
-to implement in Haskell as it requires local determinism: the future
-actions of a thread are determined solely by the prior actions of the
-same thread and shared variables it has read.  Haskell breaks local
-determinism with asynchronous exceptions, where one thread can kill
-another.
+magnitude fewer than the number of schedules constrained only by
+dynamic partial-order reduction.  However, MCR is tricky to implement
+in Haskell as it requires local determinism: the future actions of a
+thread are determined solely by the prior actions of the same thread
+and shared variables it has read.  Haskell breaks local determinism
+with asynchronous exceptions, where one thread can kill another.
 
 MCR is described in terms of a core concurrent language of locks and
 shared variables, which is much simpler than Haskell.  It may be
 possible to implement a Haskell-MCR by translating Haskell execution
 traces into a simpler form suitable for MCR\@.  For example,
 asynchronous exceptions can be modelled by giving each thread an
-`exception variable,' where throwing an exception to a thread writes
-to that variable, and the thread checks the variable before each
-action.
-
-There is an open source MCR implementation for concurrent
-Java\footnote{\url{https://github.com/parasol-aser/JMCR}}.
+exception variable: throwing an exception to a thread writes to its
+exception variable, and the thread checks its exception variable
+before each action.  This polling technique is similar to how an
+operating system can abstract over hardware interrupts: when an
+interrupt arrives, its exception handler sets a flag and returns
+control to the interrupted routine, which checks the flag at a
+convenient point.
 
 \paragraph{Accurately modelling delays in \dejafu{}}
-There has been interest in using \dejafu{} to test distributed systems
-where timing issues are
-important\footnote{\url{https://github.com/barrucadu/dejafu/issues/130}}.
-However, \dejafu{} currently has no notion of time.  A thread delaying
-is treated just the same as a thread yielding, it has no further
-effect on how threads are scheduled during testing.  Incorporating
-time is difficult, as it comes down to forbidding executions which a
-human would consider unreasonable.  Unreasonableness is not something
-that can easily be measured, unlike the number of pre-emptive context
-switches, yields, or scheduling points.
+Some users have expressed interest in using \dejafu{} to test systems
+where accurate timing is
+important\footnote{\url{https://github.com/barrucadu/dejafu/issues/130}},
+such as distributed systems with timeouts.  However, \dejafu{}
+currently has no notion of time.  A thread delaying is treated just
+the same as a thread yielding.  It has no further effect on how
+threads are scheduled during testing.
 
-Perhaps the field of model checking has something to suggest here.  Or
-perhaps there is some way to quantify and impose a bound on
-unreasonableness.  Whatever the approach, solving this problem would
-make \dejafu{} more useful for systems whose correctness depends on
-real timing constraints.
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+example :: MonadConc m => m Bool
+example = do
+    r <- newCRef False
+    fork (threadDelay 1000000 >> writeCRef r True)
+    readCRef r
+\end{cminted}
+\caption{A program with a large delay.}\label{lst:unreasonable}
+\end{listing}
+
+\Cref{lst:unreasonable} shows an example of a program with a delay: a
+\verb|CRef| is created holding the value \verb|False|, which is set to
+\verb|True| by another thread after a one hour delay.  Immediately
+after forking the second thread, the \verb|CRef| is read and its value
+returned.  What should a timing-aware \dejafu{} say about this
+program?  Currently, both \verb|True| and \verb|False| are reported as
+possible outcomes.  In reality, however, getting \verb|True| requires
+the main thread to not be scheduled for the entire one hour delay,
+which is vanishingly unlikely.  So should the \verb|True| case be
+forbidden?  When there are multiple threads with delays which are
+important relative to each other, the problem only becomes more
+confusing.
 
 \paragraph{Conditional properties in CoCo}
 Speculate\cite{braquehais2017} discovers conditional equations and
 inequalities automatically, which greatly expands the range of
-properties which can be found.  This is useful as we see how our
-functions behave in different situations, rather than just in general.
-CoCo has a limited form of conditional properties, where it can use
-preconditions on the seed, which must be supplied by the programmer.
-However, it would be much more useful if CoCo could synthesise
-preconditions, as Speculate does, to discover interesting cases
-itself.
+properties which can be found.  Conditional properties are useful as
+we see how our functions behave in different situations, rather than
+just in general.  CoCo has a limited form of conditional properties,
+involving preconditions on the generated seed values.  Such
+precondition functions must be supplied by the programmer.  However,
+it would be much more useful if CoCo could synthesise preconditions,
+as Speculate does, to discover interesting cases itself.
 
 \paragraph{Term rewriting for CoCo}
 Both QuickSpec\cite{smallbone2017} and Speculate\cite{braquehais2017}
 use term rewriting to prune the discovered properties and to avoid
-testing many cases.  This is difficult to do with concurrency, as
-effects may be non-local, as is the case with relaxed
-memory\cite{zhang2015} where writes to shared variables may be
-delayed.  Such behaviours make the effect of composing two terms far
-less predictable.  Even so, it may still be possible in some cases to
-use something like term rewriting to prune properties.
+testing many cases.  Pruning by reducing to a normal form is difficult
+to do with concurrency, as effects may be non-local.  For example,
+consider with relaxed memory where writes to shared variables may be
+delayed\cite{zhang2015}.  Such behaviours make the effect of composing
+two terms far less predictable.  Even so, it may still be possible in
+some cases to use something like term rewriting to prune properties.
+
+\paragraph{The future}
+Testing a concurrent program goes something like this: (1)~write a
+small concurrent program; (2)~run it lots of times with your
+concurrency testing tool, recording the results of each execution;
+(3)~look at the collection of results.
+
+This approach is rather different to how we test sequential programs.
+Test cases for sequential programs are generally written in a
+three-part ``given, when, then'' style\cite{fowler2013}.  The
+``given'' sets up the system under test, the ``when'' exercises it in
+some way, and the ``then'' decides if the test passes or fails.  But
+in a test case for a concurrent program, we may never reach the
+``then''.  If a test case has some concurrency failure, such as
+deadlock, while executing the ``when'', we do not see the full
+picture.  Did the program only deadlock, or did it also corrupt its
+state?  There is a fundamental difference between normal program
+errors and concurrency errors.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+test :: TestCase
+test = do
+    -- the "given", which sets up some initial state and threads
+    var <- newEmptyMVar
+    fork (putMVar var True)
+
+    -- the "when", which exercises the system under test
+    result <- test {- do something with 'var' -}
+
+    -- the "then", which determines if the test passes or fails
+    value <- tryReadMVar var
+    case result of
+      Left Deadlock -> failure "should not deadlock"
+      Right r
+        | r == value -> pass
+        | otherwise -> failure "should return the same value as the MVar"
+\end{cminted}
+\caption{The ``given, when, then'' style of testing applied to concurrency.}\label{lst:3part}
+\end{listing}
+
+One day, testing concurrent programs will be \emph{nearly} simple as
+testing sequential programs.  \dejafu{} may not reach this point, if
+it did it may look something like \Cref{lst:3part}.  Even if the
+``when'' component enters a failure state, the ``then'' component is
+still executed, and may perform concurrency operations like reading
+from an \verb|MVar|.  When a failure is reported, a \emph{simplified}
+trace of the ``when'' component, containing just the key details, will
+be given to the user.  Maybe this isn't even a trace: the
+\textsc{Concurrit}\cite{elmas2013} tool offers an alternative approach
+here, where executions are represented by a small collection of
+scheduling constraints, rather than a full trace.
+
+However, testing concurrent programs will always remain a little more
+difficult than testing sequential programs.  Concurrency bugs are
+fundamentally more complex than other bugs, and there is only so much
+that tooling and abstraction can accomplish.
