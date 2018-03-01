@@ -1,8 +1,0 @@
-\begin{verbatim}
-data List  a = Nil  | Cons a (List a)
-data List2 a = Nil2 | Cons2 { head :: a, tail :: List2 a }
-
-type    IntList  = List Int
-newtype IntList2 = IntList2 (List Int)
-\end{verbatim}
-\caption{Lists, a recursive data type.}
