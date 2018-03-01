@@ -473,7 +473,7 @@ in the presence of writes, intermediate states cannot be observed by
 another thread.
 
 \paragraph{Aborting and retrying}
-If we read a \verb|TVar| and don't like the value it has, the
+If we read a \verb|TVar| and do not like the value it has, the
 transaction can be aborted.  The thread will then block until any of
 the referenced \verb|TVar|s have been mutated.  We can also try
 executing a transaction, and do something else if it retries, as shown
@@ -746,11 +746,11 @@ fills its \verb|MVar| when done.  On exit, each \verb|MVar| is read
 from, which will block if the \verb|MVar| is still empty.
 
 So now the main thread will block until every reminder is done,
-however this approach is not very satisfactory.  Our \verb|MVar| list
-gains one element each time we set a reminder, so our program has
-linear space usage.  We can instead use a shared counter, and wait for
-the count to be zero before terminating.  \Cref{lst:ch_ex4} shows the
-new \verb|main| function.
+however this approach is not satisfactory.  Our \verb|MVar| list gains
+one element each time we set a reminder, so our program has linear
+space usage.  We can instead use a shared counter, and wait for the
+count to be zero before terminating.  \Cref{lst:ch_ex4} shows the new
+\verb|main| function.
 
 \begin{listing}
 \centering

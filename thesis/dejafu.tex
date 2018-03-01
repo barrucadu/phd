@@ -362,7 +362,7 @@ problems.
 It's not the end for DPOR, however.  Empirical
 studies\cite{thomson2014} have found that many concurrency bugs can be
 exhibited with only two or three threads.  Furthermore, most
-real-world concurrent programs don't have every single thread
+real-world concurrent programs do not have every single thread
 operating on the same bit of shared state.  So in practice, we will
 tend not to see this exponential growth in schedules tried.
 
@@ -652,7 +652,7 @@ implementation.
 
 \paragraph{Rule notation}
 Rather than present the full implementation details, we give an
-abstracted form of our semantic rules, derived from version 1.0.0.0 of
+abstracted form of our semantic rules, derived from version 0.9.0.0 of
 \dejafu{}.
 
 \begin{figure}
@@ -733,12 +733,9 @@ In addition to modelling the heap as part of the context, we make some
 other transformations to the semantic rules for presentation purposes.
 We omit building the execution trace; we omit the definitions of small
 helper functions, but explain them when first used; and we omit the
-semantic rules for \verb|ASub|, \verb|AStopSub|, \verb|AForkOS|, and
-\verb|AIsBound|.  The \verb|ASub| and \verb|AStopSub| actions
-implement a \dejafu{}-specific utility function, and are not essential
-to the concurrency model.  The \verb|AForkOS| and \verb|AIsBound|
-actions implement bound threads, which were not present when most of
-this chapter was written.
+semantic rules for \verb|ASub| and \verb|AStopSub|.  The \verb|ASub|
+and \verb|AStopSub| actions implement a \dejafu{}-specific utility
+function, and are not essential to the concurrency model.
 
 \paragraph{Rules for basic multithreading}
 \Cref{fig:sem_multithreading} shows the semantics for the basic
@@ -805,7 +802,7 @@ computation after passing an argument to change the masking state.
 Only, \verb|AMasking| runs the action in the current thread.
 
 \paragraph{Rules for miscellaneous actions}
-\Cref{fig:sem_misc} shows the final few actions, which don't fit in
+\Cref{fig:sem_misc} shows the final few actions, which do not fit in
 any of the other categories.  Here we use the notation
 \verb|let name <- value| in the Haskell monadic bind sense: we execute
 \verb|value| and bind its result to \verb|name|, then we produce the
@@ -1110,7 +1107,7 @@ context update.
      \texttt{Buffers :=} & \texttt{bufs} \\
    \texttt{Heap[idC] :=} & \texttt{(n + 1, a)}
 \end{tabular}
-\caption{Small-step semantics of synchronised and partially synchronised \texttt{CRef} actions.}\label{fig:sem_cref2}
+\caption{Small-step semantics of synchronised \texttt{CRef} actions.}\label{fig:sem_cref2}
 \end{figure}
 
 \begin{figure}
@@ -1528,7 +1525,7 @@ dependent'
 
 dependentActions
   :: DepState
-  -> ActionType -> ActionType                             -> Bool
+  -> ActionType               -> ActionType               -> Bool
 \end{cminted}
 \caption{The \dejafu{} dependency relations.}\label{lst:deprel-simp}
 \end{listing}
@@ -1789,7 +1786,7 @@ reasonably be achieved.
 
 \paragraph{Possible executions}
 Our stepwise execution of concurrent programs allows a scheduling
-decision to be made between each primitive action, which doesn't
+decision to be made between each primitive action, which does not
 correspond to how GHC handles scheduling:
 
 \begin{displayquote}
@@ -2089,7 +2086,7 @@ How easy it is to make mistakes when implementing concurrent programs!
     \end{tabular}
     \caption{Only keeping buggy execution traces in memory.}\label{tbl:autoupdate_perf2}
   \end{subtable}
-  \caption[Performance of the auto-update case study with three different exploration tactics.]{Performance of the auto-update case study with three different exploration tactics.  Swarm scheduling is a randomised approach discussed in \Cref{chp:algorithms}.}\label{tbl:autoupdate_perf}
+  \caption[Performance of the auto-update case study with multiple strategies.]{Performance of the auto-update case study with three different exploration tactics.  Swarm scheduling is a randomised approach discussed in \Cref{chp:algorithms}.}\label{tbl:autoupdate_perf}
 \end{table}
 
 \paragraph{Performance of testing}
@@ -2309,7 +2306,7 @@ traces.
     \end{tabular}
     \caption{Only keeping buggy execution traces in memory.}\label{tbl:parmonad_perf2}
   \end{subtable}
-  \caption[Performance of the monad-par case study with three different exploration tactics.]{Performance of the monad-par case study with three different exploration tactics.  Unbounded DPOR was aborted in both cases, after consuming too many resources.}\label{tbl:parmonad_perf}
+  \caption[Performance of the monad-par case study with multiple strategies.]{Performance of the monad-par case study with three different exploration tactics.  Unbounded DPOR was aborted in both cases, after consuming too many resources.}\label{tbl:parmonad_perf}
 \end{table}
 
 When we inspect one of the execution traces leading to deadlock, we
@@ -2853,8 +2850,8 @@ development company based in Paris, are using \dejafu{} as part of
 their work in a distributed system for the SAGE
 project\footnote{\url{http://www.sagestorage.eu/}}, which is
 investigating storage systems for future supercomputers.  They cannot
-share specific details of their work for commercial reasons, but one
-developer had this to say (emphasis mine):
+share details of their work for commercial reasons, but one developer
+had this to say (emphasis mine):
 
 \begin{displayquote}
   Regarding the test case: we have an implementation of a distributed
@@ -2978,7 +2975,7 @@ This is just one library, and providing an alternative library that
 people will have to switch to is far from optimal.  However, until
 library authors start to use \dejafu{} and \verb|MonadConc| directly,
 such alternatives will be needed to answer the question `Why should I
-use this if I can't use it with anything I use already?'
+use this if I cannot use it with anything I use already?'
 
 \subsection{Tool Integration}
 

@@ -9,7 +9,7 @@ implementation approaches, both complete~\sref{sct-dpor} and
 incomplete~\sref{sct-bounding}.  We then discuss two tools for
 concurrency testing in functional languages~\sref{sct-functional}.
 
-This chapter is presented in a very different style to
+This chapter is presented in a different style to
 \Cref{chp:concurrent_haskell}.  We are now discussing ideas and
 approaches, rather than the specifics of particular programming
 languages.
@@ -98,7 +98,7 @@ dependency relation like so:
 
 The notation $x \dependent y$ is read as ``$x$ and $y$ are
 dependent.''  This choice of notation would suggest $\leftrightarrow$
-for independence, but that doesn't seem to be in common use.
+for independence, but that does not seem to be in common use.
 
 \Cref{fig:dpor} shows an example of DPOR in action.  There are two
 threads: thread 1 performs reads from two variables \verb|x| and
@@ -302,7 +302,7 @@ with a bound value equal to a fixed parameter.  A variant is
 \emph{iterative} bounding, where the parameter is gradually
 increased\cite{musuvathi2007}.  Another variant is where an
 inequality, rather than an equality, is used.  This variant explores
-the same schedules as iterative bounding, but doesn't impose the same
+the same schedules as iterative bounding, but does not impose the same
 ordering.  In practice, `schedule bounding' typically refers to this
 third type.
 
@@ -411,14 +411,14 @@ The Concurrent Haskell Debugger (CHD)\cite{bottcher2002} is a
 GUI-based controlled scheduler for Haskell programs.  Like
 \textsc{Pulse}, CHD works by inserting blocking communication
 operations around concurrency actions to call out to the controlling
-scheduler.  Unlike \textsc{Pulse}, this process is not quite
-automatic.  The programmer must import the concurrency module provided
-by the CHD library, rather than the standard library.  CHD does not
-implement its own scheduler.  Rather, it presents a GUI to the user,
-allowing them to drive execution by clicking representations of
-threads.  Furthermore, it allows the user to specify cases which
-should be automatically allowed to execute.  CHD does not function
-with any GHC newer than version 5 (released between 2001 and 2003).
+scheduler.  Unlike \textsc{Pulse}, this process is not automatic.  The
+programmer must import the concurrency module provided by the CHD
+library, rather than the standard library.  CHD does not implement its
+own scheduler.  Rather, it presents a GUI to the user, allowing them
+to drive execution by clicking representations of threads.
+Furthermore, it allows the user to specify cases which should be
+automatically allowed to execute.  CHD does not function with any GHC
+newer than version 5 (released between 2001 and 2003).
 
 \vfill\pagebreak
 \section{Summary}
