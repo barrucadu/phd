@@ -19,7 +19,7 @@ wc:
 	texcount -inc main.tex | grep "Words in text" | tail -n1
 
 main.pdf: $(TEXFILES) $(BIBFILES) $(GENFILES)
-	latexmk -xelatex -pdf -latexoption=--shell-escape main.tex
+	latexmk -pdfxe -latexoption=--shell-escape main.tex
 
 gen/%.tex: scripts/%.gnuplot data/counts.csv gen
 	$<
