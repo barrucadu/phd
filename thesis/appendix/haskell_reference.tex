@@ -1,3 +1,9 @@
+This appendix gives a brief introduction to Haskell syntax.  We assume
+familiarity with functional programming, in particular: with currying,
+first-class functions, pattern matching, and parametric polymorphism.
+For a more gentle introduction to Haskell, see the tutorials page on
+the Haskell wiki\footnote{\url{https://wiki.haskell.org/Tutorials}}.
+
 \begin{itemize}
 \item \verb|foo = bar| binds a name to a value
 \begin{minted}{haskell}
@@ -45,8 +51,6 @@ compose f g x = f (g x)
 f . g = compose f g
 \end{minted}
 
-% [layout hack]: ensure the text and the code are on the same page
-\pagebreak
 \item The \verb|$| operator is right-associative function application
 \begin{minted}{haskell}
 compose f g x = f $ g x
@@ -64,15 +68,15 @@ sumOf3 x y z = temp + z where
   temp = x + y
 \end{minted}
 
+\item \verb|type| gives an existing type a new alias
+\begin{minted}{haskell}
+type Name = String
+\end{minted}
+
 \item We can annotate a definition or a value with a type using \verb|::|
 \begin{minted}{haskell}
 name :: Name
 name = "Michael Walker"
-\end{minted}
-
-\item \verb|type| gives an existing type a new alias
-\begin{minted}{haskell}
-type Name = String
 \end{minted}
 
 \item \verb|data| defines a new data type
@@ -103,8 +107,6 @@ sum3 :: Int -> Int -> Int -> Int
 sum3 x y z = x + y + z
 \end{minted}
 
-% [layout hack]: ensure the text and the code are on the same page
-\pagebreak
 \item \verb|->| is right associative, these types are all equivalent
 \begin{minted}{haskell}
 sum3 :: Int -> Int -> Int -> Int
@@ -131,6 +133,16 @@ id x = x
 \begin{minted}{haskell}
 data Maybe  a   = Just a | Nothing
 data Either a b = Left a | Right b
+\end{minted}
+
+\item List comprehensions give a concise syntax to construct new lists
+\begin{minted}{haskell}
+[(a, b) | a <- [1,2], b <- ['x','y']] == [(1,'x'), (1,'y'), (2, 'x'), (2, 'y')]
+\end{minted}
+
+\item List comprehensions can contain guards
+\begin{minted}{haskell}
+[(a, b) | a <- [1,2], b <- ['x','y'], a == 2] == [(2, 'x'), (2, 'y')]
 \end{minted}
 
 \item The list type constructors are \verb|:| and \verb|[]|
@@ -213,6 +225,8 @@ class Functor f => Applicative f where
   pure :: a -> f a
 \end{minted}
 
+% [layout hack]
+\pagebreak
 \item \ldots{}and to apply a value-in-a-context to a
   function-in-a-context
 \begin{minted}{haskell}
@@ -256,6 +270,20 @@ main :: IO ()
 main = do
   let sum = sum3 1 10 100
   print sum
+\end{minted}
+\end{itemize}
+
+\paragraph{Language extensions}
+GHC provides a rich collection of extensions to standard Haskell.
+These are documented fully in the GHC
+manual\footnote{\url{http://downloads.haskell.org/~ghc/latest/docs/html/users_guide/lang.html}}.
+
+\begin{itemize}
+\item The \verb|ViewPatterns| language extension allows pattern
+  matching on a function result
+\begin{minted}{haskell}
+myFst :: (a, b) -> a
+myFst (fst -> a) = a
 \end{minted}
 
 \item The \verb|RankNTypes| language extension allows universally
