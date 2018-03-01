@@ -125,11 +125,10 @@ decisions.  Weights can be re-used for a fixed number of executions by
 also recording how many executions there have been, and throwing away
 the recorded values every $x$ executions, for some predetermined $x$.
 
-\Cref{app:swarm} contains our C++ implementation of swarm scheduling,
-including re-use of weights across executions.  \dejafu{} has a
-Haskell implementation of swarm scheduling and of controlled random
-scheduling using a uniform distribution, where the latter is treated
-as a special case of swarm scheduling where $w_{min} = w_{max}$.
+\dejafu{} has a Haskell implementation of swarm scheduling and of
+controlled random scheduling using a uniform distribution, where the
+latter is treated as a special case of swarm scheduling where
+$w_{min} = w_{max}$.
 
 \section{Comparing Bug-finding Ability}
 \label{sec:algorithms-bench}
@@ -322,8 +321,7 @@ We conducted our experiments using an Ubuntu 12.04 virtual machine,
 and a modified version of Maple based on the last commit from
 2012\footnote{The same environment as~\cite{thomson2016}, available at
   \url{https://github.com/mc-imperial/sctbench}}.  Other than the
-implementation of swarm scheduling, available in \Cref{app:swarm}, the
-code is unchanged.
+implementation of swarm scheduling, the code is unchanged.
 
 The Venn diagrams in \Cref{fig:bugs} show the relative bug-finding ability of
 each algorithm.  \Cref{fig:bugs-base} summarises the bugs found by controlled
