@@ -1492,6 +1492,45 @@ scheduling using a fixed number of executions is also available.  A
 To make the tool easier to use, we provide a collection of different
 testing functions, with varying levels of detail exposed, hoping that
 the defaults will suffice for most users.
+\begin{figure}
+  \centering
+  \footnotesize
+  \begin{tabular}{R{4cm}@{\hspace{0.5em}}L{8cm}}
+    \texttt{atomicModifyCRef r \_} $\dependent$& \texttt{x}
+      \hfill if \texttt{x} uses \texttt{r} \\
+    \texttt{atomically x} $\dependent$& \texttt{atomically y}
+      \hfill if \texttt{x} writes to a \texttt{TVar} which \texttt{y} accesses \\
+    \texttt{casCRef r \_} $\dependent$& \texttt{x}
+      \hfill if \texttt{x} uses \texttt{r} \\
+    \texttt{commit \_} $\dependent$& \texttt{b}
+      \hfill if \texttt{b} enforces a memory barrier \\
+    \texttt{commit r} $\dependent$& \texttt{writeCRef r}
+      \hfill if \texttt{r} has no buffered writes \\
+    \texttt{commit r} $\dependent$& \texttt{x}
+      \hfill if \texttt{x} uses \texttt{r} and is not a \texttt{writeCRef r} \\
+    \texttt{crefRead r} $\dependent$& \texttt{b}
+      \hfill if \texttt{b} enforces a memory barrier and \texttt{r} has buffered writes \\
+    \texttt{crefRead r} $\dependent$& \texttt{x}
+      \hfill if \texttt{x} uses \texttt{r} and is not a \texttt{crefRead r} \\
+    \texttt{liftIO \_} $\dependent$& \texttt{liftIO \_} \\
+    \texttt{modifyCRefCAS r \_} $\dependent$& \texttt{x}
+      \hfill if \texttt{x} uses \texttt{r} \\
+    \texttt{mvarRead v} $\dependent$& \texttt{mvarRead v}
+      \hfill if \texttt{v} is full \\
+    \texttt{mvarRead v} $\dependent$& \texttt{mvarWrite v} \\
+    \texttt{mvarWrite v} $\dependent$& \texttt{mvarWrite v}
+      \hfill if \texttt{v} is empty \\
+    \texttt{setNumCapabilities \_} $\dependent$& \texttt{getNumCapabilities} \\
+    \texttt{setNumCapabilities \_} $\dependent$& \texttt{setNumCapabilities \_} \\
+    \texttt{throwTo tgt} $\dependent$& \texttt{x}
+      \hfill if \texttt{x} is on thread \texttt{tgt} and can be interrupted \\
+    \texttt{writeCRef r \_} $\dependent$& \texttt{x}
+      \hfill if \texttt{x} uses \texttt{r} and is not a \texttt{commit r} \\
+    \texttt{x} $\dependent$& \texttt{y}
+      \hfill if \texttt{y} $\dependent$ \texttt{x}
+  \end{tabular}
+  \caption[The \dejafu{} dependency relation.]{The \dejafu{} dependency relation.  A \texttt{commit} commits one buffered write to a \texttt{CRef}.  A \texttt{crefRead} is a \texttt{readCRef} or a \texttt{readForCAS}.  An \texttt{mvarWrite} is a \texttt{putMVar} or a \texttt{tryPutMVar}.  An \texttt{mvarRead} is a \texttt{takeMVar}, \texttt{tryTakeMVar}, \texttt{readMVar}, or \texttt{tryReadMVar}.}\label{fig:deprel}
+\end{figure}
 
 \paragraph{Dependency relation}
 DPOR uses a dependency relation between pairs of actions.  Two actions
@@ -1509,52 +1548,15 @@ actions of the same thread, or they are both actions on the same
 shared variable and at least one is a write.  The Haskell concurrency
 API is richer than this, and the implicit dependencies between actions
 (such as which actions impose a memory barrier) are not documented.
-The dependency relation we now use in \dejafu{} was derived in part by
-running small test cases.
 
-\begin{listing}
-\centering
-\begin{cminted}{haskell}
-dependent
-  :: DepState
-  -> (ThreadId, ThreadAction) -> (ThreadId, ThreadAction) -> Bool
+\Cref{fig:deprel} shows the dependency relation we use in \dejafu{}.
+The relation is conditional\cite{godefroid1993}: we record which
+\verb|CRef|s have buffered writes, whether each \verb|MVar| is full or
+empty, and what the masking state of every thread is.  A conditional
+dependency relation allows more precise decisions.  Our relation was
+derived in part by running test cases.  This relation was derived in
+part by running small test cases.
 
-dependent'
-  :: DepState
-  -> (ThreadId, ThreadAction) -> (ThreadId, Lookahead)    -> Bool
-
-dependentActions
-  :: DepState
-  -> ActionType               -> ActionType               -> Bool
-\end{cminted}
-\caption{The \dejafu{} dependency relations.}\label{lst:deprel-simp}
-\end{listing}
-
-We express our dependency relation in three parts, shown in
-\Cref{lst:deprel-simp}.  We use a layered approach where each function
-checks some cases and, for all others, transforms its arguments and
-calls the next function.  We do this to avoid needing to specify a
-huge number of cases: although there are lot of concurrent Haskell
-operations, the complete view is usually not necessary to decide
-dependency.  Furthermore, we use a conditional dependency
-relation\cite{godefroid1993}.  We record which \verb|CRef|s have
-buffered writes and what the masking state of every thread is,
-allowing more precise decisions.
-
-\begin{listing}
-\centering
-\begin{cminted}{haskell}
--- Commutativity
-dependent        ds = flip (dependent        ds)
-dependentActions ds = flip (dependentActions ds)
-
--- Weakening
-dependent ds x (t, a) ==> dependent' ds x (t, rewind a)
-\end{cminted}
-\caption{Consistency rules for the dependency relations.}\label{lst:deprel-consistency}
-\end{listing}
-
-% This is up here so it ends up at the top of the next page.
 \begin{figure}
   \centering
   \begin{tikzpicture}[ball/.style = {circle, draw, align=center, anchor=north, inner sep=0, text width=0.5cm}]
@@ -1588,24 +1590,6 @@ dependent ds x (t, a) ==> dependent' ds x (t, rewind a)
   \end{tikzpicture}
   \caption[The sleep set optimisation.]{The sleep set optimisation.  Transition $t_1$ may be pruned in state $s_1$ but not in state $s_2$.  The transition has been explored from state $s_0$ and there is no dependent transition between states $s_0$ and $s_1$, but there is between states $s_0$ and $s_2$.  Adapted from~\cite{coons2013}.}\label{fig:sleep}
 \end{figure}
-
-For our overall dependency relation to be correct, we require some
-consistency rules, which we show in \Cref{lst:deprel-consistency}.  We
-establish these conditions through the syntactic structure of the
-implementation.  Each function is a straightforward enumeration of
-cases with attached side-conditions, which makes commutativity
-apparent.  The more pessimistic \verb|dependent'| function is similar
-to the more accurate \verb|dependent| function, but has less
-information available, which makes weakening apparent.  We include
-these properties in the \dejafu{} test suite to ensure they are not
-inadvertently broken.
-
-Through the lens of \verb|dependentActions|, Haskell is a small
-concurrent language with synchronised and unsynchronised shared
-variables and memory barriers.  The other cases which are handled by
-\verb|dependent| and \verb|dependent'| are: lifted \verb|IO| actions,
-exceptions, STM transactions, and getting and setting the number of
-capabilities.
 
 \paragraph{Sleep sets}
 The sleep set optimisation\cite{godefroid1996} is a complementary
@@ -1718,11 +1702,11 @@ of our tests consist of nondeterministic programs, where we want to
 verify that \dejafu{} finds precisely the behaviours we expect.
 
 \paragraph{Property tests}
-\dejafu{} has quite a few small functions which are used extensively,
-and which have some invariants relating them.  For example, three
-consistency rules in \Cref{lst:deprel-consistency} for the dependency
-relation.  We use LeanCheck\cite{leancheck}, an enumerative
-property-testing library, to check these invariants.
+\dejafu{} is not one monolithic implementation.  It has components
+which can be specified and tested in isolation.  For example, the
+dependency relation must be commutative.  We use
+Hedgehog\cite{hedgehog}, a randomised property-testing library, to
+check these properties.
 
 \paragraph{Integration tests}
 Most of the tests are integration tests, consisting of a small
