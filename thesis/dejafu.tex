@@ -1876,14 +1876,15 @@ These properties should hold recursively over the whole state.  If any
 are violated, something has gone wrong.  For example, if (1) does not
 hold, then we may generate a schedule prefix which attempts to
 schedule a non-runnable thread.  We check these invariants everywhere
-a \verb|DPOR| value is constructed, and abort the state is invalid.
+a \verb|DPOR| value is constructed, and abort if the state is invalid.
+In the \dejafu{} testsuite, the time overhead of this checking is 3\%.
 
-The schedule prefixes we generate are sequences of taken decisions
-followed by a single to-do decision.  By maximising the length of
-prefixes, we obtain a depth-first search of the space of schedules.
-As long as the well-formedness properties hold, and the runnable sets
-are correctly recorded during execution, then a generated schedule
-prefix will be valid.
+The prefixes we generate are sequences of taken decisions followed by
+a single to-do decision.  By maximising the length of prefixes, we
+obtain a depth-first search of the space of schedules.  Provided the
+well-formedness properties hold, and the runnable sets are correctly
+recorded during execution, then a generated schedule prefix will be
+valid.
 
 \paragraph{Schedule completeness}
 The DPOR machinery should eventually find every possible result of a
