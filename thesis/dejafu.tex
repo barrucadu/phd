@@ -1370,9 +1370,8 @@ selectively disabled or changed.
 
 \paragraph{Daemon threads}
 A daemon thread is a thread which is automatically killed after the
-last non-daemon thread terminates.  Daemon threads do not prevent
-termination of the program.  In Haskell, every thread other than the
-main thread is a daemon thread, so as soon as the main thread
+last non-daemon thread terminates.  In Haskell, every thread other
+than the main thread is a daemon thread, so as soon as the main thread
 terminates the whole program terminates.  This is a problem for DPOR,
 as it makes the last action of the execution dependent with everything
 else in the program!
@@ -1388,11 +1387,10 @@ main = do
 \caption{A program with a race condition.}\label{lst:daemon1}
 \end{listing}
 
-\Cref{lst:daemon1} has two possible results: \verb|Nothing|, and
-\verb|Just "hello world"|.  We want like \dejafu{} to produce both of
-these.  There is no dependency between \verb|myThreadId| and
-\verb|tryReadMVar|, so if the deterministic scheduler used favours the
-main thread, we may not see the second execution.  Introducing a
+\Cref{lst:daemon1} has two results: \verb|Nothing|, and
+\verb|Just "hello world"|.  However, there is no dependency between
+\verb|myThreadId| and \verb|tryReadMVar|, so if the scheduler favours
+the main thread, we do not see the other result.  Introducing a
 dependency between the last action of the execution and everything
 else solves this problem.
 
@@ -1418,11 +1416,10 @@ we have said that it is \emph{not} redundant!  In general, introducing
 a dependency like this will lead to many redundant executions which we
 would otherwise avoid.
 
-The solution we adopt is to change the deterministic scheduler.  If
-the scheduler has a choice of actions, where one or more will cause
-the main thread to terminate, it makes its choice as usual, and then
-records every other decision as a backtracking point.  By ensuring
-that every other decision is tried at least once, we do not need to
+The solution we adopt is to change the scheduler.  If the scheduler
+has a choice of actions, where one or more will cause the main thread
+to terminate, it records each decision as a backtracking point.  By
+ensuring that every decision is tried at least once, we do not need to
 introduce an additional dependency between the final action of the
 main thread and everything else, and can just let DPOR do its job as
 usual.
@@ -1432,15 +1429,14 @@ usual.
 
 Correctness for \dejafu{} breaks down along a natural separation in
 the theory: correctness of a single execution of a concurrent program,
-and correctness of the testing framework around this which discovers
-new executions.
-
-There is also the concern of correctness of the implementation with
-respect to the theory.  We do not attempt to formally verify the
-implementation, but we do have an extensive test suite.  Testing a
-testing tool is a little different to testing a regular program.  Most
-of our tests consist of nondeterministic programs, where we want to
-verify that \dejafu{} finds precisely the behaviours we expect.
+and correctness of the testing framework which discovers new
+executions.  There is also the concern of correctness of the
+implementation with respect to the theory.  We do not attempt to
+formally verify the implementation, but we do have an extensive test
+suite.  Testing a testing tool is a little different to testing a
+regular program.  Most of our tests consist of nondeterministic
+programs, where we want to verify that \dejafu{} finds precisely the
+behaviours we expect.
 
 \paragraph{Property tests}
 \dejafu{} is not one monolithic implementation.  It has components
@@ -1528,8 +1524,8 @@ non-terminating expressions which are possible under GHC but not under
 \dejafu{}.  However, \dejafu{} is even worse than this with bottom
 values.  The program in \Cref{lst:bottom} will fail to terminate, even
 if the thread with the infinite computation is never scheduled, as
-\dejafu{} will hang trying to compute its \verb|Lookahead| value so it
-can call the scheduler.
+\dejafu{} will hang trying to compute the continuation so it can call
+the scheduler.
 
 \begin{listing}
 \centering
@@ -1565,19 +1561,15 @@ data DPOR = DPOR
   -- ^ Follow-on decisions still to make, and whether that decision
   -- was added conservatively due to the bound.
   , dporNext     :: Maybe (ThreadId, DPOR)
-  -- ^ The next decision made. Executions are explored in a
-  -- depth-first fashion, so this changes as old subtrees are
-  -- exhausted and new ones explored.
+  -- ^ The next decision made.
   , dporDone     :: Set ThreadId
   -- ^ All transitions which have been taken from this point,
   -- including conservatively-added ones.
   , dporSleep    :: Map ThreadId ThreadAction
-  -- ^ Transitions to ignore (in this node and children) until a
-  -- dependent transition happens.
+  -- ^ Transitions to ignore until a dependent transition happens.
   , dporTaken    :: Map ThreadId ThreadAction
   -- ^ Transitions which have been taken, excluding
-  -- conservatively-added ones. This is used in implementing sleep
-  -- sets.
+  -- conservatively-added ones.
   } deriving (Eq, Show)
 \end{cminted}
 \caption{The DPOR state is a stack of scheduling decisions.}\label{lst:dpor}
@@ -1594,12 +1586,10 @@ There are some basic well-formedness properties associated with a
 \item The next-taken thread, if there is one, is in the done set.
 \end{enumerate}
 
-These properties should hold recursively over the whole state.  If any
-are violated, something has gone wrong.  For example, if (1) does not
-hold, then we may generate a schedule prefix which attempts to
-schedule a non-runnable thread.  We check these invariants everywhere
-a \verb|DPOR| value is constructed, and abort if the state is invalid.
-In the \dejafu{} testsuite, the time overhead of this checking is 3\%.
+These properties should hold inductively over the whole state.  We
+check these invariants everywhere a \verb|DPOR| value is constructed,
+and abort if the state is invalid.  In the \dejafu{} testsuite, the
+time overhead of this checking is 3\%.
 
 The prefixes we generate are sequences of taken decisions followed by
 a single to-do decision.  By maximising the length of prefixes, we
@@ -1611,18 +1601,10 @@ valid.
 \paragraph{Schedule completeness}
 The DPOR machinery should eventually find every possible result of a
 given program.  However, as schedule bounding is involved, some
-results may not be reached.  So we have two slightly different notions
-of completeness:
-
-\begin{enumerate}
-\item When all schedule bounds are disabled, all possible results show
-  up under testing.
-\item For all sets of bounds, all results possible subject to those
-  bounds show up under testing with the same bounds.
-\end{enumerate}
-
-Property (2) implies property (1).  We use \cite{coons2013} as our
-core DPOR algorithm, which establishes property (2).
+results may not be reached.  So instead we require that, for all sets
+of bounds, all results possible subject to those bounds show up under
+testing with the same bounds.  Our core testing algorithm satisfies
+this property\cite{coons2013}, assuming a correct implementation.
 
 \section{Case Studies}
 \label{sec:dejafu-casestudies}
@@ -1639,7 +1621,7 @@ Haskell libraries:
   library\cite{async}.
 \end{enumerate}
 
-We chose these libraries because each is written by proficient Haskell
+We chose these libraries because each is by proficient Haskell
 programmers well versed with concurrency, and yet they all contain
 unintentional bugs.  This shows that even those familiar with the
 standard pitfalls of concurrent programming encounter problems.
@@ -1656,12 +1638,11 @@ a new thread, and log the time that the request arrives.  Rather than
 have every such new thread check the time, one thread could be created
 to update a single shared \verb|CRef| every second.  However, if the
 request frequency is less than once per second, this is wasted work.
-The auto-update library allows defining an action with a maximum
-frequency, which will be executed no more frequently than this,
-regardless of how busy the system is.
+The library allows defining a periodic action which only runs when
+needed.
 
-The entire implementation, excluding comments and imports, is
-reproduced in \Cref{lst:autoupdate}.  The library defines a function,
+The implementation, excluding comments and imports, is reproduced in
+\Cref{lst:autoupdate}.  The library defines a function,
 \verb|mkAutoUpdate|, which forks a worker thread to perform the action
 when required.  The function returns an \verb|IO| action to read the
 current result, if necessary blocking until there is one.  The
@@ -1708,15 +1689,13 @@ immediately demand the value.
 \paragraph{Testing with \dejafu{}}
 \Cref{lst:autoupdate_example2} shows one way in which we can use
 \dejafu{} to explore the behaviour of our small example.  The
-\verb|autocheck| function looks for some common sources of error:
-deadlocks, uncaught exceptions in the main thread, and nondeterminism.
+\verb|autocheck| function looks for some common concurrency errors.
 In this example, \dejafu{} discovers a deadlock.  Each result is
 displayed with a simplified view of a representative execution trace:
 
 \begin{itemize}
 \item \verb|Sn|: indicates that thread \verb|n| started executing
   after the previously executing thread blocked or terminated.
-  Threads are numbered sequentially from zero, and may be given names.
 \item \verb|Pn|: indicates that thread \verb|n| started executing by
   pre-empting the previously executing thread.
 \item \verb|pn|: indicates that thread \verb|n| started executing
