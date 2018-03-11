@@ -650,30 +650,6 @@ operational semantics.  As transactions are atomic, we only care about
 the big-step behaviour.  This simplifies some aspects of their
 implementation.
 
-\paragraph{Rule notation}
-Rather than present the full implementation details, we give an
-abstracted form of our semantic rules, derived from version 0.9.0.0 of
-\dejafu{}.
-
-\begin{figure}
-\centering
-\footnotesize
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{ActionName argument... c} \hfill \texttt{condition}} \\ \toprule
-\texttt{let name =} & \texttt{value} \\ \midrule
-  \texttt{field :=} & \texttt{value}
-\end{tabular}
-\caption{Our notation for semantic rules.}\label{fig:sem_notation}
-\end{figure}
-
-\Cref{fig:sem_notation} gives our notation for semantic rules.  This
-should be read as: when the action of the chosen thread is the thing
-on the left, and the condition on the right holds, then apply the
-context updates.  We use a \verb|let| construct to simplify some rule
-definitions.  We use \verb|field := value| to indicate that we produce
-a new context by using a new value for the given field.  The final
-argument of an action is its continuation.
-
 \paragraph{Mutable references}
 We implement \verb|CRef|s, \verb|MVar|s, and \verb|TVar|s with mutable
 references.  We do not use a pure model of the heap, as we found the
@@ -695,102 +671,152 @@ this section.
 
 \subsection{Semantics of Concurrency}
 
-The context for our concurrency semantics contains:
+We express our concurrency semantics as transition rules for a context
+tuple $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle$:
 
 \begin{itemize}
-\item \verb|Buffers|, a mapping from relaxed-memory buffer identifiers
-  to write buffers.  Under TSO a key is a thread identifier, whereas
-  under PSO a key is a pair of a thread identifier and a \verb|CRef|
-  identifier.
-\item \verb|Caps|, the number of capabilities.
-\item \verb|Heap|, a heterogeneous map from identifiers to values.
-\item \verb|IdSource|, a source of fresh identifiers.
-\item \verb|Threads|, a mapping from thread identifiers to threads.
+\item \verb|C|, the number of capabilities.
+\item \verb|B|, the relaxed-memory buffer state.
+\item \verb|H|, the heap, a heterogeneous map from identifiers to
+  values.
+\item \verb|T|, a mapping from thread identifiers to threads.
 \end{itemize}
 
-Our thread type contains:
+We express threads as a record type containing:
 
 \begin{itemize}
 \item \verb|K|, the current continuation.
-\item \verb|Blocking|, a list of identifiers the thread is blocked on.
-\item \verb|Handlers|, the exception handler stack, where an exception
-  handler is a function from the masking state and an exception to a
-  new continuation.
-\item \verb|Masking|, the current masking state.
+\item \verb|I|, the set of identifiers the thread is blocked on.
+\item \verb|E|, the exception handler stack.
+\item \verb|M|, the exception masking state.
 \end{itemize}
 
-There are two global values which are in scope for every rule:
-(1)~\verb|memtype|, the memory model for relaxed memory operations;
-and (2)~\verb|tid|, the identifier of the currently executing thread.
+We write $\texttt{H}_{[\texttt{id} \mapsto \texttt{v}]}$ to denote a
+new heap which maps \texttt{id} to the value \texttt{v}, and
+$\texttt{T}_{[\texttt{id}.\texttt{K} \mapsto \texttt{c}]}$ to denote a
+new thread map where the continuation of thread \texttt{id} is now
+\texttt{c}, and similarly for other fields.  There are two global
+values which are in scope for every rule: (1)~\verb|memtype|, the
+memory model for relaxed memory operations; and (2)~\verb|tid|, the
+identifier of the currently executing thread.
 
 \paragraph{Simplifications and omissions}
 The semantic rules we present are for the small-step behaviour.  They
 are tied together by a scheduling loop which we do not present here.
 This scheduling loop picks a thread to step, steps it, and continues
-until: every thread is blocked or the main thread terminates.
+until every thread is blocked or the main thread terminates.
 
 In addition to modelling the heap as part of the context, we make some
-other transformations to the semantic rules for presentation purposes.
-We omit building the execution trace; we omit the definitions of small
-helper functions, but explain them when first used; and we omit the
-semantic rules for \verb|ASub| and \verb|AStopSub|.  The \verb|ASub|
-and \verb|AStopSub| actions implement a \dejafu{}-specific utility
-function, and are not essential to the concurrency model.
+other changes for presentation purposes.  We omit building the
+execution trace; we omit the definitions of helper functions, but
+explain them when first used; and we omit the semantic rules for
+\verb|ASub| and \verb|AStopSub|.  The \verb|ASub| and \verb|AStopSub|
+actions implement a \dejafu{}-specific utility function, and are not
+essential to the concurrency model.
+
+\begin{figure}
+\centering
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AFork act c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{id} \mapsto \texttt{new};~\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$\\
+\multicolumn{2}{l}{where \texttt{id} is fresh}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset Unmasked >> mb >> \textbackslash b -> reset m0 >> pure b}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \texttt{Thread \{ K = act umask, I = }\varnothing\texttt{, E = [], M = m0 \}}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ALift n}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
+\multicolumn{2}{l}{where \texttt{c} is the result of executing the Haskell action \texttt{n}}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AGetNumCapabilities c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c C}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ASetNumCapabilities i c}}$&
+$\langle\texttt{i}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AMyTId c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c tid}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AYield c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ADelay c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AReturn c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AStop}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$
+\end{tabular}
+\caption{Transition semantics of basic multithreading actions.}\label{fig:sem_multithreading}
+\end{figure}
 
 \paragraph{Rules for basic multithreading}
 \Cref{fig:sem_multithreading} shows the semantics for the basic
 multithreading operations.  The rule for \verb|AFork| implements
-\verb|forkWithUnmask|, so it constructs a function to unmask the
-thread.  The \verb|fork| function is just a special case of
-\verb|forkWithUnmask| which ignores this argument.  There is no action
-for \verb|forkOS|, as we do not model which capability a thread is
-executing on.  We also see that thread masking states are inherited.
+\verb|forkWithUnmask|, so it constructs a function to run an action
+umasked.  The \verb|fork| function is a special case of
+\verb|forkWithUnmask| which ignores this argument.  There is no
+separate action for \verb|forkOS|, as we do not model which capability
+a thread is executing on.  We use ``\verb|id| is fresh'' to mean that
+\verb|id| is a new, globally unique, identifier.  We use
+$\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$ to mean that the
+thread is deleted.
 
-The \verb|fresh| function, given an identifier source, produces a new
-identifier and source.
-
-\paragraph{Rules for \texttt{MVar} operations}
-\Cref{fig:sem_mvar1,fig:sem_mvar2} show the semantics for the
-\verb|MVar| operations.  We represent an \verb|MVar| with a reference
-holding a \verb|Maybe| value.  These operations enforce a write
-barrier, which is implemented by the \verb|synchronise| function.
-This function commits all the writes from each buffer, one buffer at a
-time.  The order in which buffers are processed is deterministic but
-arbitrary.  So in general, a write barrier will cause the writes of
-one thread to `win'.  The DPOR machinery imposes a dependency between
-write barriers and \verb|ACommit| actions, so in practice we do
-explore different orderings of commits.
-
-The \verb|wake| function unblocks all threads blocked on any of the
-given identifiers.  This function takes a list of identifiers because
-an STM transaction may modify many \verb|TVar|s; threads blocked on
-any of those affected \verb|TVar|s should be woken.
+The \verb|ALift| action is special, as it causes a Haskell-level
+effect to occur.  It produces a continuation by executing some
+\verb|IO| action.
 
 \paragraph{Rules for \texttt{CRef} operations}
-\Cref{fig:sem_cref1,fig:sem_cref2} show the semantics for the
-\verb|CRef| operations.  We represent a \verb|CRef| as a pair of a
-number of commits and a latest value.  Unlike the \verb|MVar|
-operations, most of these do not impose a write barrier.
+\Cref{fig:sem_cref} shows the semantics for the \verb|CRef|
+operations.  We represent a \verb|CRef| as reference to a pair of a
+number of commits and a latest value.
 
-The \verb|buffered| function produces the most recent uncommitted
-value the current thread has written to the given \verb|CRef|.  The
-\verb|buffer| function adds a new write to the buffer.  The
-\verb|unbuffer| function removes the most recent write by the given
-thread to the given \verb|CRef| from the buffer.  This is a partial
-function: if there is no such write, the function will error.
+We use $\texttt{H} \oplus \texttt{B}$ to mean a new heap with all
+writes from each buffer committed, in order.  This is a memory
+barrier.  The order in which buffers are committed is deterministic,
+but arbitrary.  So in general, $\oplus$ will cause the writes of one
+thread to `win'.  The DPOR machinery imposes a dependency between such
+barrier actions and \verb|ACommit| actions, so in practice we do
+explore different orderings of commits.  We use
+$\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]}$ to mean that only the
+buffered writes from thread \verb|tid| are committed.
+
+We use $\texttt{B} + \texttt{(tid, id, a)}$ to mean a new buffer
+state, with a write of value \verb|a| to \verb|CRef| \verb|id| by
+thread \verb|tid| buffered.  We use $\texttt{B} - \texttt{(tid, id)}$
+to mean removing the oldest buffered write to \verb|CRef| \verb|id| by
+thread \verb|tid| from the buffer.
 
 The \verb|ACommit| action has no continuation.  The phantom threads
 which we introduce to perform commits are created before the scheduler
 is invoked, and deleted after each action.  There is always one
-phantom thread for each buffer with uncommitted writes, and no more.
+phantom thread for each nonempty buffer, and no more.
+
+\paragraph{Rules for \texttt{MVar} operations}
+\Cref{fig:sem_mvar} shows the semantics for the \verb|MVar|
+operations.  We represent an \verb|MVar| as a reference to a
+\verb|Maybe| value.  These operations enforce a write barrier, and
+some of them may cause the thread to block.  We model a thread
+blocking by storing the identifiers it is blocked on, and leaving its
+continuation untouched.  The scheduler loop will not choose the thread
+again until it is unblocked.  We use
+$\texttt{T} \Uparrow \texttt{ids}$ to mean that we unblock all threads
+blocked on any of the given identifiers.
 
 \paragraph{Rules for exceptions and masking}
 \Cref{fig:sem_exc} shows the semantics for the exception and masking
-functions.  The \verb|raise| function pops from a thread's exception
+operations.  The \verb|raise| function pops from a thread's exception
 handler stack until it finds a handler for the given exception.  The
-\verb|delete| function removes a key from a map.  The
-\verb|interruptible| function checks if the target thread can be
-interrupted with an exception.
+\verb|interruptible| function checks if the given thread can be
+interrupted with an exception.  We use
+$\texttt{T}_{[\ldots]~[\ldots]~\ldots}$ as a shorthand for applying
+multiple updates to the thread map.
 
 The \verb|AThrowTo| action can cause a thread to block, but there are
 no rules here which would unblock the thread: this is handled in the
@@ -801,436 +827,193 @@ The \verb|AMasking| action is similar to \verb|AFork|: it runs a
 computation after passing an argument to change the masking state.
 Only, \verb|AMasking| runs the action in the current thread.
 
-\paragraph{Rules for miscellaneous actions}
-\Cref{fig:sem_misc} shows the final few actions, which do not fit in
-any of the other categories.  Here we use the notation
-\verb|let name <- value| in the Haskell monadic bind sense: we execute
-\verb|value| and bind its result to \verb|name|, then we produce the
-context update.
-
 \begin{figure}
 \centering
-\footnotesize
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{7.5cm}}
-\multicolumn{2}{c}{\texttt{AFork act c}} \\ \toprule
-\texttt{let (id, idsrc) =} & \texttt{fresh IdSource} \\
-         \texttt{let m0 =} & \texttt{Unmasked} \\
-         \texttt{let m1 =} & \texttt{Threads[tid].Masking} \\
-   \texttt{let reset m' =} & \texttt{\textbackslash k -> AResetMask m' (k ())} \\
-   \texttt{let umask mb =} & \texttt{reset m0 >> mb >>= \textbackslash b -> reset m1 >> pure b} \\ \midrule
-      \texttt{IdSource :=} & \texttt{idsrc} \\
-   \texttt{Threads[id] :=} & \texttt{Thread (act umask) Nothing [] m1} \\
-\texttt{Threads[tid].K :=} & \texttt{c id}
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ANewCRef a c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$ \\
+\multicolumn{2}{l}{where \texttt{id} is fresh}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AReadCRef id c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$ \\
+\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(\_, x)}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AReadCRefCAS id c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Ticket id n x)}]}\rangle$ \\
+\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(n, x)}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AWriteCRef id a c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
+\multicolumn{2}{l}{if $\texttt{memtype} = \texttt{SequentialConsistency}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AWriteCRef id a c}}$&
+$\langle\texttt{C}, \texttt{B} + \texttt{(tid, id, a)}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
+\multicolumn{2}{l}{if $\texttt{memtype} \neq \texttt{SequentialConsistency}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AModCRef id f c}}$&
+$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
+\multicolumn{2}{l}{where $\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]} = \texttt{(n, a)}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AModCRefCAS id f c}}$&
+$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
+\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n, a)}$}\\
+& \\
+\multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ACasCRef id (Ticket id n \_) a c}}$}\\
+\multicolumn{2}{l}{if $\texttt{n} = \texttt{n0}$ \hfill $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (True, Ticket id (n+1) a)}]}\rangle$}\\
+\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, \_)}$}\\
+& \\
+\multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ACasCRef id (Ticket id n \_) \_ c}}$}\\
+\multicolumn{2}{l}{if $\texttt{n} \neq \texttt{n0}$ \hfill $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (False, Ticket id n0 a0)}]}\rangle$}\\
+\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, a0)}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ACommit idT idC}}$&
+$\langle\texttt{C}, \texttt{B'}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}\rangle$\\
+\multicolumn{2}{l}{where $\texttt{H}_{[\texttt{id}]} = \texttt{(n, \_)}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{B} - \texttt{(tid, id)} = \texttt{(B', a')}$}
 \end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{AGetNumCapabilities c}} \\ \toprule
-\texttt{Threads[tid].K :=} & \texttt{c Caps}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{ASetNumCapabilities i c}} \\ \toprule
-          \texttt{Caps :=} & \texttt{i} \\
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{AMyTId c}} \\ \toprule
-\texttt{Threads[tid].K :=} & \texttt{c tid}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{AYield c}} \\ \toprule
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{ADelay c}} \\ \toprule
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-\caption{Small-step semantics of multithreading actions.}\label{fig:sem_multithreading}
+\caption{Transition semantics of \texttt{CRef} actions.}\label{fig:sem_cref}
 \end{figure}
 
 \begin{figure}
 \centering
-\footnotesize
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{ANewMVar c}} \\ \toprule
-\texttt{let (idsrc, id) =} & \texttt{fresh IdSource} \\ \midrule
-      \texttt{Heap[id] :=} & \texttt{Nothing} \\
-      \texttt{IdSource :=} & \texttt{idsrc} \\
-\texttt{Threads[tid].K :=} & \texttt{c (MVar id)}
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ANewMVar c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$ \\
+\multicolumn{2}{l}{where \texttt{id} is fresh}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small APutMVar id \_{}}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just \_}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small APutMVar id a c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]} \Uparrow \{\texttt{id}\}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ATakeMVar id c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]} \Uparrow \{\texttt{id}\}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ATakeMVar id \_}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$} \\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AReadMVar id c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AReadMVar id \_}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ATryPutMVar id c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c False}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just \_}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ATryPutMVar id a c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c True}]} \Uparrow \{\texttt{id}\}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ATryTakeMVar id c}}$& \\
+\multicolumn{2}{r}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$ \hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Just x)}]} \Uparrow \{\texttt{id}\}\rangle$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ATryTakeMVar id c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c Nothing}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$} \\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ATryReadMVar id c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c H}_{[\texttt{id}]}]}\rangle$
 \end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{APutMVar (MVar id) \_ \_} \hfill \texttt{Heap[id] = Just \_}} \\ \toprule
-              \texttt{Buffers :=} & \texttt{[]} \\
-                 \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].Blocking :=} & \texttt{[id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{APutMVar (MVar id) a c} \hfill \texttt{Heap[id] = Nothing}} \\ \toprule
-\texttt{let threads =} & \texttt{(Threads[tid].K := c ())} \\
-   \texttt{let heap =} & \texttt{(Heap[id] := Just a)} \\ \midrule
-   \texttt{Buffers :=} & \texttt{[]} \\
-      \texttt{Heap :=} & \texttt{synchronise heap Buffers} \\
-   \texttt{Threads :=} & \texttt{wake threads [id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AReadMVar (MVar id) c} \hfill \texttt{Heap[id] = Just a}} \\ \toprule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].K :=} & \texttt{c a}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AReadMVar (MVar id) \_} \hfill \texttt{Heap[id] = Nothing}} \\ \toprule
-              \texttt{Buffers :=} & \texttt{[]} \\
-                 \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].Blocking :=} & \texttt{[id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{ATakeMVar (MVar id) c} \hfill \texttt{Heap[id] = Just a}} \\ \toprule
-\texttt{let threads =} & \texttt{(Threads[tid].K := c a)} \\
-   \texttt{let heap =} & \texttt{(Heap[id] := Nothing)} \\ \midrule
-   \texttt{Buffers :=} & \texttt{[]} \\
-      \texttt{Heap :=} & \texttt{synchronise heap Buffers} \\
-   \texttt{Threads :=} & \texttt{wake threads [id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{ATakeMVar (MVar id) \_} \hfill \texttt{Heap[id] = Nothing}} \\ \toprule
-              \texttt{Buffers :=} & \texttt{[]} \\
-                 \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].Blocking :=} & \texttt{[id]}
-\end{tabular}
-\caption{Small-step semantics of basic \texttt{MVar} actions.}\label{fig:sem_mvar1}
+\caption{Transition semantics of \texttt{MVar} actions.}\label{fig:sem_mvar}
 \end{figure}
 
 \begin{figure}
 \centering
-\footnotesize
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{ATryPutMVar (MVar id) a c} \hfill \texttt{Heap[id] = Just \_}} \\ \toprule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].K :=} & \texttt{c False}
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AThrow e}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \varnothing]~[\texttt{tid}.\texttt{E} \mapsto \texttt{hs}]~[\texttt{tid}.\texttt{K} \mapsto \texttt{h e}]}\rangle$ \\
+\multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{h:hs}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AThrow e}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$ \\
+\multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{[]}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AThrowTo id e c}}$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{id}.\texttt{I} \mapsto \varnothing]~[\texttt{id}.\texttt{E} \mapsto \texttt{hs}]~[\texttt{id}.\texttt{K} \mapsto \texttt{h e}]}\rangle$} \\
+\multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
+\multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{h:hs}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AThrowTo id e c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{id} \mapsto \varnothing]}\rangle$ \\
+\multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
+\multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{[]}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AThrowTo id e c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$ \\
+\multicolumn{2}{l}{if $\lnot~ \texttt{interruptible T}_{[\texttt{id}]}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small ACatching i inner c}}$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{inner (APopCatching . c)}]~[\texttt{tid}.\texttt{I} \mapsto \texttt{h:hs}]\rangle}$} \\
+\multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{hs}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small APopCatching c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{tid}.\texttt{I} \mapsto \texttt{hs}]\rangle}$ \\
+\multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{\_:hs}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AMasking m act c}}$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{act umask (AResetMask m0 . c)}]~[\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$} \\
+\multicolumn{2}{l}{where $\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset m0 >> mb >> \textbackslash b -> reset m >> pure b}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AResetMask m c}}$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$
 \end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{ATryPutMVar (MVar id) a c} \hfill \texttt{Heap[id] = Nothing}} \\ \toprule
-\texttt{let threads =} & \texttt{(Threads[tid].K := c True)} \\
-   \texttt{let heap =} & \texttt{(Heap[id] := Just a)} \\ \midrule
-   \texttt{Buffers :=} & \texttt{[]} \\
-      \texttt{Heap :=} & \texttt{synchronise heap Buffers} \\
-   \texttt{Threads :=} & \texttt{wake threads [id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{ATryReadMVar (MVar id) c} \hfill \texttt{Heap[id] = Just a}} \\ \toprule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].K :=} & \texttt{c (Just a)}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{ATryReadMVar (MVar id) c} \hfill \texttt{Heap[id] = Nothing}} \\ \toprule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].K :=} & \texttt{c Nothing}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{ATryTakeMVar (MVar id) c} \hfill \texttt{Heap[id] = Just a}} \\ \toprule
-\texttt{let threads =} & \texttt{(Threads[tid].K := c (Just a))} \\
-   \texttt{let heap =} & \texttt{(Heap[id] := Nothing)} \\ \midrule
-   \texttt{Buffers :=} & \texttt{[]} \\
-      \texttt{Heap :=} & \texttt{synchronise heap Buffers} \\
-   \texttt{Threads :=} & \texttt{wake threads [id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{ATryTakeMVar (MVar id) c} \hfill \texttt{Heap[id] = Nothing}} \\ \toprule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].K :=} & \texttt{c Nothing}
-\end{tabular}
-\caption{Small-step semantics of non-blocking \texttt{MVar} actions.}\label{fig:sem_mvar2}
-\end{figure}
-
-\begin{figure}
-\centering
-\footnotesize
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{ANewCRef a c}} \\ \toprule
-\texttt{let (idsrc, id) =} & \texttt{fresh IdSource} \\ \midrule
-      \texttt{Heap[id] :=} & \texttt{(0, a)} \\
-      \texttt{IdSource :=} & \texttt{idsrc} \\
-\texttt{Threads[tid].K :=} & \texttt{c (CRef id)}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AReadCRef (CRef id) c} \hfill \texttt{buffered Buffers id = Just a}} \\ \toprule
-\texttt{Threads[tid].K :=} & \texttt{c a}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AReadCRef (CRef id) c} \hfill \texttt{buffered Buffers id = Nothing}} \\ \toprule
-\texttt{Threads[tid].K :=} & \texttt{c Heap[id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AReadCRefCAS (CRef id) c} \hfill \texttt{buffered Buffers id = Just a}} \\ \toprule
-    \texttt{let (n, \_) =} & \texttt{Heap[id]} \\ \midrule
-\texttt{Threads[tid].K :=} & \texttt{c (Ticket id n a)}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4.5cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AReadCRefCAS (CRef id) c} \hfill \texttt{buffered Buffers id = Nothing}} \\ \toprule
-     \texttt{let (n, a) =} & \texttt{Heap[id]} \\ \midrule
-\texttt{Threads[tid].K :=} & \texttt{c (Ticket id n a)}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{AWriteCRef (CRef id) a c} \hfill \texttt{memtype = SequentialConsistency}} \\ \toprule
-    \texttt{let (n, \_) =} & \texttt{Heap[id]} \\ \midrule
-      \texttt{Heap[id] :=} & \texttt{(n + 1, a)} \\
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{AWriteCRef (CRef id) a c} \hfill \texttt{memtype /= SequentialConsistency}} \\ \toprule
-       \texttt{Buffers :=} & \texttt{buffer Buffers id a} \\
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-\caption{Small-step semantics of basic \texttt{CRef} actions.}\label{fig:sem_cref1}
-\end{figure}
-
-\begin{figure}
-\centering
-\footnotesize
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AModCRef (CRef id) f c}} \\ \toprule
-       \texttt{let heap =} & \texttt{synchronise Heap Buffers} \\
-     \texttt{let (n, a) =} & \texttt{heap[id]} \\ \midrule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{(heap[id] := (n + 1, f a))} \\
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{4.5cm}}
-\multicolumn{2}{c}{\texttt{AModCRefCAS (CRef id) f c}} \\ \toprule
-       \texttt{let heap =} & \texttt{synchronise Heap Buffers} \\
-     \texttt{let (n, a) =} & \texttt{heap[id]} \\ \midrule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{(heap[id] := (n + 1, f a))} \\
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{ACasCRef (CRef id) (Ticket id n \_) a c} \hfill \texttt{Heap[id] = (n, \_)}} \\ \toprule
-       \texttt{let heap =} & \texttt{synchronise Heap Buffers} \\
-    \texttt{let (n, \_) =} & \texttt{heap[id]} \\ \midrule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{(heap[id] := (n + 1, a))} \\
-\texttt{Threads[tid].K :=} & \texttt{c (True, Ticket id (n+1) a)}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{ACasCRef (CRef id) (Ticket id n \_) \_ c} \hfill \texttt{Heap[id] /= (n, \_)}} \\ \toprule
-       \texttt{let heap =} & \texttt{synchronise Heap Buffers} \\
-     \texttt{let (n, a) =} & \texttt{heap[id]} \\ \midrule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{heap} \\
-\texttt{Threads[tid].K :=} & \texttt{c (False, Ticket id (n+1) a)}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{4cm}}
-\multicolumn{2}{c}{\texttt{ACommit idT idC}} \\ \toprule
-\texttt{let (a, bufs) =} & \texttt{unbuffer Buffers idT idC} \\
-  \texttt{let (n, \_) =} & \texttt{Heap[idC]} \\ \midrule
-     \texttt{Buffers :=} & \texttt{bufs} \\
-   \texttt{Heap[idC] :=} & \texttt{(n + 1, a)}
-\end{tabular}
-\caption{Small-step semantics of synchronised \texttt{CRef} actions.}\label{fig:sem_cref2}
-\end{figure}
-
-\begin{figure}
-\centering
-\footnotesize
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{AThrow e} \hfill \texttt{raise Threads[tid] e = (h:hs)}} \\ \toprule
-\texttt{Threads[tid].Blocking :=} & \texttt{[]} \\
-\texttt{Threads[tid].Handlers :=} & \texttt{hs} \\
-       \texttt{Threads[tid].K :=} & \texttt{h Threads[tid].Masking e}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{AThrow e} \hfill \texttt{raise Threads[tid] e = []}} \\ \midrule
-\texttt{Threads :=} & \texttt{delete Threads tid}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{AThrowTo id e c}} \\
-\multicolumn{2}{r}{\texttt{interruptible Threads[id] \&\& raise Threads[id] e = (h:hs)}} \\ \toprule
-\texttt{Threads[id].Blocking :=} & \texttt{[]} \\
-\texttt{Threads[id].Handlers :=} & \texttt{hs} \\
-       \texttt{Threads[id].K :=} & \texttt{h Threads[id].Masking e} \\
-      \texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{AThrowTo id e c}} \\
-\multicolumn{2}{r}{\texttt{interruptible Threads[id] \&\& raise Threads[id] e = []}} \\ \toprule
-\texttt{let threads =} & \texttt{(Threads[tid].K := c ())} \\ \midrule
-\texttt{Threads :=} & \texttt{delete threads id}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4cm}@{\hspace{0.5em}}L{4cm}}
-\multicolumn{2}{c}{\texttt{AThrowTo id \_ \_} \hfill \texttt{¬ (interruptible Threads[id])}} \\ \toprule
-\texttt{Threads[tid].Blocking :=} & \texttt{[id]}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{ACatching h inner c}} \\ \toprule
-\texttt{Threads[tid].Handlers :=} & \texttt{h : Threads[tid].Handlers} \\
-       \texttt{Threads[tid].K :=} & \texttt{inner (APopCatching . c)}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{APopCatching c}} \\ \toprule
-\texttt{Threads[tid].Handlers :=} & \texttt{tail Threads[tid].Handlers} \\
-       \texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4cm}@{\hspace{0.5em}}L{7.5cm}}
-\multicolumn{2}{c}{\texttt{AMasking m inner c}} \\ \toprule
-               \texttt{let m0 =} & \texttt{Threads[tid].Masking} \\
-     \texttt{let reset m' =} & \texttt{\textbackslash k -> AResetMask m' (k ())} \\
-         \texttt{let umask mb =} & \texttt{reset m0 >> mb >>= \textbackslash b -> reset m >> pure b} \\
-      \texttt{Threads[tid].K :=} & \texttt{inner umask (AResetMask m0 . c)} \\
-\texttt{Threads[tid].Masking :=} & \texttt{m}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{4cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{AResetMask m c}} \\ \toprule
-      \texttt{Threads[tid].K :=} & \texttt{c ()} \\
-\texttt{Threads[tid].Masking :=} & \texttt{m}
-\end{tabular}
-\caption{Small-step semantics of the exception actions.}\label{fig:sem_exc}
-\end{figure}
-
-\begin{figure}
-\centering
-\footnotesize
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{ALift n}} \\ \toprule
-         \texttt{let c <-} & \texttt{n} \\ \midrule
-\texttt{Threads[tid].K :=} & \texttt{c}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{AReturn c}} \\ \toprule
-\texttt{Threads[tid].K :=} & \texttt{c ()}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{2cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{AStop n}} \\ \toprule
- \texttt{let \_ <-} & \texttt{n} \\ \midrule
-\texttt{Threads :=} & \texttt{delete Threads tid}
-\end{tabular}
-\caption{Small-step semantics for miscellaneous actions.}\label{fig:sem_misc}
+\caption{Transition semantics of exception actions.}\label{fig:sem_exc}
 \end{figure}
 
 \FloatBarrier
 \subsection{Semantics of Software Transactional Memory}
 
-The context for our STM semantics contains:
+We express our STM semantics similarly, as transition rules for a
+context tuple
+$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$:
 
 \begin{itemize}
-\item \verb|Heap|, the heap from the concurrency context.
-\item \verb|IdSource|, the identifier source from the concurrency
-  context.
+\item \verb|H|, the heap.
 \item \verb|K|, the current continuation.
-\item \verb|Read|, the identifiers of the \verb|TVar|s which have been
-  read.
-\item \verb|Written|, the identifiers of the \verb|TVar|s which have
-  been updated.
+\item \verb|R|, the set of \verb|TVar|s which have been read from.
+\item \verb|W|, the set of \verb|TVar|s which have been written to.
 \end{itemize}
 
 From the point of view of a transaction there is only one thread,
@@ -1238,19 +1021,45 @@ which is the one executing the transaction.  So our context does not
 contain a thread map, as with concurrency, but just the single
 continuation of interest.  We also track which \verb|TVar|s have been
 read from or written to, which are used to handle blocking of aborted
-transactions.
+transactions, and in the DPOR implementation to determine dependency
+between transactions.
+
+\begin{figure}[h]
+\centering
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AAtom stm c}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H'} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c a}]} \Uparrow \texttt{W}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Success a H', \_, W)}$} \\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AAtom stm \_}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \texttt{R}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Aborted, R, \_)}$} \\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
+\xrightarrow{\texttt{\small AAtom stm \_}}$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{AThrow e}]}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Exception e, \_, \_)}$}
+\end{tabular}
+\caption{Transition semantics for \texttt{AAtom}.}\label{fig:sem_aatom}
+\end{figure}
 
 \paragraph{Rules for executing transactions}
-\Cref{fig:sem_aatom} shows the semantics for executing a transaction.
-The \verb|runSTM| function runs a transaction.  There are three
-possible results: (1)~the transaction succeeded, which gives the final
-value, the new heap, and the new identifier source; (2)~the
-transaction was aborted; and (3)~an uncaught exception was raised,
-which gives the exception.  Each case also returns the \verb|TVar|s
-read from and written to.
+\Cref{fig:sem_aatom} shows the semantics for \verb|AAtom|, the bridge
+between the concurrency and the STM semantics, where the \verb|runSTM|
+function runs a transaction to completion.  There are three possible
+results: (1)~the transaction succeeded, which gives the final value
+and the new heap; (2)~the transaction was aborted; and (3)~an uncaught
+exception was raised, which gives the exception.  Each case also
+returns the \verb|TVar|s read from and written to.  Executing a
+transaction enforces a memory barrier, regardless of the result.
 
-Executing a transaction enforces a memory barrier, regardless of the
-result.
+As we have modelled the heap as a pure heterogeneous map in our
+semantics, we do not need to explicitly undo the effects of an
+unsuccessful transaction.  We simply discard the updated heap.  In the
+real implementation, we construct an action to undo the effects of a
+transaction.
 
 \paragraph{Rules for basic STM actions}
 \Cref{fig:sem_stm1} shows the basic STM actions.  The \verb|SRetry|,
@@ -1264,14 +1073,11 @@ which catches \verb|SRetry|.  The three cases where the first
 transaction aborts reveal a subtle detail: when the first transaction
 aborts, the \verb|TVar|s it has read must still be included in the set
 that the transaction as a whole read from.  It may not have called
-\verb|SRetry| if those \verb|TVar|s had a different value.  This
-becomes relevant if the transaction as a whole is aborted, as throwing
-away those \verb|TVar| identifiers could result in the thread not
-being unblocked where it should
+\verb|SRetry| if those \verb|TVar|s had a different value.  If the
+transaction as a whole is aborted, throwing away those \verb|TVar|
+identifiers could result in the thread not being unblocked where it
+should
 be\footnote{\url{https://github.com/barrucadu/dejafu/issues/55}}.
-More formally, the \verb|retry| function, which \verb|SRetry|
-implements, is the left and right unit of the \verb|orElse| function,
-which \verb|SOrElse| implements.
 
 \paragraph{Rules for catching \texttt{SThrow}}
 \Cref{fig:sem_stm3} shows the semantics for the \verb|SCatch| action,
@@ -1281,6 +1087,7 @@ that exception type.  This is similar to \verb|raise| for the
 concurrency semantic rules, but it only looks at one exception
 handler, rather than a stack of them.
 
+\paragraph{Big-step semantics}
 Both \verb|SOrElse| and \verb|SCatch| look more like what you would
 expect in a big-step semantics than a small-step semantics, as they
 evaluate entire transactions.  We use this style because transactions
@@ -1288,180 +1095,91 @@ are atomic, and it simplifies the implementation.
 
 \begin{figure}
 \centering
-\footnotesize
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{AAtom stm c}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm = (Success a heap idsrc, \_, written)}} \\ \toprule
-\texttt{let threads =} & \texttt{(Threads[tid].K := c a)} \\ \midrule
-   \texttt{Buffers :=} & \texttt{[]} \\
-      \texttt{Heap :=} & \texttt{synchronise heap Buffers} \\
-  \texttt{IdSource :=} & \texttt{idsrc} \\
-   \texttt{Threads :=} & \texttt{wake threads written}
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SNew a c}}$&
+$\langle\texttt{H}_{[\texttt{id} \mapsto \texttt{a}]}, \texttt{c id}, \texttt{R}, \texttt{W}\rangle$\\
+\multicolumn{2}{l}{where \texttt{id} is fresh}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SRead id c}}$&
+$\langle\texttt{H}, \texttt{c H}_{[\texttt{id}]}, \{\texttt{id}\} \cup \texttt{R}, \texttt{W}\rangle$\\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SWrite id a c}}$&
+$\langle\texttt{H}_{[\texttt{id} \mapsto \texttt{a}]}, \texttt{c ()}, \texttt{R}, \{\texttt{id}\} \cup \texttt{W}\rangle$\\
+$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SRetry}}$&
+$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$\\
+$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SThrow \_}}$&
+$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$\\
+$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SStop}}$&
+$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$
 \end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{AAtom stm \_} \hfill \texttt{runSTM IdSource Heap stm = (Aborted, read, \_)}} \\ \toprule
-   \texttt{Buffers :=} & \texttt{[]} \\
-      \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].Blocking :=} & \texttt{read}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{AAtom stm \_} \hfill \texttt{runSTM IdSource Heap stm = (Exception e, \_, \_)}} \\ \toprule
-       \texttt{Buffers :=} & \texttt{[]} \\
-          \texttt{Heap :=} & \texttt{synchronise Heap Buffers} \\
-\texttt{Threads[tid].K :=} & \texttt{AThrow e}
-\end{tabular}
-\caption{Small-step semantics for \texttt{AAtom}.}\label{fig:sem_aatom}
+\caption{Transition semantics for the basic STM actions.}\label{fig:sem_stm1}
 \end{figure}
 
 \begin{figure}
 \centering
-\footnotesize
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{SNew a c}} \\ \toprule
-\texttt{let (idsrc, id) =} & \texttt{fresh IdSource} \\ \midrule
-      \texttt{Heap[id] :=} & \texttt{a} \\
-      \texttt{IdSource :=} & \texttt{idsrc} \\
-             \texttt{K :=} & \texttt{c (TVar id)}
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SOrElse stm1 \_ c}}$&
+$\langle\texttt{H'}, \texttt{c a}, \texttt{R} \cup \texttt{R'}, \texttt{W} \cup \texttt{W'}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Success a H', R', W')}$}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SOrElse stm1 \_ \_}}$&
+$\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Exception e, R', \_)}$}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SOrElse stm1 stm2 c}}$&
+$\langle\texttt{H'}, \texttt{c a}, \texttt{R} \cup \texttt{R1} \cup \texttt{R2}, \texttt{W} \cup \texttt{W'}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Aborted, R1, \_)}$}\\
+\multicolumn{2}{l}{\hphantom{if }$\texttt{runSTM H stm2} = \texttt{(Success a H', R2, W')}$}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SOrElse stm1 stm2 c}}$&
+$\langle\texttt{H'}, \texttt{SRetry}, \texttt{R} \cup \texttt{R1} \cup \texttt{R2}, \texttt{W}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Aborted, R1, \_)}$}\\
+\multicolumn{2}{l}{\hphantom{if }$\texttt{runSTM H stm2} = \texttt{(Aborted, R2, \_)}$}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SOrElse stm1 stm2 c}}$&
+$\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R1} \cup \texttt{R2}, \texttt{W}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Aborted, R1, \_)}$}\\
+\multicolumn{2}{l}{\hphantom{if }$\texttt{runSTM H stm2} = \texttt{(Exception e, R2, \_)}$}
 \end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{2cm}@{\hspace{0.5em}}L{2cm}}
-\multicolumn{2}{c}{\texttt{SRead (TVar id) c}} \\ \toprule
-   \texttt{K :=} & \texttt{c Heap[id]} \\
-\texttt{Read :=} & \texttt{id : Read}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{2cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{SWrite (TVar id) a c}} \\ \toprule
-\texttt{Heap[id] :=} & \texttt{a} \\
-       \texttt{K :=} & \texttt{c ()} \\
- \texttt{Written :=} & \texttt{id : Written}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{SRetry}} \\ \toprule
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{3cm}@{\hspace{0.5em}}L{3cm}}
-\multicolumn{2}{c}{\texttt{SThrow e}} \\ \toprule
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{1.5cm}@{\hspace{0.5em}}L{1cm}}
-\multicolumn{2}{c}{\texttt{SStop n}} \\ \toprule
-\texttt{let \_ <-} & \texttt{n}
-\end{tabular}
-\caption{Small-step semantics for the basic STM actions.}\label{fig:sem_stm1}
+\caption{Transition semantics for the \texttt{SOrElse} action.}\label{fig:sem_stm2}
 \end{figure}
 
 \begin{figure}
 \centering
-\footnotesize
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SOrElse stm1 \_ c}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm1 = (Success a h i, r, w)}} \\ \toprule
-    \texttt{Heap :=} & \texttt{h} \\
-\texttt{IdSource :=} & \texttt{i} \\
-       \texttt{K :=} & \texttt{c a} \\
-    \texttt{Read :=} & \texttt{r ++ Read} \\
- \texttt{Written :=} & \texttt{w ++ Written}
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SCatch \_ stm c}}$&
+$\langle\texttt{H'}, \texttt{c a}, \texttt{R} \cup \texttt{R'}, \texttt{W} \cup \texttt{W'}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Success a H', R', W')}$}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SCatch \_ stm c}}$&
+$\langle\texttt{H'}, \texttt{SRetry}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Aborted, R', \_)}$}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SCatch h stm \_}}$&
+$\langle\texttt{H'}, \texttt{h e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Exception e, R', \_)}$}\\
+\multicolumn{2}{l}{\hphantom{if }$\texttt{handles h e}$}\\
+& \\
+$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
+\xrightarrow{\texttt{\small SCatch h stm \_}}$&
+$\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
+\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Exception e, R', \_)}$}\\
+\multicolumn{2}{l}{\hphantom{if }$\lnot~ \texttt{handles h e}$}
 \end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SOrElse stm1 \_ \_}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm1 = (Exception e, r, \_)}} \\ \toprule
-   \texttt{K :=} & \texttt{SThrow e} \\
-\texttt{Read :=} & \texttt{r ++ Read}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SOrElse stm1 stm2 c}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm1 = (Aborted, r1, \_)}} \\
-\multicolumn{2}{r}{\texttt{\&\& runSTM IdSource Heap stm2 = (Success a h i, r2, w)}} \\ \toprule
-    \texttt{Heap :=} & \texttt{h} \\
-\texttt{IdSource :=} & \texttt{i} \\
-       \texttt{K :=} & \texttt{c a} \\
-    \texttt{Read :=} & \texttt{r1 ++ r2 ++ Read} \\
- \texttt{Written :=} & \texttt{w ++ Written}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SOrElse stm1 stm2 c}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm1 = (Aborted, r1, \_)}} \\
-\multicolumn{2}{r}{\texttt{\&\& runSTM IdSource Heap stm2 = (Aborted, r2, \_)}} \\ \toprule
-   \texttt{K :=} & \texttt{SRetry} \\
-\texttt{Read :=} & \texttt{r1 ++ r2 ++ Read}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SOrElse stm1 stm2 c}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm1 = (Aborted, r1, \_)}} \\
-\multicolumn{2}{r}{\texttt{\&\& runSTM IdSource Heap stm2 = (Exception e, r2, \_)}} \\ \toprule
-   \texttt{K :=} & \texttt{SThrow e} \\
-\texttt{Read :=} & \texttt{r1 ++ r2 ++ Read}
-\end{tabular}
-\caption{Small-step semantics for the \texttt{SOrElse} action.}\label{fig:sem_stm2}
-\end{figure}
-
-\begin{figure}
-\centering
-\footnotesize
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SCatch \_ stm c}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm = (Success a h i, r, w)}} \\ \toprule
-    \texttt{Heap :=} & \texttt{h} \\
-\texttt{IdSource :=} & \texttt{i} \\
-       \texttt{K :=} & \texttt{c a} \\
-    \texttt{Read :=} & \texttt{r ++ Read} \\
- \texttt{Written :=} & \texttt{w ++ Written}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{c}{\texttt{SCatch \_ stm \_} \hfill \texttt{runSTM IdSource Heap stm = (Aborted, r, \_)}} \\ \toprule
-   \texttt{K :=} & \texttt{SRetry} \\
-\texttt{Read :=} & \texttt{r ++ Read}
-\end{tabular}
-
-\vspace{1.5em}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SCatch h stm \_}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm = (Exception e, r, \_) \&\& handles h e}} \\ \toprule
-   \texttt{K :=} & \texttt{h e} \\
-\texttt{Read :=} & \texttt{r ++ Read}
-\end{tabular}
-
-\begin{tabular}{R{5cm}@{\hspace{0.5em}}L{5cm}}
-\multicolumn{2}{l}{\texttt{SCatch h stm \_}} \\
-\multicolumn{2}{r}{\texttt{runSTM IdSource Heap stm = (Exception e, r, \_) \&\& ¬(handles h e)}} \\ \toprule
-   \texttt{K :=} & \texttt{SThrow e} \\
-\texttt{Read :=} & \texttt{r ++ Read}
-\end{tabular}
-\caption{Small-step semantics for the \texttt{SCatch} action.}\label{fig:sem_stm3}
+\caption{Transition semantics for the \texttt{SCatch} action.}\label{fig:sem_stm3}
 \end{figure}
 
 \FloatBarrier
