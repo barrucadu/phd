@@ -74,20 +74,162 @@
 
 \sectiontext{\dejafu{}: Haskell Concurrency Testing}{Michael Walker and Colin Runciman.  \dejafu{}: A Concurrency Testing Library for Haskell.  In \emph{Proceedings of the 8th ACM SIGPLAN Symposium on Haskell}, Haskell 2015, pages 141--152.  ACM, 2015.}
 
-\begin{frame}{A Frame}
-  Hello, world!
+\begin{frame}{\dejafu{}}
+  \ldots
+\end{frame}
+
+\begin{frame}{Scope}
+  \ldots
+\end{frame}
+
+\begin{frame}{Concurrency Abstraction}
+  \ldots
+\end{frame}
+
+\begin{frame}{Operational Semantics}
+  \ldots
+\end{frame}
+
+\begin{frame}{Exploring Schedules}
+  \ldots
+\end{frame}
+
+\begin{frame}{Dependency Relation}
+  \ldots
+\end{frame}
+
+\begin{frame}{A Concern: Daemon Threads}
+  \ldots
+\end{frame}
+
+\begin{frame}{Soundness and Completeness}
+  \ldots
+\end{frame}
+
+\begin{frame}{Case Studies}
+  \ldots
+\end{frame}
+
+\begin{frame}{Evaluation}
+  \ldots
+\end{frame}
+
+\begin{frame}{Summary}
+  \begin{itemize}
+  \item We contribute \dejafu{}, a tool for testing concurrent
+    Haskell.
+
+  \item We also contribute an operational semantics of and dependency
+    relation for Haskell concurrency.
+
+  \item \dejafu{} supports both bounded partial-order reduction and a
+    controlled random scheduling approach.
+
+  \item \dejafu{} supports relaxed memory.
+
+  \item We haven't attempted a formal proof of correctness.
+
+  \item People use it!
+  \end{itemize}
 \end{frame}
 
 \section{Scheduling Algorithms}
 
-\begin{frame}{A Frame}
-  Hello, world!
+\begin{frame}{Scheduling Algorithms}
+  \ldots
+\end{frame}
+
+\begin{frame}{The PCT Algorithm}
+  \ldots
+\end{frame}
+
+\begin{frame}{Weighted Random Scheduling}
+  \ldots
+\end{frame}
+
+\begin{frame}{Aside: Swarm Testing}
+  \ldots
+\end{frame}
+
+\begin{frame}{Swarm Scheduling}
+  \ldots
+\end{frame}
+
+\begin{frame}{Results (1)}
+  \ldots % bug overlap venn diagrams
+\end{frame}
+
+\begin{frame}{Results (2)}
+  \ldots % bugs found chart
+\end{frame}
+
+\begin{frame}{Summary}
+  \begin{itemize}
+  \item We contribute swarm scheduling, a scheduling algorithm for
+    finding faults in concurrent programs.
+
+  \item We argue that unfair schedules are likely to reveal
+    concurrency bugs more effectively than fair schedules.
+
+  \item Swarm scheduling uses weighted random scheduling, but changes
+    the weights every few executions.
+
+  \item We find that one parameterisation performs as well as PCT,
+    despite not knowing anything about the program under test.
+  \end{itemize}
 \end{frame}
 
 \sectiontext{CoCo: Discovering Concurrency Properties}{Michael Walker and Colin Runciman.  Cheap Remarks about Concurrent Programs.  Accepted for publication in: \emph{Functional and Logic Programming Symposium}, FLOPS 2018.  ACM, 2018.}
 
-\begin{frame}{A Frame}
-  Hello, world!
+\begin{frame}{CoCo}
+  \ldots
+\end{frame}
+
+\begin{frame}{Behaviours}
+  \ldots
+\end{frame}
+
+\begin{frame}{Signatures}
+  \ldots
+\end{frame}
+
+\begin{frame}{Generating Terms}
+  \ldots
+\end{frame}
+
+\begin{frame}{Evaluating Terms}
+  \ldots
+\end{frame}
+
+\begin{frame}{Discovering Properties}
+  \ldots
+\end{frame}
+
+\begin{frame}{Soundness and Completeness}
+  \ldots
+\end{frame}
+
+\begin{frame}{Case Studies}
+  \ldots
+\end{frame}
+
+\begin{frame}{Summary}
+
+  \begin{itemize}
+  \item We contribute CoCo, a tool for discovering properties of
+    concurrency functions.
+
+  \item The properties we discover are equivalences and refinements
+    between side-effects in the presence of concurrent interference.
+
+  \item We use \dejafu{} to discover these behaviours.
+
+  \item CoCo properties are conjectures supported by a finite number
+    of test cases.
+
+  \item CoCo is most suited to discovering properties about concurrent
+    data structures.
+\end{itemize}
 \end{frame}
 
 \begin{frame}[standout]
@@ -96,8 +238,36 @@
 
 \appendix
 
-\begin{frame}{Why didn't you frobnicate the whizzbang?}
-  A sneaky extra slide with a prepared answer.  How cunning!
+\begin{frame}{\dejafu{}: Testing Implementation}
+  \ldots % code from thesis
+\end{frame}
+
+\begin{frame}{\dejafu{}: Trace Rewriting}
+  \ldots % example
+\end{frame}
+
+\begin{frame}{\dejafu{}: Snapshotting}
+  \ldots % API sig
+\end{frame}
+
+\begin{frame}{\dejafu{}: Dependency Relation}
+  \ldots % figure from thesis
+\end{frame}
+
+\begin{frame}{Swarm Scheduling: Algorithm}
+  \ldots % code from thesis
+\end{frame}
+
+\begin{frame}{CoCo: Evaluating Terms}
+  \ldots % runSingle.go code
+\end{frame}
+
+\begin{frame}{CoCo: Performance}
+  \ldots % table from thesis
+\end{frame}
+
+\begin{frame}{CoCo: Optimisations}
+  \ldots % tables from thesis
 \end{frame}
 
 \end{document}
