@@ -5,6 +5,44 @@
 \usetheme[numbering=fraction, progressbar=frametitle]{metropolis}
 \usefonttheme{serif}
 
+\makeatletter
+\defbeamertemplate*{section page}{mytheme}[1][]{
+  \centering
+  \begin{minipage}{22em}
+    \raggedright
+    \begingroup
+    \usebeamercolor[fg]{section title}
+    \usebeamerfont{section title}
+    \insertsectionhead\\[-1ex]
+    \usebeamertemplate*{progress bar in section page}
+    \par
+    \endgroup
+    \ifx\insertsubsectionhead\@empty\else%
+      \begingroup
+      \usebeamercolor[fg]{subsection title}%
+      \usebeamerfont{subsection title}%
+      \insertsubsectionhead
+      \endgroup
+    \fi
+    \vskip0.5cm
+    \ifstrempty{#1}{}{%
+      \begingroup
+      \footnotesize%
+      #1%
+      \endgroup
+    }
+  \end{minipage}
+  \par
+  \vspace{\baselineskip}
+}
+\makeatother
+
+\newcommand{\sectiontext}[2]{
+   \setbeamertemplate{section page}[mytheme][#2]
+   \section{#1}
+   \setbeamertemplate{section page}[mytheme]
+}
+
 \title{Revealing Behaviours of Concurrent Functional Programs by Systematic Testing}
 \date{March 2018}
 \author{Michael Walker}
@@ -34,7 +72,7 @@
   Hello, world!
 \end{frame}
 
-\section{\dejafu{}: Haskell Concurrency Testing}
+\sectiontext{\dejafu{}: Haskell Concurrency Testing}{Michael Walker and Colin Runciman.  \dejafu{}: A Concurrency Testing Library for Haskell.  In \emph{Proceedings of the 8th ACM SIGPLAN Symposium on Haskell}, Haskell 2015, pages 141--152.  ACM, 2015.}
 
 \begin{frame}{A Frame}
   Hello, world!
@@ -46,7 +84,7 @@
   Hello, world!
 \end{frame}
 
-\section{CoCo: Discovering Concurrency Properties}
+\sectiontext{CoCo: Discovering Concurrency Properties}{Michael Walker and Colin Runciman.  Cheap Remarks about Concurrent Programs.  Accepted for publication in: \emph{Functional and Logic Programming Symposium}, FLOPS 2018.  ACM, 2018.}
 
 \begin{frame}{A Frame}
   Hello, world!
