@@ -4,7 +4,7 @@ GENFILES := $(shell find . -type f -name '*.gnuplot' | sed 's:scripts:gen:' | se
 
 .PHONY: all clean lint wc
 
-all: main.pdf
+all: main.pdf seminar.pdf
 
 clean:
 	-@rm *.{aux,bbl,blg,fdb_latexmk,fls,log,out,pdf,toc}
@@ -18,8 +18,8 @@ lint:
 wc:
 	texcount -inc main.tex | grep "Words in text" | tail -n1
 
-main.pdf: $(TEXFILES) $(BIBFILES) $(GENFILES)
-	latexmk -pdfxe -latexoption=--shell-escape main.tex
+%.pdf: %.tex $(TEXFILES) $(BIBFILES) $(GENFILES)
+	latexmk -pdfxe -latexoption=--shell-escape $<
 
 gen/%.tex: scripts/%.gnuplot data/counts.csv gen
 	$<

@@ -12,4 +12,6 @@
 *.pdf
 *.toc
 *.xml
+*.nav
+*.snm
 gen
