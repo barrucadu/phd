@@ -4,7 +4,7 @@ GENFILES := $(shell find . -type f -name '*.gnuplot' | sed 's:scripts:gen:' | se
 
 .PHONY: all clean lint wc
 
-all: main.pdf seminar.pdf
+all: thesis.pdf seminar.pdf
 
 clean:
 	-@rm *.{aux,bbl,blg,fdb_latexmk,fls,log,out,pdf,toc}
