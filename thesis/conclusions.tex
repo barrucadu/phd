@@ -1,17 +1,19 @@
 We set out to make it easier for programmers to write correct
 concurrent programs, but have we achieved that?  In this chapter we
-review our contributions and draw some overall conclusions.  In
-summary, we contribute:
+review our contributions and draw some overall conclusions.  Recall
+our contributions from \Cref{sec:intro-contributions}:
 
 \begin{itemize}
-\item A library (\dejafu{}) for effectively testing concurrent Haskell
-  programs.
-\item A convincing demonstration that SCT techniques work well in a
-  rich setting.
-\item A new scheduling algorithm (swarm scheduling) for randomised
-  testing.
-\item A tool (CoCo) for discovering properties of concurrent Haskell
-  functions.
+\item A library for effectively testing Concurrent Haskell programs,
+  in \Cref{chp:dejafu}.
+\item An operational semantics for Concurrent Haskell, in
+  \Cref{chp:dejafu}.
+\item A new scheduling algorithm for randomised testing to allow
+  testing programs where complete testing does not scale, in
+  \Cref{chp:algorithms}.
+\item A tool for discovering properties of Haskell functions operating
+  on shared mutable state in the presence of concurrent interference,
+  in \Cref{chp:coco}.
 \end{itemize}
 
 \paragraph{Systematic concurrency testing with rich semantics}
@@ -31,35 +33,47 @@ difference is suggestive.
 
 In Haskell, there are many different operations with partially
 overlapping behaviour.  It is not clear that a typical SCT algorithm
-would work effectively in this context.  \dejafu{} provides a
-convincing demonstration that SCT can be applied to languages with
-rich concurrency abstractions.
+would work effectively in this context.  Our case studies in
+\Cref{sec:dejafu-casestudies} provide a convincing demonstration that
+SCT can be applied to languages with rich concurrency abstractions.
 
 \paragraph{Effective bug finding with randomised scheduling}
-\Cref{chp:algorithms} introduced the swarm scheduling algorithm.
-Benchmark results suggest it performs as well as the PCT
-algorithm\cite{burckhardt2010} in terms of bug-finding ability.
-Crucially, PCT requires the user to supply parameters derived from the
-program under test, whereas swarm scheduling does not.  The freedom
-from any such requirement makes swarm scheduling simpler to implement
-and use than PCT, yet it still finds bugs just as effectively.
+\Cref{chp:algorithms} introduced the swarm scheduling algorithm.  Our
+benchmark results in \Cref{sec:algorithms-bench} show that it performs
+as well as the PCT algorithm\cite{burckhardt2010} in terms of
+bug-finding ability.  Crucially, PCT requires the user to supply
+parameters derived from the program under test, whereas swarm
+scheduling does not.  The freedom from any such requirement makes
+swarm scheduling simpler to implement and use than PCT, yet it still
+finds bugs just as effectively.
 
 \paragraph{Discovering properties of concurrent programs}
 \Cref{chp:coco} introduced CoCo.  By synthesising program terms and
 performing property-based testing, CoCo can give the programmer new
 insights into their code.  Like \dejafu{}, this is a Haskell tool, but
-the underlying techniques are not Haskell specific.  The underlying
-idea is that we can compare sets of program behaviours to make
-meaningful claims about the relation between the source programs.
+the techniques are not Haskell specific.  The underlying idea is that
+we can compare sets of program behaviours to make meaningful claims
+about the relation between the components which make up those
+programs.  Our case studies in \Cref{sec:coco-cases} show the sorts of
+properties we can discover but, as we see in
+\Cref{sec:coco-conclusions}, CoCo has scaling difficulties.
 
 The CoCo approach applies not just to concurrent programs, but to
 nondeterministic programs in general.  If we have an efficient, but
 nondeterministic, algorithm for a problem, we may wish to be able to
 use it in place of a slow, but deterministic, algorithm.  The
 deterministic algorithm is a refinement of the nondeterministic
-algorithm, which may introduce additional behaviours.  Rather than
-using a concurrency testing tool like \dejafu{} to discover
-behaviours, we could use symbolic execution.
+algorithm, which may introduce additional behaviours.
+
+\paragraph{Drawbacks of refactoring}
+A weakness of our Haskell work is the \verb|MonadConc| typeclass.
+Requiring programmers to modify their code, even in a straightforward
+way, is a barrier to entry that many will not wish to overcome.
+Furthermore, when typeclass-polymorphic code is compiled, the
+definitions of typeclass member functions cannot be inlined, as they
+are not known\cite{peytonjones2002}.  The recent Backpack
+work\cite{yang2017} offers an alternative here, lessening the code
+modification problem and solving the optimisation problem.
 
 \paragraph{The inevitable exponentials}
 Concurrent programs are nondeterministic, and this is where the
@@ -75,35 +89,36 @@ $\frac{(nk)!}{(k!)^{n}}$ executions\cite{musuvathi2007}!
 bounding\cite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
 reduction\cite{flanagan2005,godefroid1996} to improve the average
 case, but the worst case remains a possibility.  Empirical studies
-show that small test cases with two threads and two pre-emptive
+show that small test cases with just two threads and two pre-emptive
 context switches suffice for finding many real-world concurrency
-bugs\cite{thomson2014}.  There is a small-scope hypothesis here: that
-most concurrency bugs do not need a greatly complicated test case with
-dozens of threads manipulating some shared state; rather, we just need
-a handful of actions to happen in the wrong order.  This is the
-intuition behind PCT\cite{burckhardt2010}.  So there is a terrible
-asymptotic worst case, but in practice test cases are often small.
-When test cases \emph{are} too large for systematic testing to
-effectively explore the state-space, then we can use a random
-approach.
+bugs\cite{thomson2014}.  There is a \emph{small-scope hypothesis}
+here: most concurrency bugs do not only arise in complicated test
+cases; rather, we just need a handful of actions to happen in the
+wrong order.  This is the intuition behind PCT\cite{burckhardt2010}.
+So there is a terrible asymptotic worst case, but in practice test
+cases are often small.  When test cases \emph{are} too large for
+systematic testing to effectively explore the state-space, then we can
+use a random approach, as we did in \Cref{chp:algorithms}.
 
 \paragraph{The difficulty of interpreting success}
 It can be difficult to look at the result of a successful concurrency
-test and know what it is telling us.  We saw this with CoCo in
-\Cref{sec:coco-example}, where the programmer may need to run the tool
-with a variety of interference functions to see the full picture.
-Properties found with one sort of concurrent interference may not
-generalise to cases with different interference.  Similarly,
+test and know what it is telling us.  For example, we saw this with
+CoCo in \Cref{sec:coco-example}, where the programmer may need to run
+the tool with a variety of interference functions to see the full
+picture.  Properties found with one sort of concurrent interference
+may not generalise to cases with different interference.  Similarly,
 successful concurrency tests in \dejafu{} may not generalise to cases
-where the concurrent environment is different.
+where the concurrent environment is different.  This difficulty is
+related to the problem of judging the quality of a test suite, which
+we will discuss in \Cref{chp:future_work}.
 
 \paragraph{The difficulty of interpreting failure}
 It can be difficult to look at a failing concurrency test and diagnose
-the problem.  We saw this with \dejafu{} in
+the problem.  For example, we saw this with \dejafu{} in
 \Cref{sec:dejafu-casestudies-par}, where the resulting execution
-traces can be large and difficult to follow.  Traces are a low-level
-construct: they may become invalid when library dependencies change,
-even if the key scheduling decisions remain the same.  Which
+traces were quite large and difficult to follow.  Traces are a
+low-level construct: they may become invalid when library dependencies
+change, even if the key scheduling decisions remain the same.  Which
 information is truly important?  It is not obvious.
 
 \paragraph{Overall conclusions}
@@ -111,15 +126,6 @@ Concurrency errors, sometimes called ``Heisenbugs'' due to their
 unpredictable behaviour, can be among the most difficult to
 debug\cite{musuvathi2008osdi}.  The ideas behind concurrency testing
 have been around for some time now\cite{godefroid1996}, and yet
-concurrency testing tools are not widely used.  By contributing a new
-tool, we hope to help address this problem.
-
-In hindsight, the greatest weakness of our Haskell work is the
-\verb|MonadConc| typeclass.  Requiring programmers to modify their
-code, even in a straightforward way, is a barrier to entry that many
-will not wish to overcome.  Furthermore, when typeclass-polymorphic
-code is compiled, the definitions of typeclass member functions cannot
-be inlined, as they are not known\cite{peytonjones2002}.  If we were
-starting \dejafu{} today, we would strongly consider basing it on the
-recent Backpack work\cite{yang2017}, which lessens the code
-modification problem and solves the optimisation problem.
+concurrency testing tools are not widely used.  By contributing new
+tools and illustrating what they can do we hope to help address this
+problem.

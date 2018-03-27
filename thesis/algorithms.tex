@@ -317,63 +317,6 @@ executions is increased\cite{thomson2016}.
 \subsection{Experimental Results}
 \label{sec:algorithms-bench-results}
 
-\begin{listing}
-\centering
-\begin{cminted}{c++}
-void SwarmScheduler::Explore(State *init_state) {
-  State *state = init_state;
-  unsigned int steps = 0;
-
-  while (!state->IsTerminal()) {
-    AssignWeightsToNewThreads(state);
-
-    auto it = PickNextRandom(state);
-    for(unsigned int cpoint : changePoints) {
-      if(steps == cpoint) {
-        AssignWeightTo(it.first->uid());
-      }
-    }
-
-    state = Execute(state, it.second);
-    steps++;
-  }
-}
-
-void SwarmScheduler::AssignWeightsToNewThreads(State *state) {
-  auto enabled = state->enabled();
-  for(auto it = enabled->begin(); it != enabled->end(); it++) {
-    auto threadId = it->first->uid();
-    if(weights.find(threadId) == weights.end()) {
-      AssignWeightTo(threadId);
-    }
-  }
-}
-
-void SwarmScheduler::AssignWeightTo(uint32 threadId) {
-  std::uniform_int_distribution<uint8> weightDist(1, 50);
-  weights[threadId] = weightDist(random);
-}
-
-std::pair<systematic::Thread* const, systematic::Action*>
-SwarmScheduler::PickNextRandom(State *state) {
-  auto enabled = state->enabled();
-
-  // get the enabled threads and their weights
-  std::list<uint8> e_ws;
-  for(auto it = enabled->begin(); it != enabled->end(); it++) {
-    e_ws.push_back(weights[it->first->uid()]);
-  }
-
-  // pick an enabled thread by a weighted random choice
-  auto it = enabled->begin();
-  std::discrete_distribution<int> dist(e_ws.begin(), e_ws.end());
-  std::advance(it, dist(random));
-  return *it;
-}
-\end{cminted}
-\caption{The core of the C++ swarm scheduling algorithm, implemented in Maple.}\label{lst:swarm}
-\end{listing}
-
 We conducted our experiments using an Ubuntu 12.04 virtual machine,
 and a modified version of Maple based on the last commit from
 2012\footnote{The same environment as~\cite{thomson2016}, available at
@@ -460,13 +403,14 @@ execution, which can be difficult to estimate.
 \paragraph{Randomised stride}
 Another algorithm with a similar motivation is the randomised stride
 algorithm\cite{abdelrasoul2017}, which outperforms PCT (and so our
-Swarm algorithm).  This is a recent algorithm which did not exist when
-we began this work.  Like PCT, randomised stride derives its power
-from knowledge of the underlying program: in this case, an estimate of
-the length of each thread.  Although Swarm performs worse than
-randomised stride, we believe it still has a place in the concurrency
-testing arsenal as an effective algorithm which does not require first
-estimating or measuring some parameter of the program under test.
+Swarm algorithm).  This is a recent algorithm which was not yet
+published when we began this work.  Like PCT, randomised stride
+derives its power from knowledge of the underlying program: in this
+case, an estimate of the length of each thread.  Although Swarm
+performs worse than randomised stride, we believe it still has a place
+in the concurrency testing arsenal as an effective algorithm which
+does not require first estimating or measuring some parameter of the
+program under test.
 
 \paragraph{Why is weight reuse bad?}
 \Cref{fig:bugs-swarmx} shows that re-using weights between executions

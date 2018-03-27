@@ -1134,7 +1134,6 @@ performance problem.  In addition, discovering preconditions would
 make CoCo able to find properties beyond its current
 reach\cite{braquehais2017}.
 
-\vfill\pagebreak
 \section{Summary}
 
 In this chapter we presented CoCo, our tool for automatically
@@ -1142,7 +1141,7 @@ discovering properties of functions operating on shared mutable state:
 
 \begin{itemize}
 \item The properties we discover are equivalences and refinements
-  between the observable effects of terms, in the presence of
+  between the \emph{observable effects} of terms, in the presence of
   concurrent interference~\sref{coco-concerns}.
 
 \item We use an approach similar to QuickSpec\cite{smallbone2017} and
@@ -1160,10 +1159,12 @@ discovering properties of functions operating on shared mutable state:
 
 \item CoCo is most suited to discovering properties about concurrent
   data structures.  We have demonstrated CoCo with three such
-  examples: \verb|MVar| operations, concurrent stacks, and semaphores.
-  The semaphore example revealed some surprising details about
-  negative numbers, reinforcing our belief that automatically
-  discovered properties aid program understanding~\sref{coco-cases}.
+  examples: \verb|MVar| operations~\sref{coco-example}, concurrent
+  stacks~\sref{coco-cases-stack}, and
+  semaphores~\sref{coco-cases-semaphore}.  The semaphore example
+  revealed some surprising details about negative numbers, reinforcing
+  our belief that automatically discovered properties aid program
+  understanding.
 
 \item We provide an integration between \dejafu{} and CoCo, so users
   can take the properties which CoCo discovers and ensure that such
@@ -1175,8 +1176,7 @@ popular in the Haskell community.  However, these tools work best with
 pure functions, and only provide limited support for testing effects.
 Although CoCo is a little rough around the edges, and can be a little
 confusing to use and interpret, we are helping to extend the reach of
-property-testing.  One day, testing concurrent data structures should
-be as simple as testing pure ones.
+property-testing.
 
 \paragraph{Context}
 CoCo does not stand alone, it is related to our other contributions:

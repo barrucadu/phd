@@ -675,30 +675,37 @@ We express our concurrency semantics as transition rules for a context
 tuple $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle$:
 
 \begin{itemize}
-\item \verb|C|, the number of capabilities.
-\item \verb|B|, the relaxed-memory buffer state.
-\item \verb|H|, the heap, a heterogeneous map from identifiers to
-  values.
-\item \verb|T|, a mapping from thread identifiers to threads.
+\item \verb|C| is the number of capabilities.
+\item \verb|B| is the relaxed-memory buffer state.
+\item \verb|H| is the heap, a heterogeneous map from identifiers to
+  Haskell values.
+\item \verb|T| is a mapping from thread identifiers to threads.
 \end{itemize}
 
-We express threads as a record type containing:
+We express threads as records supporting both access and update.  For
+a thread \verb|t|:
 
 \begin{itemize}
-\item \verb|K|, the current continuation.
-\item \verb|I|, the set of identifiers the thread is blocked on.
-\item \verb|E|, the exception handler stack.
-\item \verb|M|, the exception masking state.
+\item \verb|t.K| is its current continuation.
+\item \verb|t.I| is the set of identifiers it is blocked on.
+\item \verb|t.E| is its exception handler stack.
+\item \verb|t.M| is its exception masking state.
 \end{itemize}
 
 We write $\texttt{H}_{[\texttt{id} \mapsto \texttt{v}]}$ to denote a
-new heap which maps \texttt{id} to the value \texttt{v}, and
+new heap which maps \texttt{id} to the Haskell value \texttt{v}, and
 $\texttt{T}_{[\texttt{id}.\texttt{K} \mapsto \texttt{c}]}$ to denote a
 new thread map where the continuation of thread \texttt{id} is now
-\texttt{c}, and similarly for other fields.  There are two global
-values which are in scope for every rule: (1)~\verb|memtype|, the
-memory model for relaxed memory operations; and (2)~\verb|tid|, the
-identifier of the currently executing thread.
+\texttt{c}, and similarly for other fields.
+
+There are two global bindings which are in scope for every rule:
+(1)~\verb|memtype|, the memory model for relaxed memory operations,
+which is \verb|SequentialConsistency|, \verb|TotalStoreOrder|, or
+\verb|PartialStoreOrder|; and (2)~\verb|tid|, the identifier of the
+currently executing thread.
+
+For some rules we include side-conditions or local definitions.  We
+use Haskell syntax for these.
 
 \paragraph{Simplifications and omissions}
 The semantic rules we present are for the small-step behaviour.  They
@@ -814,9 +821,7 @@ blocked on any of the given identifiers.
 operations.  The \verb|raise| function pops from a thread's exception
 handler stack until it finds a handler for the given exception.  The
 \verb|interruptible| function checks if the given thread can be
-interrupted with an exception.  We use
-$\texttt{T}_{[\ldots]~[\ldots]~\ldots}$ as a shorthand for applying
-multiple updates to the thread map.
+interrupted with an exception.
 
 The \verb|AThrowTo| action can cause a thread to block, but there are
 no rules here which would unblock the thread: this is handled in the
@@ -953,7 +958,7 @@ $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\tex
 \begin{tabular}{r@{\hspace{0.5em}}l}
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small AThrow e}}$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \varnothing]~[\texttt{tid}.\texttt{E} \mapsto \texttt{hs}]~[\texttt{tid}.\texttt{K} \mapsto \texttt{h e}]}\rangle$ \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \varnothing;~\texttt{tid}.\texttt{E} \mapsto \texttt{hs};~\texttt{tid}.\texttt{K} \mapsto \texttt{h e}]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{h:hs}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
@@ -963,13 +968,13 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \v
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small AThrowTo id e c}}$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{id}.\texttt{I} \mapsto \varnothing]~[\texttt{id}.\texttt{E} \mapsto \texttt{hs}]~[\texttt{id}.\texttt{K} \mapsto \texttt{h e}]}\rangle$} \\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{id}.\texttt{I} \mapsto \varnothing;~\texttt{id}.\texttt{E} \mapsto \texttt{hs};~\texttt{id}.\texttt{K} \mapsto \texttt{h e}]}\rangle$} \\
 \multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
 \multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{h:hs}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small AThrowTo id e c}}$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{id} \mapsto \varnothing]}\rangle$ \\
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{id} \mapsto \varnothing]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
 \multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{[]}$}\\
 & \\
@@ -980,24 +985,24 @@ $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\tex
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small ACatching i inner c}}$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{inner (APopCatching . c)}]~[\texttt{tid}.\texttt{I} \mapsto \texttt{h:hs}]\rangle}$} \\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{inner (APopCatching . c)};~\texttt{tid}.\texttt{I} \mapsto \texttt{h:hs}]\rangle}$} \\
 \multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{hs}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small APopCatching c}}$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{tid}.\texttt{I} \mapsto \texttt{hs}]\rangle}$ \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{tid}.\texttt{I} \mapsto \texttt{hs}]\rangle}$ \\
 \multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{\_:hs}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small AMasking m act c}}$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{act umask (AResetMask m0 . c)}]~[\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$} \\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{act umask (AResetMask m0 . c)};~\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$} \\
 \multicolumn{2}{l}{where $\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset m0 >> mb >> \textbackslash b -> reset m >> pure b}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small AResetMask m c}}$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]~[\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$
 \end{tabular}
 \caption{Transition semantics of exception actions.}\label{fig:sem_exc}
 \end{figure}
@@ -2544,7 +2549,7 @@ profiles of a simple test of \verb|MVar| contention.
     \includegraphics[width=\textwidth]{fig/discard.png}
     \caption{Discarding all traces, just keeping results.}
   \end{subfigure}
-  \caption[Heap profiles of a test case for \texttt{MVar} contention.]{Heap profiles of a test case for \texttt{MVar} contention.  These plots are intended to be viewed with colour.}\label{fig:discard}
+  \caption[Heap profiles of a test case for \texttt{MVar} contention.]{Heap profiles of a test case for \texttt{MVar} contention.  Note the dramatic difference: 250M without discarding vs 60k with.  These plots are intended to be viewed with colour.}\label{fig:discard}
 \end{figure}
 
 Tweag I/O\footnote{\url{http://www.tweag.io/}}, a research and

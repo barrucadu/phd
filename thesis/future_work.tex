@@ -43,10 +43,8 @@ thread are determined solely by the prior actions of the same thread
 and shared variables it has read.  Haskell breaks local determinism
 with asynchronous exceptions, where one thread can kill another.
 
-MCR is described in terms of a core concurrent language of locks and
-shared variables, which is much simpler than Haskell.  It may be
-possible to implement a Haskell-MCR by translating Haskell execution
-traces into a simpler form suitable for MCR\@.  For example,
+It may be possible to implement a Haskell-MCR by translating Haskell
+execution traces into a simpler form suitable for MCR\@.  For example,
 asynchronous exceptions can be modelled by giving each thread an
 exception variable: throwing an exception to a thread writes to its
 exception variable, and the thread checks its exception variable
@@ -115,54 +113,28 @@ some cases to use something like term rewriting to prune properties.
 Testing a concurrent program goes something like this: (1)~write a
 small concurrent program; (2)~run it lots of times with your
 concurrency testing tool, recording the results of each execution;
-(3)~look at the collection of results.
+(3)~look at the collection of results.  This approach is rather
+different to how we test sequential programs.
 
-This approach is rather different to how we test sequential programs.
 Test cases for sequential programs are generally written in a
 three-part ``given, when, then'' style\cite{fowler2013}.  The
 ``given'' sets up the system under test, the ``when'' exercises it in
 some way, and the ``then'' decides if the test passes or fails.  But
 in a test case for a concurrent program, we may never reach the
 ``then''.  If a test case has some concurrency failure, such as
-deadlock, while executing the ``when'', we do not see the full
-picture.  Did the program only deadlock, or did it also corrupt its
-state?  There is a fundamental difference between normal program
-errors and concurrency errors.
+deadlock, we do not see the full picture.  Did the program only
+deadlock, or did it also corrupt its state?  There is a fundamental
+difference between normal program errors and concurrency errors.
 
-\begin{listing}
-\centering
-\begin{cminted}{haskell}
-test :: TestCase
-test = do
-    -- the "given", which sets up some initial state and threads
-    var <- newEmptyMVar
-    fork (putMVar var True)
-
-    -- the "when", which exercises the system under test
-    result <- test {- do something with 'var' -}
-
-    -- the "then", which determines if the test passes or fails
-    value <- tryReadMVar var
-    case result of
-      Left Deadlock -> failure "should not deadlock"
-      Right r
-        | r == value -> pass
-        | otherwise -> failure "should return the same value as the MVar"
-\end{cminted}
-\caption{The ``given, when, then'' style of testing applied to concurrency.}\label{lst:3part}
-\end{listing}
-
-One day, testing concurrent programs will be \emph{nearly} simple as
-testing sequential programs.  \dejafu{} may not reach this point, if
-it did it may look something like \Cref{lst:3part}.  Even if the
-``when'' component enters a failure state, the ``then'' component is
-still executed, and may perform concurrency operations like reading
-from an \verb|MVar|.  When a failure is reported, a \emph{simplified}
-description of the execution of the ``when'' component, containing
-just the key details, will be given to the user.  Maybe this is not a
-complete trace: the \textsc{Concurrit}\cite{elmas2013} tool offers an
-alternative approach, where executions are represented by a small
-collection of scheduling constraints.
+Things do not need to be this way.  By controlling the concurrency, a
+testing tool can ensure that even if the ``when'' component enters a
+failure state, the ``then'' component is still executed.  When a
+failure is reported, a \emph{simplified} description of the execution
+of the ``when'' component, containing just the key details, can be
+given to the user.  Maybe this is not a complete trace: the
+\textsc{Concurrit}\cite{elmas2013} tool offers an alternative
+approach, where executions are represented by a small collection of
+scheduling constraints.
 
 However, testing concurrent programs will always remain a little more
 difficult than testing sequential programs.  Concurrency bugs are

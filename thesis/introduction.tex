@@ -87,20 +87,26 @@ programs.
 The primary goal of this thesis is to demonstrate that concurrency
 testing techniques, typically described in the context of a simple
 core language, can be successfully applied to languages with rich
-concurrency abstractions.  This demonstration is in the form of a
-library for testing Concurrent Haskell programs.
+concurrency abstractions.  This demonstration is in the form of
+libraries and tools for testing Concurrent Haskell programs, with an
+evaluation of their effectiveness with example applications.
 
 Our contributions are:
 
 \begin{itemize}
 \item A library for effectively testing Concurrent Haskell programs,
-  in \Cref{chp:dejafu};
-\item An operational semantics for Concurrent Haskell programs, in
-  \Cref{chp:dejafu};
-\item A new scheduling algorithm for randomised testing, in
-  \Cref{chp:algorithms};
-\item A tool for discovering properties of concurrent Haskell
-  functions, in \Cref{chp:coco}.
+  in \Cref{chp:dejafu}.  We demonstrate its effectiveness with case
+  studies of three concurrency-using Haskell libraries.
+\item An operational semantics for Concurrent Haskell, in
+  \Cref{chp:dejafu}.
+\item A new scheduling algorithm for randomised testing to allow
+  testing programs where complete testing does not scale, in
+  \Cref{chp:algorithms}.  We evaluate its bug-finding ability on a
+  standard set of benchmarks.
+\item A tool for discovering properties of Haskell functions operating
+  on shared mutable state in the presence of concurrent interference,
+  in \Cref{chp:coco}.  We give case studies of three concurrent data
+  structures.
 \end{itemize}
 
 \section{Chapter Preview}
@@ -128,3 +134,24 @@ studies, and shows how it connects to \dejafu{}.
 \paragraph{\Cref{part:end}}
 We present our overall conclusions in \Cref{chp:conclusions} and
 suggest possible future work in \Cref{chp:future_work}.
+
+\paragraph{Source availability}
+The \dejafu{} and CoCo tools we develp in \Cref{part:testing} are
+available on GitHub:
+
+\begin{itemize}
+\item \url{https://github.com/barrucadu/dejafu}
+\item \url{https://github.com/barrucadu/coco}
+\end{itemize}
+
+% [layout hack]: there's so little on this page the indent looks
+% really weird
+\noindent
+\dejafu{} and its related libraries are also available on Hackage:
+
+\begin{itemize}
+\item \url{https://hackage.haskell.org/package/concurrency}
+\item \url{https://hackage.haskell.org/package/dejafu}
+\item \url{https://hackage.haskell.org/package/hunit-dejafu}
+\item \url{https://hackage.haskell.org/package/tasty-dejafu}
+\end{itemize}

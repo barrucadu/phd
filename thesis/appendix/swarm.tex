@@ -1,0 +1,90 @@
+\begin{listing}
+\centering
+\begin{cminted}{c++}
+void SwarmScheduler::Explore(State *init_state) {
+  State *state = init_state;
+  unsigned int steps = 0;
+
+  while (!state->IsTerminal()) {
+    AssignWeightsToNewThreads(state);
+
+    auto it = PickNextRandom(state);
+    for(unsigned int cpoint : changePoints) {
+      if(steps == cpoint) {
+        AssignWeightTo(it.first->uid());
+      }
+    }
+
+    state = Execute(state, it.second);
+    steps++;
+  }
+}
+
+void SwarmScheduler::AssignWeightsToNewThreads(State *state) {
+  auto enabled = state->enabled();
+  for(auto it = enabled->begin(); it != enabled->end(); it++) {
+    auto threadId = it->first->uid();
+    if(weights.find(threadId) == weights.end()) {
+      AssignWeightTo(threadId);
+    }
+  }
+}
+
+void SwarmScheduler::AssignWeightTo(uint32 threadId) {
+  std::uniform_int_distribution<uint8> weightDist(1, 50);
+  weights[threadId] = weightDist(random);
+}
+
+std::pair<systematic::Thread* const, systematic::Action*>
+SwarmScheduler::PickNextRandom(State *state) {
+  auto enabled = state->enabled();
+
+  // get the enabled threads and their weights
+  std::list<uint8> e_ws;
+  for(auto it = enabled->begin(); it != enabled->end(); it++) {
+    e_ws.push_back(weights[it->first->uid()]);
+  }
+
+  // pick an enabled thread by a weighted random choice
+  auto it = enabled->begin();
+  std::discrete_distribution<int> dist(e_ws.begin(), e_ws.end());
+  std::advance(it, dist(random));
+  return *it;
+}
+\end{cminted}
+\caption{The core of the C++ swarm scheduling algorithm, implemented in Maple.}\label{lst:swarm}
+\end{listing}
+
+\Cref{lst:swarm} shows the core of the swarm scheduling algorithm from
+\Cref{chp:algorithms}, as implemented in C++ in Maple.  There are four
+methods:
+
+\begin{itemize}
+\item \verb|Explore| is called by Maple, and is what drives the
+  execution of the program.  It picks a thread to run and calls
+  \verb|Execute|, which causes Maple to advance that thread to the
+  next scheduling point.
+
+\item \verb|AssignWeightsToNewThreads| is called by \verb|Explore|.
+  It checks that every enabled thread has a weight in the
+  \verb|weights| map, assigning a weight if not.  We only consider
+  enabled threads, so if a thread is blocked when it is created and
+  never becomes enabled, it will never receive a weight.
+
+\item \verb|AssignWeightTo| is called by
+  \verb|AssignWeightsToNewThreads| for each new thread, and by
+  \verb|Explore| when a weight change point is encountered.  It
+  assigns a new weight in the range $[w_{min}, w_{max}]$, which we
+  have hard-coded here to be 1 and 50, respectively.
+
+\item \verb|PickNextRandom| is called by \verb|Explore|, and is what
+  chooses the thread.  It produces a list of the weights of all
+  enabled threads, and uses that list as a discrete distribution.  As
+  this method is called after \verb|AssignWeightsToNewThreads|, every
+  enabled thread will have a weight.
+\end{itemize}
+
+We do not include the weight re-use code here, as it is just
+straightforward persistence of the \verb|weights| map and number of
+executions to a file.  We do not change Maple beyond the addition of
+swarm scheduling.
