@@ -828,9 +828,9 @@ no rules here which would unblock the thread: this is handled in the
 scheduler loop.  Many of the rules affect whether a thread can receive
 an asynchronous exception, so we handle it in one place.
 
-The \verb|AMasking| action is similar to \verb|AFork|: it runs a
-computation after passing an argument to change the masking state.
-Only, \verb|AMasking| runs the action in the current thread.
+The \verb|AMasking| action is similar to \verb|AFork|: it runs an
+action after passing an argument to change the masking state.  Only,
+\verb|AMasking| runs the action in the current thread.
 
 \begin{figure}
 \centering
@@ -872,12 +872,14 @@ $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \m
 & \\
 \multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small ACasCRef id (Ticket id n \_) a c}}$}\\
-\multicolumn{2}{l}{if $\texttt{n} = \texttt{n0}$ \hfill $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (True, Ticket id (n+1) a)}]}\rangle$}\\
+\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (True, Ticket id (n+1) a)}]}\rangle$}\\
+\multicolumn{2}{l}{if $\texttt{n} = \texttt{n0}$}\\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, \_)}$}\\
 & \\
 \multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small ACasCRef id (Ticket id n \_) \_ c}}$}\\
-\multicolumn{2}{l}{if $\texttt{n} \neq \texttt{n0}$ \hfill $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (False, Ticket id n0 a0)}]}\rangle$}\\
+\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (False, Ticket id n0 a0)}]}\rangle$}\\
+\multicolumn{2}{l}{if $\texttt{n} \neq \texttt{n0}$}\\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, a0)}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
@@ -939,7 +941,8 @@ $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small ATryTakeMVar id c}}$& \\
-\multicolumn{2}{r}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$ \hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Just x)}]} \Uparrow \{\texttt{id}\}\rangle$}\\
+\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Just x)}]} \Uparrow \{\texttt{id}\}\rangle$}\\
+\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
 \xrightarrow{\texttt{\small ATryTakeMVar id c}}$&
