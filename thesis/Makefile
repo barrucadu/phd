@@ -17,7 +17,7 @@ lint:
 	proselint *.tex
 
 wc:
-	texcount -inc main.tex | grep "Words in text" | tail -n1
+	texcount -inc thesis.tex | grep "Words in text" | tail -n1
 
 %.pdf: %.tex $(TEXFILES) $(BIBFILES) $(GENFILES)
 	latexmk -pdfxe -latexoption=--shell-escape $<
