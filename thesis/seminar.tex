@@ -37,11 +37,10 @@
 }
 \makeatother
 
-\newcommand{\sectiontext}[2]{
-   \setbeamertemplate{section page}[mytheme][#2]
-   \section{#1}
-   \setbeamertemplate{section page}[mytheme]
-}
+\newcommand{\sectiontext}[2]{%
+\setbeamertemplate{section page}[mytheme][#2]%
+\section{#1}%
+\setbeamertemplate{section page}[mytheme]}
 
 \usepackage{algorithmicx}
 \usepackage[noend]{algpseudocode}
