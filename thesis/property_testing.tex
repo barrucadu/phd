@@ -6,12 +6,11 @@ display a counterexample if they do not.  The popularity of property
 testing stems from the difficulty of writing good tests.  In this
 chapter we give an overview of using property testing tools.  We build
 on this background in \Cref{chp:coco}, where we discuss a tool to
-\emph{generate} such properties for concurrency functions operating
-over shared state.  We first give a general introduction to specifying
-and using properties as tests~\sref{property_testing-intro}, then
-discuss specific tools~\sref{property_testing-tools}.  Finally, we
-summarise tools for \emph{discovering}
-properties~\sref{property_testing-gen}.
+\emph{generate} properties for concurrency functions operating over
+shared state.  We first give a general introduction to specifying and
+using properties as tests~\sref{property_testing-intro}, then discuss
+specific tools~\sref{property_testing-tools}.  Finally, we summarise
+tools for generating properties~\sref{property_testing-gen}.
 
 \section{Properties as Tests}
 \label{sec:property_testing-intro}
@@ -51,8 +50,10 @@ prop_ord_insert2 x    = forAll orderedList (\xs -> ordered (insert x xs))
 \end{listing}
 
 While implication is a useful technique, it can skew the input
-distribution.  For example, the empty list and lists of length one are
-ordered, but only 50\% of lists of length two are.  An alternative
+distribution.  For example, in a property which uses implication to
+restrict the inputs to sorted lists, a na\"ive implementation would
+test more singleton lists than two-element lists: all singleton lists
+are ordered, but only 50\% of two-element lists are.  An alternative
 approach is to use a custom value generator.  By only generating input
 values which satisfy the precondition, we can avoid skewing the
 distribution, and improve our confidence that the property does hold
@@ -60,20 +61,20 @@ in general.  \Cref{lst:prop_ord_insert} shows the implication and
 generator function approaches.
 
 In the absence of a programmer-supplied generator function, input
-values are generated in a type-directed process.  A tool will provide
-a typeclass, typically called something like \verb|Arbitrary| or
+values are generated in a type-directed process.  A tool will usually
+provide a typeclass, called something like \verb|Arbitrary| or
 \verb|Enumerable| or \verb|Listable|, which has functions to generate
 values.  This typeclass will typically have instances for most common
 types, but if a programmer wishes to have input values of other types,
 they will need to supply a suitable instance.
 
-\section{Property Testing Tools}
+\section{Property-based Testing Tools}
 \label{sec:property_testing-tools}
 
 Property-based testing tools mainly differ along two axes: the
 expressiveness of the property DSL, and the strategy for generating
 input values.  \Cref{tbl:proptools} summarises the differences between
-several tools for Haskell.
+five different tools for Haskell.
 
 \begingroup
 \newcommand{\YY}{\CIRCLE}
@@ -125,13 +126,12 @@ a local minimum.
 
 \paragraph{Property DSL}
 A more expressive property language complicates implementation, but
-allows the programmer to say more about their tests.  Two important
-types of property are \emph{existential} properties and
-\emph{higher-order} properties.
+allows the programmer to say more.  Two important types of property
+are \emph{existential} properties and \emph{higher-order} properties.
 
 Existential properties, such as in \Cref{lst:prop_gt_5}, allow the
 programmer to assert that some input exists for which the property
-holds.  Existential properties are apparently incompatible with a
+holds.  Existential properties are seemingly incompatible with a
 randomised tool, such as QuickCheck, because a random test value is
 unlikely to be a witness for a specific existential property.
 Existential properties are more commonly supported by enumerative
@@ -146,10 +146,10 @@ prop_gt_5 = exists (\x -> x > 5)
 \end{listing}
 
 Higher-order properties, such as in \Cref{lst:prop_map_fuse}, are
-properties where some of the inputs are, themselves, functions.  To
-test such a property requires the tool to be able to generate
-functions.  Higher-order properties are invaluable in the testing of
-higher-order functions.
+properties where some of the inputs are functions.  To test such a
+property requires the tool to be able to generate functions.
+Higher-order properties are invaluable in the testing of higher-order
+functions.
 
 \begin{listing}
 \centering
@@ -202,13 +202,13 @@ x:x:_
 \paragraph{Beyond Haskell}
 Although this is a thesis using Haskell, a language particularly
 suited for property-based testing, the interest in property-based
-testing is wider than that.
+testing has spread to other languages.
 
 \begin{itemize}
 \item QuviQ provide a commercial version of QuickCheck for
   Erlang\cite{arts2006}.
 \item The popular JUnit library for Java provides built-in support for
-  parameterised tests\cite{parameterized_tests}, whereas the
+  parameterised tests\cite{parameterized_tests}, and the
   junit-quickcheck\cite{junit_quickcheck} library provides a more
   traditional property testing experience.
 \item The Go standard library provides a
@@ -229,13 +229,13 @@ difficulties of traditional unit testing techniques.
 \section{Searching for Properties}
 \label{sec:property_testing-gen}
 
-As we have seen, properties can be used as expressive and declarative
-test cases.  However, coming up with properties can be difficult.  To
-help the programmer, tools exist to discover properties.  These tools
-are based on testing or examples, and so any properties found are
-merely conjectures supported by a finite amount of evidence.  Despite
-that, such properties are surprisingly accurate in practice, and often
-lead to a deeper understanding of the program under test.
+Properties can be used as expressive and declarative test cases.
+However, coming up with properties can be difficult.  To help the
+programmer, tools exist to discover properties.  These tools are based
+on testing of examples, and so any properties found are merely
+conjectures supported by a finite amount of evidence.  Despite that,
+such properties are surprisingly accurate in practice, and often lead
+to a deeper understanding of the program under test.
 
 \paragraph{Testing}
 QuickSpec\cite{claessen2010,smallbone2017} and
@@ -245,9 +245,9 @@ based on generating and testing candidate expressions.  Speculate,
 unlike QuickSpec, can discover inequalities and conditional equations.
 Neither supports functions with effects or generating lambda-terms.
 
-When provided with the integers \verb|0| and \verb|1| and the
-functions \verb|id|, \verb|abs|, and \verb|+|, Speculate prints the
-properties in \Cref{lst:arith_props}.  QuickSpec discovers similar
+\Cref{lst:arith_props} shows the properties Speculate finds when
+provided with the integers \verb|0| and \verb|1| and the functions
+\verb|id|, \verb|abs|, and \verb|+|.  QuickSpec discovers similar
 properties to \Cref{lst:arith_props0}, but not the inequalities and
 conditional equations in \Cref{lst:arith_props1}.
 
@@ -314,10 +314,10 @@ may include: pre- and post-conditions of statements, and equational
 relationships between variables at a given program point and functions
 from a library.  Daikon does not synthesise and test program terms,
 however.  Daikon is provided with a grammar describing patterns of
-invariants, and reports which are observed to hold as the program
-executes.  Properties found by Daikon correspond to assertions which
-could be inserted into the program, whereas the other tools described
-here discover properties based on the program API.
+invariants, and reports which of these are observed to hold as the
+program executes.  Properties found by Daikon correspond to assertions
+which could be inserted into the program, whereas the other tools
+described here discover properties based on the program API.
 
 \paragraph{Concurrency testing}
 A variant of the Daikon tool discovers likely invariants of concurrent
@@ -397,19 +397,19 @@ Going forward, the reader should keep in mind:
 
 \begin{itemize}
 \item Property-based testing, also called parameterised unit testing,
-  is a style of testing which uses universally quantified boolean
-  predicates as test cases~\sref{property_testing-intro}.
+  is a style of testing which uses universally quantified predicates
+  as test cases~\sref{property_testing-intro}.
 
 \item There are two approaches to generating parameter values for
   properties: random, and enumerative.  Random value generation
   requires an additional shrinking step, to reduce counterexamples to
-  a local minima, whereas enumerative approaches will always discover
+  a local minimum, whereas enumerative approaches will always discover
   the smallest counterexample~\sref{property_testing-tools}.
 
 \item The programmer does not necessarily need to come up with
-  properties themselves.  Property discovery tools take a a program
-  API and search for properties.  These generated properties can be
-  used to further program understanding~\sref{property_testing-gen}.
+  properties themselves.  Property discovery tools take a program API
+  and search for properties.  These generated properties can be used
+  to further program understanding~\sref{property_testing-gen}.
 \end{itemize}
 
 We briefly revisit property-based testing in \Cref{chp:dejafu} in a

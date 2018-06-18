@@ -12,15 +12,15 @@ Finally, we present conclusions and evaluate the
 approach~\sref{coco-conclusions}.
 
 This chapter is derived from our previous work \cite{tfp-coco} and
-\cite{flops-coco}.
+\cite{walker2018}.
 
 \section{Key Concerns of Observing Concurrent Programs}
 \label{sec:coco-concerns}
 
 In implementing a tool to discover properties of \emph{concurrent}
 programs, we have some concerns which are not applicable to sequential
-programs.  Firstly, concurrent programs are nondeterministic; so if we
-simply compared results of single executions, the discovered
+programs.  Firstly, concurrent programs may be nondeterministic; so if
+we simply compared results of single executions, the discovered
 properties may not hold in the general case.  Secondly, mutable state
 is subject to interference from other threads; so if we do not
 consider concurrent interference, the discovered properties may not
@@ -115,7 +115,7 @@ sig = Sig
   , backToSeed = \v _ -> tryReadMVar v
   }
 \end{cminted}
-\caption{CoCo signature for \texttt{MVar}s holding \texttt{Int}s.}\label{lst:mvar}
+\caption{A CoCo signature for \texttt{MVar}s holding \texttt{Int}s.}\label{lst:mvar}
 \end{listing}
 
 \paragraph{Signatures}
@@ -148,7 +148,7 @@ execution conditions.
 the signatures in \Cref{lst:mvar}.  In this output, \verb|@| is the
 state argument, which is the \verb|MVar|.  For convenience of
 reference, we have added numbers to the CoCo properties.  These
-numbers are not included in the normal output of the tool.
+numbers are not part of the normal output of the tool.
 
 \begin{listing}
 \centering
@@ -158,15 +158,15 @@ numbers are not included in the normal output of the tool.
 (3)   takeMVar @  ===  readMVar @ >> takeMVar @
 (4)  putMVar @ x  ===  putMVar @ x >> readMVar @
 \end{cminted}
-\caption{CoCo-discovered properties about \texttt{MVar}s.}\label{lst:mvar_props1}
+\caption{Some properties CoCo discovers about \texttt{MVar}s.}\label{lst:mvar_props1}
 \end{listing}
 
 Property (1) shows that \verb|readMVar| is idempotent; (2) shows that
 it is not merely a take followed by a put, it is rather a distinct
 operation; (3) and (4) show that it does not modify the \verb|MVar|,
-and that it does not block when the \verb|MVar| is full.  Property (4)
-may appear to be type-incorrect, but remember that CoCo does not
-consider equality of term results, only the effects.
+and that it does not block when the \verb|MVar| is full.  Properties
+(2) and (4) may appear to be type-incorrect, but remember that CoCo
+does not consider equality of term results, only the effects.
 
 \begin{table}[t]
 \centering
@@ -205,14 +205,14 @@ reported if each side includes at least one non-background expression.
       readMVar @  ->-  takeMVar @ >>= \x -> tryPutMVar @ x
      putMVar @ x  ===  putMVar @ x >> tryPutMVar @ x1
 \end{cminted}
-\caption{Additional CoCo-discovered properties about \texttt{MVar}s.}\label{lst:mvar_props2}
+\caption{Some more properties CoCo discovers about \texttt{MVar}s.}\label{lst:mvar_props2}
 \end{listing}
 
 If we include \verb|tryPutMVar|, a non-blocking version of
 \verb|putMVar|, as a background expression, CoCo discovers the
 additional properties in \Cref{lst:mvar_props2}.  Property (5) shows
 how important the choice of interference function is.  The left and
-right terms are not equivalent.  If the interference were to empty a
+right terms are not equivalent: if the interference were to empty a
 full \verb|MVar| then the right term could restore its original value.
 As our choice of interference function only produces, rather than
 consumes, it will never alter the value in a full \verb|MVar|.
@@ -256,9 +256,9 @@ like \verb|push @ x >> push @ y|, we will instead generate the
 expression \verb|push @ ? >> push @ ?| where each \verb|?| is a
 \emph{hole} for a variable.  These expressions-with-holes are called
 \emph{schemas}.  One schema can be instantiated into many \emph{terms}
-by assigning variable names to groups of holes.  The push-push schema
-has two semantically distinct term instances: the single-variable and
-the two-variable cases.
+by assigning variable names to groups of holes.  The
+\verb|push|-\verb|push| schema has two semantically distinct term
+instances: the single-variable and the two-variable cases.
 
 \begin{listing}
 \centering
@@ -328,8 +328,8 @@ For example, the generation of the schema
 \end{enumerate}
 
 To avoid name clashes, bound variables use de Bruijn
-indices\cite{debruijn1972}.  Names are only assigned when expressions
-are displayed to the user.
+indices\cite{debruijn1972}.  Names are only introduced when
+expressions are displayed to the user.
 
 \subsection{Evaluating Most General Terms}
 \label{sec:coco-hiw-eval}
@@ -482,13 +482,13 @@ ones.  We only keep the most general.
 \label{sec:coco-hiw-algo}
 
 The CoCo algorithm is much like that of any other property-discovery
-tool for the most part.  As we have seen, the key difference is that
-we compare sets of behaviours, rather than equality of results.  We
-have some additional complication as we evaluate terms independently,
-and so need to project pairs of terms into a common namespace before
-we can compare them, but this is not an inherent aspect of CoCo: one
-could implement a CoCo which does not cache term results like we do,
-it would just be slow.
+tool for the most part.  The key difference is that we compare sets of
+behaviours, rather than equality of results.  We have some additional
+complication as we evaluate terms independently, and so need to
+project pairs of terms into a common namespace before we can compare
+them, but this is not an inherent aspect of CoCo: one could implement
+a CoCo which does not cache term results like we do, it would just be
+slow.
 
 In outline, the CoCo algorithm is:
 
@@ -624,7 +624,7 @@ terms, and (2) mapping holes to single variables.
 \label{sec:coco-cases}
 
 We discuss the process and results of applying CoCo to two concurrent
-data structures: mutable stacks, and semaphores.  We chose these as
+data structures: mutable stacks and semaphores.  We chose these as
 they are common primitives used in the implementation of concurrent
 algorithms.
 
@@ -650,9 +650,9 @@ peek (LockStack v) = fmap listToMaybe (readMVar v)
 
 \paragraph{Lock-based stacks}
 Mutable stacks are commonly used for synchronisation amongst multiple
-threads, for example see \cite{dodds2015}.  A simple mutable stack is
-just an immutable list inside an \verb|MVar| shared variable, as in
-\Cref{lst:lockstack}.
+threads, for example see \cite{dodds2015}. \Cref{lst:lockstack} shows
+a simple mutable stack is just an immutable list inside an \verb|MVar|
+shared variable.
 
 \begin{listing}
 \centering
@@ -661,14 +661,14 @@ just an immutable list inside an \verb|MVar| shared variable, as in
 (7)  peek @  ->-  (push x @) ||| (pop @)
 (8)  peek @  ->-  pop @ >>= \m -> whenJust push @ m
 \end{cminted}
-\caption{CoCo-discovered properties about the \texttt{MVar} stack.}\label{lst:lockstack2}
+\caption{Some properties CoCo discovers about the \texttt{MVar} stack.}\label{lst:lockstack2}
 \end{listing}
 
-With this signature, CoCo discovers the properties in
-\Cref{lst:lockstack2}, where the initialisation function constructs a
-stack from a list, the observation function converts it back to a
-list, and the interference function sets the contents of the stack to
-a given list.  Here \verb|whenJust| is defined as
+\Cref{lst:lockstack2} shows the properties that CoCo discovers with
+our definitions, where the initialisation function constructs a stack
+from a list, the observation function converts it back to a list, and
+the interference function sets the contents of the stack to a given
+list.  Here \verb|whenJust| is defined as
 \verb|\f s -> maybe (pure ()) (`f` s)| and \verb#|||# is concurrent
 composition.  Property (6) may seem surprising: the left term returns
 the top of stack whereas the right term returns the value pushed.
@@ -831,21 +831,21 @@ sig = Sig
   , backToSeed = \q _ -> remaining q
   }
 \end{cminted}
-\caption{CoCo signature for the \texttt{QSemN} type.}
+\caption{A CoCo signature for the \texttt{QSemN} type.}
 \label{lst:sig}
 \end{listing}
 
 \Cref{lst:sig} shows the signature we provide to CoCo.  CoCo supports
 polymorphic function types, as can be seen in the type of \verb#|||#,
-where \verb|A| and \verb|B| are types we use as type \emph{variables}.
+where \verb|A| and \verb|B| are types we use as \emph{type variables}.
 The \verb|commLit| function indicates that the supplied binary
 function is \emph{commutative}, which is used to prune the generated
 schemas further.  The \verb|new|, \verb|wait|, \verb|signal|, and
 \verb|remaining| functions are provided by the \verb|QSemN| library
 module.  We construct a new semaphore by allocating an arbitrary
-amount of resource; we observe how much resource remains; and we
-interfere by taking and then replacing half of the resource.  The
-interference thread is interleaved with the term thread, so it may
+amount of resource; we observe by checking how much resource remains;
+and we interfere by taking and then replacing half of the resource.
+The interference thread is interleaved with the term thread, so it may
 cause the term thread to block.
 
 CoCo finds 57 properties in this example, so in the remainder of the
@@ -883,7 +883,7 @@ CoCo reports some strict refinements involving \verb|signal| and
 \verb|wait|, properties (16--18), where we might expect equivalences.
 We have just seen with property (15) that funny things happen with
 negative numbers, so it should be no surprise that these refinements
-are only equivalences when \verb|x| and \verb|x1| are positive.
+are only equivalences when \verb|x| and \verb|x1| are non-negative.
 
 \begin{listing}
 \centering
@@ -1147,7 +1147,7 @@ discovering properties of functions operating on shared mutable state:
 \item We use an approach similar to QuickSpec\cite{smallbone2017} and
   Speculate\cite{braquehais2017}, but instead consider sets of
   observations of effects rather than equality of results.  We use
-  \dejafu{} to discover these sets of effects~\sref{coco-hiw}.
+  \dejafu{} to discover these sets~\sref{coco-hiw}.
 
 \item CoCo properties are conjectures supported only by a finite
   number of test cases, but are surprisingly accurate in practice.

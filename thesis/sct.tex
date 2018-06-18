@@ -34,7 +34,7 @@ source program\cite{claessen2009}; or by instrumenting the compiled
 program\cite{musuvathi2006,yu2012}.  Systematic techniques may be
 \emph{complete}: able to find all distinct results of a program.
 Random techniques typically cannot ensure that all distinct results
-are found, cannot be complete, and are usually run for some
+are found---cannot be complete---and are usually run for some
 predetermined number of program executions.
 
 Typically we assume that all possible executions are
@@ -80,8 +80,8 @@ the \emph{dependency relation}.
 In other words, independent transitions cannot enable (unblock) or
 disable (block) each other, and enabled independent transitions
 commute.  When implementing DPOR, we typically identify a sufficient
-condition for dependency, rather than work with this relational
-definition directly.
+and easy-to-compute condition for dependency, rather than work with
+this relational definition directly.
 
 Typically, the presentation of algorithms assumes a simple core
 concurrent language of just reads and writes.  This gives rise to a
@@ -177,25 +177,25 @@ about how threads have behaved during this specific execution.  This
 execution trace is then examined to identify places where alternative
 scheduling decisions need to be explored because they might lead to
 other executions which correspond to a different partial-order.  The
-algorithm repeats until all backtracking points have been explored and
-no new ones are found.  So it only works if all executions are
+algorithm repeats until all such alternatives have been explored and
+no new ones are found.  So DPOR only works if all executions are
 terminating and the number of distinct executions is finite.  DPOR is
 complete.  When it terminates, all distinct states of the program will
 have been explored.
 
 \subsection{Relaxed Memory Models}
 
-In the name of performance, modern processors often implement memory
-models that are weaker than sequential consistency\cite{lamport1979}
-by using optimisations such as speculative execution, buffering, and
-caching.  Unlike sequential consistency, where a concurrent program
-behaves as a simple interleaving of atomic thread actions, relaxed
-memory models can be more complex, making program analysis and
-debugging difficult.  For example, under Total Store Order (TSO),
-which x86 processors use\cite{owens2009}, reads and writes in the same
-thread to different memory locations may be re-ordered.  Under Partial
-Store Order (PSO), a relaxation of TSO\cite{sparc}, two writes in the
-same thread, but to different memory locations, may also be reordered.
+In the name of performance, modern processors implement memory models
+that are weaker than sequential consistency\cite{lamport1979} by using
+optimisations such as speculative execution, buffering, and caching.
+Unlike sequential consistency, where a concurrent program behaves as a
+simple interleaving of atomic thread actions, relaxed memory models
+can be more complex, making program analysis and debugging difficult.
+For example, under Total Store Order (TSO), which x86 processors
+use\cite{owens2009}, reads and writes in the same thread to different
+memory locations may be re-ordered.  Under Partial Store Order (PSO),
+a relaxation of TSO\cite{sparc}, two writes in the same thread, but to
+different memory locations, may also be reordered.
 
 A simple buffering technique can be used model the nondeterminism of
 these unsynchronised operations under TSO and PSO\cite{zhang2015}:
@@ -208,11 +208,12 @@ variable.
 
 When reading, a thread reads its most recently buffered write.  If a
 thread has no writes buffered to that variable, it reads the most
-recently committed value.  A buffered write is only visible to the
-thread which made it.  Buffered writes are committed
-nondeterministically.  To model this, we can introduce one additional
-\emph{phantom thread} for each nonempty buffer.  When scheduled, a
-phantom thread commits the oldest write from its buffer.
+recent globally visible write.  A buffered write is only visible to
+the thread which made it.  Buffered writes are committed to the
+globally visible memory nondeterministically.  To model this, we can
+introduce one additional \emph{phantom thread} for each nonempty
+buffer.  When scheduled, a phantom thread commits the oldest write
+from its buffer.
 
 SCT techniques assume that there is only one source of nondeterminism:
 the scheduler.  If a second source is added, such as when writes are
@@ -294,7 +295,7 @@ constructs such as spinlocks, which loop until some condition holds,
 yielding on every iteration it does not.
 
 Bound functions can be combined, where a sequence of scheduling
-decisions is outside the combined bound if it is outside either of the
+decisions is outside the combined bound if it is outside any of the
 constituent bounds.
 
 Schedule bounding traditionally refers to trying only those schedules
@@ -438,7 +439,8 @@ Going forward, the reader should keep in mind:
 \item Dynamic partial-order reduction (DPOR), which falls under the
   SCT umbrella, is a technique to discover all distinct states of a
   concurrent program.  DPOR takes advantage of mutually commuting
-  operations to reduce space of schedules to explore~\sref{sct-dpor}.
+  operations to reduce the space of schedules to
+  explore~\sref{sct-dpor}.
 
 \item Schedule bounding is a technique to reduce the space of
   schedules to explore by simply discarding any which exceed some

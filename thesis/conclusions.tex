@@ -22,7 +22,7 @@ testing Haskell programs, but the underlying techniques are not
 Haskell specific.  Haskell has an unusually rich concurrency
 abstraction, whereas SCT techniques are typically described in the
 literature for simple concurrency abstractions.  Even real programming
-languages tend to have simple concurrency abstractions.  For example,
+languages tend to have simple concurrency abstractions.
 Maple\cite{yu2012} is able to test arbitrary pthread programs by
 considering just 19 primitive actions, whereas the expression of
 Haskell concurrency in \dejafu{} requires 34 just for concurrency, and
@@ -102,11 +102,11 @@ use a random approach, as we did in \Cref{chp:algorithms}.
 
 \paragraph{The difficulty of interpreting success}
 It can be difficult to look at the result of a successful concurrency
-test and know what it is telling us.  For example, we saw this with
-CoCo in \Cref{sec:coco-example}, where the programmer may need to run
-the tool with a variety of interference functions to see the full
-picture.  Properties found with one sort of concurrent interference
-may not generalise to cases with different interference.  Similarly,
+test and know what it is telling us.  We saw this with CoCo in
+\Cref{sec:coco-example}, where the programmer may need to run the tool
+with a variety of interference functions to see the full picture.
+Properties found with one sort of concurrent interference may not
+generalise to cases with different interference.  Similarly,
 successful concurrency tests in \dejafu{} may not generalise to cases
 where the concurrent environment is different.  This difficulty is
 related to the problem of judging the quality of a test suite, which
@@ -114,11 +114,11 @@ we will discuss in \Cref{chp:future_work}.
 
 \paragraph{The difficulty of interpreting failure}
 It can be difficult to look at a failing concurrency test and diagnose
-the problem.  For example, we saw this with \dejafu{} in
+the problem.  We saw this with \dejafu{} in
 \Cref{sec:dejafu-casestudies-par}, where the resulting execution
-traces were quite large and difficult to follow.  Traces are a
-low-level construct: they may become invalid when library dependencies
-change, even if the key scheduling decisions remain the same.  Which
+traces were large and difficult to follow.  Traces are a low-level
+construct: they may become invalid when library dependencies change,
+even if the key scheduling decisions remain the same.  Which
 information is truly important?  It is not obvious.
 
 \paragraph{Overall conclusions}

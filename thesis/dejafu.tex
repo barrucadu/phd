@@ -70,8 +70,8 @@ traditional semantics where there is good reason to do so:
 
 \begin{itemize}
 \item The \verb|getNumCapabilities| operation allows the programmer to
-  query the number of capabilities.  During testing, we return two,
-  despite executing everything in the same OS thread.  This is to
+  query the number of capabilities.  If not otherwise set, we return
+  two, despite executing everything in the same OS thread.  This is to
   avoid special-case behaviour for one capability, which may reduce
   concurrency.
 \item Runtime errors, such as pattern match failures, can be caught as
@@ -129,7 +129,7 @@ least one.
 \centering
 \begin{cminted}{haskell}
 instance Monad n => MonadConc (ConcT r n) where
-  type MVar (ConcT r n) = MVar r
+  type MVar (ConcT r n) = ModelMVar r
   -- other types omitted
 
   newEmptyMVarN n = toConc (ANewMVar n)
@@ -144,11 +144,11 @@ instance Monad n => MonadConc (ConcT r n) where
 
 The type for our testing implementation is called \verb|ConcT r n|,
 which is a monad that has access to references of type \verb|r| in a
-monad of type \verb|n|.  \Cref{lst:mvarops} shows the instance of
-\verb|MonadConc| for this type.  Each concurrency operation is of the
-same form: we take the arguments and wrap them up inside a data
-structure whose final argument is a continuation, which is then
-converted into a \verb|ConcT| value.
+monad of type \verb|n|.  \Cref{lst:mvarops} shows a fragment of the
+instance of \verb|MonadConc| for this type.  Each concurrency
+operation is of the same form: we take the arguments and wrap them up
+inside a data structure whose final argument is a continuation, which
+is then converted into a \verb|ConcT| value.
 
 We represent a concurrent computation as a large value.  We can
 inspect each step of the computation by looking at the data
@@ -341,7 +341,7 @@ inside \verb|TVar|s.  We would then be able to check if any
 \verb|TVar| read during a transaction which blocked has a different
 value: if none do, the transaction will just block again.  But we
 cannot do that without putting an \verb|Eq| constraint on
-\verb|writeTVar|, so this would require a new primitive function.
+\verb|writeTVar|, so this would require a new primitive action.
 
 \dejafu{} can make use of (2).  \dejafu{} already bounds the maximum
 number of times a thread can yield, so that it can test constructs
@@ -370,10 +370,10 @@ tend not to see this exponential growth in schedules tried.
 \label{sec:dejafu-execution}
 
 We represent operations in the \verb|MonadConc| typeclass by the
-\verb|Action| type of \emph{primitive actions}.  Each action describes
-some effect and contains a continuation.  A concurrent computation is
-a sequence of these continuation values.  Each thread is terminated by
-a distinguished \emph{stop} primitive, which has no continuation.
+\verb|Action| type.  Each action describes some effect and contains a
+continuation.  A concurrent computation is a sequence of these
+continuation values.  Each thread is terminated by a distinguished
+\emph{stop} primitive, which has no continuation.
 
 % [layout hack]: get lst:100sols here
 \FloatBarrier
@@ -455,7 +455,7 @@ introducing a way to interrupt the \verb|forever| computation,
 \dejafu{} can instead report that trying to test this program exceeds
 the execution length
 limit\footnote{\url{https://github.com/barrucadu/dejafu/issues/27} and
-  \texttt{issues/113}}.
+  \url{issues/113}}.
 
 \paragraph{Scheduling}
 The choice of which thread to execute is made by a scheduler function,
@@ -650,7 +650,7 @@ operational semantics.  As transactions are atomic, we only care about
 the big-step behaviour.  This simplifies some aspects of their
 implementation.
 
-\paragraph{Mutable references}
+\paragraph{The heap}
 We implement \verb|CRef|s, \verb|MVar|s, and \verb|TVar|s with mutable
 references.  We do not use a pure model of the heap, as we found the
 additional indirection to both increase allocation, and to reduce the
@@ -769,7 +769,7 @@ multithreading operations.  The rule for \verb|AFork| implements
 \verb|forkWithUnmask|, so it constructs a function to run an action
 umasked.  The \verb|fork| function is a special case of
 \verb|forkWithUnmask| which ignores this argument.  There is no
-separate action for \verb|forkOS|, as we do not model which capability
+separate action for \verb|forkOn|, as we do not model which capability
 a thread is executing on.  We use ``\verb|id| is fresh'' to mean that
 \verb|id| is a new, globally unique, identifier.  We use
 $\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$ to mean that the
@@ -1066,8 +1066,8 @@ transaction enforces a memory barrier, regardless of the result.
 As we have modelled the heap as a pure heterogeneous map in our
 semantics, we do not need to explicitly undo the effects of an
 unsuccessful transaction.  We simply discard the updated heap.  In the
-real implementation, we construct an action to undo the effects of a
-transaction.
+real implementation, we construct and apply an action to undo the
+effects of a transaction.
 
 \paragraph{Rules for basic STM actions}
 \Cref{fig:sem_stm1} shows the basic STM actions.  The \verb|SRetry|,
@@ -1195,19 +1195,17 @@ $\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\
 \label{sec:dejafu-testing}
 
 \dejafu{} uses a combination of dynamic partial-order reduction and
-schedule bounding to test programs, by default.  Controlled random
-scheduling using a fixed number of executions is also available.  A
-\dejafu{} test has the following components:
+schedule bounding to test programs.  Controlled random scheduling
+using a fixed number of executions is also available.  A \dejafu{}
+test has the following components:
 
 \begin{itemize}
 \item The testing algorithm to use plus any configuration it needs.
   The default is DPOR with schedule bounding.
-\item The memory model.  The default is total store order (TSO), as it
-  is closest to the behaviour of an x86 processor\cite{owens2009},
-  which is what the user probably has.
-\item A function from the final collection of results and traces to an
-  indication of success or failure with an optional list of failing
-  traces to display to the user.
+\item The memory model.  The default is total store order (TSO).
+\item A function to determine if the test passes: taking the final
+  collection of results and traces and giving a list of failing
+  executions.
 \item A function to optionally discard results as they are produced,
   not considering them when determining if the test passes.  This is
   for performance: execution traces can use a lot of memory, and
@@ -1435,23 +1433,22 @@ usual.
 \section{Soundness and Completeness}
 \label{sec:dejafu-correctness}
 
-Correctness for \dejafu{} breaks down along a natural separation in
-the theory: correctness of a single execution of a concurrent program,
-and correctness of the testing framework which discovers new
-executions.  There is also the concern of correctness of the
-implementation with respect to the theory.  We do not attempt to
-formally verify the implementation, but we do have an extensive test
-suite.  Testing a testing tool is a little different to testing a
-regular program.  Most of our tests consist of nondeterministic
-programs, where we want to verify that \dejafu{} finds precisely the
-behaviours we expect.
+Correctness for \dejafu{} divides along a natural separation in the
+theory: correctness of a single execution of a concurrent program, and
+correctness of the testing framework which discovers new executions.
+There is also the concern of correctness of the implementation with
+respect to the theory.  We do not attempt to formally verify the
+implementation, but we do have an extensive test suite.  Testing a
+testing tool is a little different to testing a regular program.  Most
+of our tests consist of nondeterministic programs, where we want to
+verify that \dejafu{} finds precisely the behaviours we expect.
 
 \paragraph{Property tests}
 \dejafu{} is not one monolithic implementation.  It has components
 which can be specified and tested in isolation.  For example, the
 dependency relation must be commutative.  We use
 Hedgehog\cite{hedgehog}, a randomised property-testing library, to
-check these properties.
+check these properties of the implementation.
 
 \paragraph{Integration tests}
 Most of the tests are integration tests, consisting of a small
@@ -1477,8 +1474,7 @@ Our integration tests fall into the following classes:
   \verb|MonadConc| version.
 \item A collection of refinement tests from CoCo, which we shall
   discuss in \Cref{chp:coco}.
-\item Finally, a collection of regression tests for bugs which have
-  been fixed.
+\item Finally, a collection of regression tests for previous bugs.
 \end{itemize}
 
 \paragraph{Example programs}
@@ -1486,8 +1482,7 @@ Finally, we have a collection of larger integration tests which serve
 also as example usages of \dejafu{}, three of which we discuss in
 \Cref{sec:dejafu-casestudies}: the auto-update
 library\cite{auto_update}, the monad-par
-library\cite{monad_par,marlow2011}, and an example of testing
-typeclass laws using QuickCheck\cite{claessen2000} and concurrency.
+library\cite{monad_par,marlow2011}, and the async library\cite{async}.
 
 \subsection{Correct Execution}
 
@@ -1501,8 +1496,8 @@ There is no standard for concurrent Haskell.  There is only what GHC
 provides.  The behaviour of many operations is clear, but for some it
 is not.  \verb|CRef| operations are particularly complicated, as their
 behaviour depends on the underlying memory model, which is
-unspecified.  We chose TSO, but ignore the possibility that the GHC
-optimiser or code generator could affect the memory model.
+unspecified.  We chose TSO, and assume that the GHC optimiser or code
+generator does not affect the memory model.
 
 There are some intentional semantic differences for practical reasons.
 For example, GHC can sometimes detect deadlocks involving only a
@@ -1510,8 +1505,8 @@ subset of the threads, and throw an exception to the threads
 signalling this.  We cannot do this.
 
 Although the behaviour of \dejafu{} is not correct with respect to
-GHC-compiled behaviour in all cases, we claim it is as close as can
-reasonably be achieved.
+GHC-compiled behaviour in all cases, we claim it is close enough to be
+useful.
 
 \paragraph{Possible executions}
 Our stepwise execution of concurrent programs allows a scheduling
@@ -1583,7 +1578,7 @@ data DPOR = DPOR
 \caption{The DPOR state is a stack of scheduling decisions.}\label{lst:dpor}
 \end{listing}
 
-There are some basic well-formedness properties associated with a
+There are some well-formedness properties associated with a
 \verb|DPOR| value:
 
 \begin{enumerate}
@@ -1597,7 +1592,7 @@ There are some basic well-formedness properties associated with a
 These properties should hold inductively over the whole state.  We
 check these invariants everywhere a \verb|DPOR| value is constructed,
 and abort if the state is invalid.  In the \dejafu{} testsuite, the
-time overhead of this checking is 3\%.
+execution time overhead of this checking is 3\%.
 
 The prefixes we generate are sequences of taken decisions followed by
 a single to-do decision.  By maximising the length of prefixes, we
@@ -1612,7 +1607,7 @@ given program.  However, as schedule bounding is involved, some
 results may not be reached.  So instead we require that, for all sets
 of bounds, all results possible subject to those bounds show up under
 testing with the same bounds.  Our core testing algorithm satisfies
-this property\cite{coons2013}, assuming a correct implementation.
+this property\cite{coons2013}.
 
 \section{Case Studies}
 \label{sec:dejafu-casestudies}
@@ -1625,8 +1620,8 @@ Haskell libraries:
   library\cite{auto_update}.
 \item We identify and fix a deadlock in the monad-par
   library\cite{monad_par,marlow2011}.
-\item We use property-based testing to reproduce a bug in the async
-  library\cite{async}.
+\item We use property-based testing to reproduce a known bug in the
+  async library\cite{async}.
 \end{enumerate}
 
 We chose these libraries because each is by proficient Haskell
@@ -1671,12 +1666,12 @@ test_autoupdate = do
 \Cref{lst:autoupdate_example1} shows an example usage of the
 \verb|MonadConc| version of the library.  The
 \verb|defaultUpdateSettings| value describes an auto-updater which
-runs every second, producing the value \verb|()| (read ``unit'').  An
-\verb|MVar| is used to communicate to the thread that the updater
-should run.  Inside the worker, a delay is used to ensure that the
-action is not computed too frequently: this is what gives the rate
-limiting.  So we create an auto-updater which produces \verb|()|, and
-immediately demand the value.
+runs every second, producing the value \verb|()|.  An \verb|MVar| is
+used to communicate to the thread that the updater should run.  Inside
+the worker, a delay is used to ensure that the action is not computed
+too frequently: this is what gives the rate limiting.  So we create an
+auto-updater which produces \verb|()|, and immediately demand the
+value.
 
 \begin{listing}
 \centering
@@ -1778,7 +1773,7 @@ How easy it is to make mistakes when implementing concurrent programs!
       & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
       Bounded DPOR   &  49 & 18 & 0.006 &  119 \\
       Unbounded DPOR &  80 & 20 & 0.008 &  124 \\
-      Swarm$\dagger$ & 100 & 20 & 0.008 & 1297 \\ \bottomrule
+      Swarm          & 100 & 20 & 0.008 & 1297 \\ \bottomrule
     \end{tabular}
     \caption{Keeping all execution traces in memory.}\label{tbl:autoupdate_perf1}
   \end{subtable}
@@ -1792,7 +1787,7 @@ How easy it is to make mistakes when implementing concurrent programs!
       & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
       Bounded DPOR   &  49 & 18 & 0.006 &  71 \\
       Unbounded DPOR &  80 & 20 & 0.006 &  63 \\
-      Swarm$\dagger$ & 100 & 20 & 0.006 & 108 \\ \bottomrule
+      Swarm          & 100 & 20 & 0.006 & 108 \\ \bottomrule
     \end{tabular}
     \caption{Only keeping buggy execution traces in memory.}\label{tbl:autoupdate_perf2}
   \end{subtable}
@@ -1879,12 +1874,12 @@ The monad-par library\cite{monad_par,marlow2011} provides a
 traditional-looking concurrency abstraction, giving the programmer
 threads and mutable state, however it is deterministic.  Determinism
 is enforced by restricting shared state: it is an error to write more
-than once to the same variable, and read operations block until a
-value has been written.  Programs written using the library will
-either give a deterministic result, or terminate with a multiple-write
-error.  These shared variables, called \verb|IVar|s, implement
-futures\cite{marlow2011}.  Despite its limitations, the library can be
-effective in speeding up pure code\cite{marlow2011}.
+than once to the same mutable variable, and read operations block
+until a value has been written.  Programs written using the library
+will either give a deterministic result, or terminate with a
+multiple-write error.  These shared variables, called \verb|IVar|s,
+implement futures\cite{marlow2011}.  Despite its limitations, the
+library can be effective in speeding up pure code\cite{marlow2011}.
 
 The library provides six different schedulers.  We ported the
 ``direct'' scheduler, a work-stealing scheduler, to the
@@ -1905,8 +1900,8 @@ Some simplifications were made in the conversion process:
   one, and so on.
 \item The scheduler uses the C pre-processor to choose between
   different implementations of some of its functionality.  There are
-  nine flags, each of which can be enabled or disabled.  We only
-  ported and tested the default configuration.
+  nine flags, each of which are independent.  We only ported and
+  tested the default configuration.
 \item The scheduler includes some debugging code for detecting and
   reporting errors.  We removed it.
 \end{itemize}
@@ -1975,7 +1970,7 @@ test_parmonad xs = do
     s <- runPar (parfilter p xs)
     pure (s == filter p xs)
 \end{cminted}
-\caption{A test case comparing parallel filter to a normal filter.}\label{lst:parmonad_example2}
+\caption{A test case comparing a parallel filter to a normal filter.}\label{lst:parmonad_example2}
 \end{listing}
 
 \paragraph{Finding a deadlock}
@@ -2315,7 +2310,7 @@ eq (Concurrently left) (Concurrently right) = monadicIO $ do
 
 \Cref{lst:aplaw1} shows a \emph{passing} property.  There is no
 concurrent interference between the two arguments to \verb|<*>| and
-\verb|ap|, so the flaw does not manifest.  Our \verb|eq| function
+\verb|ap|, so the bug does not manifest.  Our \verb|eq| function
 checks that two \verb|Concurrently| actions produce the same sets of
 results.  For the reader unfamiliar with \verb|QuickCheck|:
 \verb|Fun a b| represents a function of type \verb|a -> b|; and
@@ -2340,7 +2335,7 @@ prop_monad_ap2 (apply -> f) (apply -> g) a = go (<*>) `eq` go ap where
     let ca = do { tryPutMVar flagvar (); pure a }
     pure (Concurrently cf `combine` Concurrently ca)
 \end{cminted}
-\caption{The \texttt{<*> = ap} law, with concurrency.}\label{lst:aplaw2}
+\caption{The \texttt{<*> = ap} law, with concurrent interference.}\label{lst:aplaw2}
 \end{listing}
 
 \Cref{lst:aplaw2} contains a race condition.  We now generate two
@@ -2516,11 +2511,11 @@ concurrently' left right collect = do
 A tool is effectively useless if it is too difficult to use.  The main
 obstacle to the use of \dejafu{} is existing libraries which use
 \verb|IO|; a programmer cannot simply use \verb|liftIO| everywhere,
-without sacrificing completeness in all but trivial examples.
-Ideally, existing libraries would be modified to support the
-\verb|MonadConc| abstraction.  However, this does not seem a likely
-short-term goal, and so a more promising way to approach the problem
-is to provide alternatives to existing libraries.  As adapting code to
+without sacrificing completeness in all but simple cases.  Ideally,
+existing libraries would be modified to support the \verb|MonadConc|
+abstraction.  However, this does not seem a likely short-term goal,
+and so a more promising way to approach the problem is to provide
+alternatives to existing libraries.  As adapting code to
 \verb|MonadConc| is often straightforward, as seen in the monad-par
 case study~\sref{dejafu-casestudies-par}, this is a viable solution.
 
@@ -2533,12 +2528,12 @@ from user requests, motivated by performance concerns in large test
 cases: (1) random scheduling, which we discuss further in
 \Cref{chp:algorithms}; and (2) the ability to discard uninteresting
 results or execution traces as they are discovered, before evaluating
-the predicate at the end.  This second point can have a significant
+the predicate at the end.  This second feature can have a significant
 impact.  If you are interested in a particular failure, it is much
 better to discard those results which \emph{do not} exhibit the
 failure as they are discovered, rather than keep them around in memory
-until the end.  \Cref{fig:discard} shows the effect of this on heap
-profiles of a simple test of \verb|MVar| contention.
+until the end.  \Cref{fig:discard} shows the effect of this on a
+simple test of \verb|MVar| contention.
 
 \begin{figure}
   \centering
@@ -2557,7 +2552,7 @@ profiles of a simple test of \verb|MVar| contention.
 
 Tweag I/O\footnote{\url{http://www.tweag.io/}}, a research and
 development company based in Paris, are using \dejafu{} as part of
-their work in a distributed system for the SAGE
+their work on a distributed system for the SAGE
 project\footnote{\url{http://www.sagestorage.eu/}}, which is
 investigating storage systems for future supercomputers.  They cannot
 share details of their work for commercial reasons, but one developer
@@ -2594,14 +2589,14 @@ do not currently aim to support with \dejafu{}:
 \end{itemize}
 
 These three areas are out of scope because we believe that the desire
-for this functionality does not outweigh the implementation cost.  If
-that belief changes, we will look for a way.
+for this functionality does not outweigh the implementation cost.  We
+will look for a way, if that belief changes.
 
 Introducing additional sources of nondeterminism into an SCT model is
 difficult.  Simply introducing additional threads to model the
 nondeterminism can cause an explosion of schedules tested, which is
-unsatisfactory.  In this way, \verb|MonadConc| will always be limited
-to what \dejafu{} can reasonably support.
+unsatisfactory.  \verb|MonadConc| will always be limited to what
+\dejafu{} can reasonably support.
 
 However we can still push back the boundaries of what \dejafu{} supports.
 Bound threads, Haskell threads which always run on the same unique OS

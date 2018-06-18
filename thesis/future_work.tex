@@ -11,7 +11,7 @@ of code coverage.  Code which is not covered at all usually has more
 bugs than code which is covered by even low-quality
 tests\cite{ahmed2016}.  For concurrent programs, what metric do we
 use?  If it is some notion of coverage, what is the space being
-covered?  Here are a two candidates:
+covered?  Here are two candidates:
 
 \begin{itemize}
 \item \emph{Schedule-sensitive branches} are often unintentional and
@@ -22,8 +22,8 @@ covered?  Here are a two candidates:
 \item \emph{Unguarded shared state} without a synchronisation
   mechanism can lead to invalid or corrupt data.  If we have functions
   which operate on some mutable state of the same type, then a good
-  concurrency test suite should check what happens when those states
-  are shared and the functions are executed concurrently.
+  concurrency test suite should check what happens when that state is
+  shared and the functions are executed concurrently.
 \end{itemize}
 
 Both statement coverage and mutation score have only a weak negative

@@ -267,8 +267,6 @@ also non-blocking functions which return an indication of success.
 The blocking behaviour of \verb|MVar|s means that computations can
 become deadlocked.  For example, deadlock occurs if every thread tries
 to take from the same \verb|MVar|, with no threads writing to it.
-This form of deadlock can be detected, as we shall see in
-\Cref{chp:dejafu}.
 
 \begin{listing}
 \centering
@@ -285,7 +283,9 @@ sem.release(/* quantity */);
 
 Java does not provide an exact analogue of \verb|MVar|, but it does
 provide semaphores\cite{ewd123}, shown in \Cref{lst:mute_java}, which
-can be used to control access to a shared resource.
+can be used to control access to a shared resource.  Furthermore,
+every Java object has an associated lock, which can be used to enforce
+mutual exclusion.
 
 \begin{listing}
 \centering
@@ -442,8 +442,8 @@ based on the idea of atomic \emph{transactions}.  A transaction
 consists of one or more operations over a collection of
 \emph{transaction variables}, where a transaction may be aborted
 part-way through, with all its effects rolled back.  Arbitrary effects
-are not permitted, which is enforced by having a distinct type for STM
-actions.
+are not permitted, which Haskell enforces by having a distinct type
+for STM actions.
 
 Neither Java nor Rust provide an STM implementation in their standard
 libraries, but there are third-party implementations.  However, as
@@ -602,12 +602,13 @@ inside a \verb|Thread.sleep| call, it will receive an
 thread to terminate.
 
 \paragraph{Masking}
-A thread has a masking state, which can be used to block exceptions
-from other threads.  There are three masking states: (1)
-\emph{unmasked}, in which a thread can have exceptions thrown to it;
-(2) \emph{interruptible}, in which a thread can only have exceptions
-thrown to it if it is blocked; and (3) \emph{uninterruptible}, in
-which a thread cannot have exceptions thrown to it.
+A thread has a masking state, which can be used to block asynchronous
+exceptions thrown from other threads.  There are three masking states:
+(1) \emph{unmasked}, in which a thread can have exceptions thrown to
+it; (2) \emph{interruptible}, in which a thread can only have
+exceptions thrown to it if it is blocked; and (3)
+\emph{uninterruptible}, in which a thread cannot have exceptions
+thrown to it.
 
 \begin{listing}
 \centering
@@ -633,7 +634,7 @@ subcomputation with exceptions unmasked.  The API is shown in
 STM can also use exceptions, as shown in \Cref{lst:excstm_haskell}.
 If an exception propagates uncaught to the top of a transaction, that
 transaction is aborted.  The \verb|orElse| function does not catch
-exceptions.
+exceptions, and the \verb|catchSTM| function does not catch retries.
 
 \begin{listing}
 \centering
@@ -737,7 +738,7 @@ main = loop [] where
           putMVar var ()
         loop (var:vars)
 \end{cminted}
-\caption{A simple alarm program, which blocks until every reminder is done.}\label{lst:ch_ex3}
+\caption{A simple alarm program, keeping a list of alarms.}\label{lst:ch_ex3}
 \end{listing}
 %$
 
@@ -772,7 +773,7 @@ main = loop =<< newMVar 0 where
     c <- readMVar var
     if c == 0 then pure () else wait var
 \end{cminted}
-\caption{A simple alarm program, which blocks until every reminder is done.}\label{lst:ch_ex4}
+\caption{A simple alarm program, keeping a counter of alarms.}\label{lst:ch_ex4}
 \end{listing}
 %$
 
@@ -813,7 +814,7 @@ main = loop =<< newTVarIO 0 where
     c <- readTVar var
     if c == 0 then pure () else retry
 \end{cminted}
-\caption{A simple alarm program, which blocks until every reminder is done.}\label{lst:ch_ex5}
+\caption{A simple alarm program, keeping an atomic counter of alarms.}\label{lst:ch_ex5}
 \end{listing}
 
 It may not be obvious why reading a \verb|TVar| and aborting the
@@ -872,11 +873,10 @@ Going forward, the reader should keep in mind:
   such handler, the thread is
   terminated~\sref{concurrent_haskell-exc}.
 
-\item So-called asynchronous exceptions can be thrown from one thread
-  to another.  An asynchronous exception is raised in the target
-  thread like a normal exception: control jumps back to a suitable
-  exception handler, or kills the
-  thread~\sref{concurrent_haskell-exc}.
+\item So-called asynchronous exceptions can be thrown between threads.
+  An asynchronous exception is raised in the target thread like a
+  normal exception: control jumps back to a suitable exception
+  handler, or kills the thread~\sref{concurrent_haskell-exc}.
 
 \item A thread can prevent the delivery of asynchronous exceptions by
   changing its masking state.  There are three states: (1) unmasked,
