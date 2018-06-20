@@ -24,6 +24,100 @@ results~\sref{dejafu-evaluation}.
 This chapter is derived from our previous work \cite{YCS-2016-503} and
 \cite{walker2015}.
 
+\section{What is \dejafu{}?}
+\label{sec:dejafu-whatis}
+
+\dejafu{} is a tool for testing concurrent Haskell programs.  It works
+by providing a typeclass abstraction over the concurrency operations
+of interest, called \verb|MonadConc|, and using an implementation of
+this class based on inspectable continuations to explore the
+nondeterministic behaviours of a program under test.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+runSCTWithSettings :: MonadConc m
+  => Settings m a
+  -> ConcT m a
+  -> m [(Either Failure a, Trace)]
+\end{cminted}
+\caption{The core API of \dejafu{}.}\label{lst:dejafucore}
+\end{listing}
+
+\Cref{lst:dejafucore} gives the type signature of the function at the
+heart of \dejafu{}.  The first parameter is configuration, controlling
+how \dejafu{} explores the space of executions.  The second is the
+concurrent program to test: \verb|ConcT m| is \dejafu{}'s
+implementation of \verb|MonadConc|, it is parameterised by some monad
+\verb|m| which is used to provide mutable variables.  Typically this
+\verb|m| will be \verb|IO|.  The function returns a collection of
+tuples.
+
+The outputs which \dejafu{} produces are pairs, where the first
+component is the result of the program and the second is the execution
+trace which led to it.  A program may not complete successfully: it
+may deadlock or throw an exception in the main thread which does not
+get caught.  If the program does complete successfully, the first
+component of the tuple will be a \verb|Right| containing the actual
+value produced, otherwise it will be a \verb|Left| and the
+\verb|Failure| value will show what went wrong.  A \verb|Trace| is a
+list of scheduling decisions, with a summary of what the chosen thread
+did in that step of execution.
+
+In outline, \verb|runSCTWithSettings| works like so:
+
+\begin{enumerate}
+\item Repeat until there are no more executions:
+  \begin{enumerate}
+  \item Set up the initial state, where only the main thread exists
+  \item While the main thread exists, and there are runnable threads:
+    \begin{enumerate}
+    \item Choose a thread
+    \item Run the next action in that thread
+    \end{enumerate}
+  \item Add the result pair to the output
+  \end{enumerate}
+\end{enumerate}
+
+We produce different schedules by maintaining some state, and using
+that when choosing threads.  \dejafu{} supports three ways to explore
+the behaviours of a concurrent program:
+
+\begin{description}
+\item[Randomly] Threads are chosen using a uniform random
+  distribution.  Exploration terminates after a fixed number of
+  executions.
+
+\item[Swarm] Threads are chosen using a weighted random distribution.
+  Exploration terminates after a fixed number of executions.  We
+  discuss this algorithm further in \Cref{chp:algorithms}.
+
+\item[DPOR] Uses a notion of ``todo sets,'' where each
+  scheduling point has an associated set of threads to try in future
+  executions.  Execution terminates when all such sets are empty.
+
+  During execution, at each scheduling point, if the previously chosen
+  thread is still runnable, choose that; otherwise, take all runnable
+  threads, choose one arbitrarily, and record the others in the todo
+  set for this scheduling point.
+
+  After execution, the trace is examined to find pairs of dependent
+  actions: for each thread $T$, for each action in thread $T$, find
+  the most recent dependent action (if one exists) in a different
+  thread, and add $T$ to the todo set corresponding to that scheduling
+  point if $T$ is runnable; otherwise add all runnable threads.
+
+  There are some subtleties and additional optimisations, which we
+  discuss further in \Cref{sec:dejafu-testing}.
+\end{description}
+
+\dejafu{} tests use predicates on the list of result pairs.  These
+predicates can check anything, for example all results being
+\verb|Right|s and equal.  To remove result pairs that we don't want a
+predicate to examine, \dejafu{} supports ``online'' filtering, where
+such pairs are discarded as they are found.  This is configured in the
+\verb|Settings| value.
+
 \section{Scope}
 \label{sec:dejafu-scope}
 
