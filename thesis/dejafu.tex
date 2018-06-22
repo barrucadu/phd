@@ -118,23 +118,22 @@ predicate to examine, \dejafu{} supports ``online'' filtering, where
 such pairs are discarded as they are found.  This is configured in the
 \verb|Settings| value.
 
-\section{Scope}
-\label{sec:dejafu-scope}
-
-We aim to support most of the functionality of GHC’s concurrency API,
-as made available through the
-Control.Concurrent\cite{control_concurrent} and
-Control.Exception\cite{control_exception} module hierarchies.
-However, we cannot test things which unavoidably require support from
-the runtime system.  In particular, we do not support:
+\paragraph{Scope}
+We aim to support most of the functionality of GHC’s concurrency API.
+However, some operations are more trouble than they're worth: for
+example, operations which introduce additional sources of
+nondeterminism, or which unavoidably require support from the runtime
+system.  In particular, we do not support:
 
 \begin{itemize}
 \item Operations to block a thread until a file descriptor becomes
   available, as this introduces an additional source of
   nondeterminism.
+
 \item Operations to query which capability (OS thread) a Haskell
   thread is running on, as this introduces an additional source of
   nondeterminism.
+
 \item Automatically detecting if a thread is deadlocked on an
   \verb|MVar| or \verb|TVar| and throwing an exception to it, as we
   cannot reliably detect deadlock involving only a subset of threads
@@ -163,17 +162,18 @@ reasonably possible to GHC.  We make a few departures from the
 traditional semantics where there is good reason to do so:
 
 \begin{itemize}
-\item The \verb|getNumCapabilities| operation allows the programmer to
-  query the number of capabilities.  If not otherwise set, we return
-  two, despite executing everything in the same OS thread.  This is to
-  avoid special-case behaviour for one capability, which may reduce
-  concurrency.
+\item When querying the number of capabilities, we return two if not
+  otherwise set, despite executing everything in the same OS thread.
+  This is to avoid special-case behaviour for one capability, which
+  may reduce concurrency.
+
 \item Runtime errors, such as pattern match failures, can be caught as
   exceptions inside \verb|IO|.  As there is no non-\verb|IO| way to do
   the same, \dejafu{} cannot catch these errors.
-\item The \verb|threadDelay| operation is required to yield the
-  thread, but not necessarily to delay it.  This is because it is not
-  clear how to incorporate time into the testing model.
+
+\item We do not model threads delaying, and implement any delays as
+  yields.  It is not clear how to incorporate time into the testing
+  model.
 \end{itemize}
 
 \section{Abstracting over Concurrency}
