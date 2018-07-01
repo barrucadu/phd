@@ -9,14 +9,14 @@ correctness of some program?  Any testing regimen is only as good as
 its tests.  For sequential programs, we can use the traditional metric
 of code coverage.  Code which is not covered at all usually has more
 bugs than code which is covered by even low-quality
-tests\cite{ahmed2016}.  For concurrent programs, what metric do we
+tests \parencite{ahmed2016}.  For concurrent programs, what metric do we
 use?  If it is some notion of coverage, what is the space being
 covered?  Here are two candidates:
 
 \begin{itemize}
 \item \emph{Schedule-sensitive branches} are often unintentional and
   erroneous points of synchronisation between concurrent
-  threads\cite{huang2015ssb}.  A good concurrency test suite should
+  threads \parencite{huang2015ssb}.  A good concurrency test suite should
   try all cases in a schedule-sensitive branch.
 
 \item \emph{Unguarded shared state} without a synchronisation
@@ -27,14 +27,14 @@ covered?  Here are two candidates:
 \end{itemize}
 
 Both statement coverage and mutation score have only a weak negative
-correlation with bug fixes\cite{ahmed2016}, but there \emph{is} a
+correlation with bug fixes \parencite{ahmed2016}, but there \emph{is} a
 statistically significant difference between uncovered code and code
-with some, even if low, coverage\cite{ahmed2016}.  Being able to
+with some, even if low, coverage \parencite{ahmed2016}.  Being able to
 identify the uncovered gaps of a concurrency test suite could greatly
 help with improving the overall quality of a piece of software.
 
 \paragraph{Maximal causality reduction for \dejafu{}}
-The MCR algorithm\cite{huang2015} explores a provably minimal number
+The MCR algorithm \parencite{huang2015} explores a provably minimal number
 of schedules required for completeness.  Typically this is orders of
 magnitude fewer than the number of schedules constrained only by
 dynamic partial-order reduction.  However, MCR is tricky to implement
@@ -89,7 +89,7 @@ important relative to each other, the problem only becomes more
 confusing.
 
 \paragraph{Conditional properties in CoCo}
-Speculate\cite{braquehais2017} discovers conditional equations and
+Speculate \parencite{braquehais2017} discovers conditional equations and
 inequalities automatically, which greatly expands the range of
 properties which can be found.  Conditional properties are useful as
 we see how our functions behave in different situations, rather than
@@ -100,12 +100,12 @@ it would be much more useful if CoCo could synthesise preconditions,
 as Speculate does, to discover interesting cases itself.
 
 \paragraph{Term rewriting for CoCo}
-Both QuickSpec\cite{smallbone2017} and Speculate\cite{braquehais2017}
+Both QuickSpec \parencite{smallbone2017} and Speculate \parencite{braquehais2017}
 use term rewriting to prune the discovered properties and to avoid
 testing many cases.  Pruning by reducing to a normal form is difficult
 to do with concurrency, as effects may be non-local.  For example,
 consider with relaxed memory where writes to shared variables may be
-delayed\cite{zhang2015}.  Such behaviours make the effect of composing
+delayed \parencite{zhang2015}.  Such behaviours make the effect of composing
 two terms far less predictable.  Even so, it may still be possible in
 some cases to use something like term rewriting to prune properties.
 
@@ -117,7 +117,7 @@ concurrency testing tool, recording the results of each execution;
 different to how we test sequential programs.
 
 Test cases for sequential programs are generally written in a
-three-part ``given, when, then'' style\cite{fowler2013}.  The
+three-part ``given, when, then'' style \parencite{fowler2013}.  The
 ``given'' sets up the system under test, the ``when'' exercises it in
 some way, and the ``then'' decides if the test passes or fails.  But
 in a test case for a concurrent program, we may never reach the
@@ -132,7 +132,7 @@ failure state, the ``then'' component is still executed.  When a
 failure is reported, a \emph{simplified} description of the execution
 of the ``when'' component, containing just the key details, can be
 given to the user.  Maybe this is not a complete trace: the
-\textsc{Concurrit}\cite{elmas2013} tool offers an alternative
+\textsc{Concurrit} \parencite{elmas2013} tool offers an alternative
 approach, where executions are represented by a small collection of
 scheduling constraints.
 

@@ -23,7 +23,7 @@ Haskell specific.  Haskell has an unusually rich concurrency
 abstraction, whereas SCT techniques are typically described in the
 literature for simple concurrency abstractions.  Even real programming
 languages tend to have simple concurrency abstractions.
-Maple\cite{yu2012} is able to test arbitrary pthread programs by
+Maple \parencite{yu2012} is able to test arbitrary pthread programs by
 considering just 19 primitive actions, whereas the expression of
 Haskell concurrency in \dejafu{} requires 34 just for concurrency, and
 a further 9 for STM.  The number of primitive actions a concurrency
@@ -40,7 +40,7 @@ SCT can be applied to languages with rich concurrency abstractions.
 \paragraph{Effective bug finding with randomised scheduling}
 \Cref{chp:algorithms} introduced the swarm scheduling algorithm.  Our
 benchmark results in \Cref{sec:algorithms-bench} show that it performs
-as well as the PCT algorithm\cite{burckhardt2010} in terms of
+as well as the PCT algorithm \parencite{burckhardt2010} in terms of
 bug-finding ability.  Crucially, PCT requires the user to supply
 parameters derived from the program under test, whereas swarm
 scheduling does not.  The freedom from any such requirement makes
@@ -71,8 +71,8 @@ Requiring programmers to modify their code, even in a straightforward
 way, is a barrier to entry that many will not wish to overcome.
 Furthermore, when typeclass-polymorphic code is compiled, the
 definitions of typeclass member functions cannot be inlined, as they
-are not known\cite{peytonjones2002}.  The recent Backpack
-work\cite{yang2017} offers an alternative here, lessening the code
+are not known \parencite{peytonjones2002}.  The recent Backpack
+work \parencite{yang2017} offers an alternative here, lessening the code
 modification problem and solving the optimisation problem.
 
 \paragraph{The inevitable exponentials}
@@ -83,18 +83,18 @@ multiple times with different schedules.  This multiplicity adds
 significant overhead compared to sequential tests, where a single
 execution suffices.  Even worse, a concurrent program with $n$ threads
 which each execute for at most $k$ steps can have as many as
-$\frac{(nk)!}{(k!)^{n}}$ executions\cite{musuvathi2007}!
+$\frac{(nk)!}{(k!)^{n}}$ executions \parencite{musuvathi2007}!
 
 \dejafu{} implements schedule
-bounding\cite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
-reduction\cite{flanagan2005,godefroid1996} to improve the average
+bounding \parencite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
+reduction \parencite{flanagan2005,godefroid1996} to improve the average
 case, but the worst case remains a possibility.  Empirical studies
 show that small test cases with just two threads and two pre-emptive
 context switches suffice for finding many real-world concurrency
-bugs\cite{thomson2014}.  There is a \emph{small-scope hypothesis}
+bugs \parencite{thomson2014}.  There is a \emph{small-scope hypothesis}
 here: most concurrency bugs do not only arise in complicated test
 cases; rather, we just need a handful of actions to happen in the
-wrong order.  This is the intuition behind PCT\cite{burckhardt2010}.
+wrong order.  This is the intuition behind PCT \parencite{burckhardt2010}.
 So there is a terrible asymptotic worst case, but in practice test
 cases are often small.  When test cases \emph{are} too large for
 systematic testing to effectively explore the state-space, then we can
@@ -124,8 +124,8 @@ information is truly important?  It is not obvious.
 \paragraph{Overall conclusions}
 Concurrency errors, sometimes called ``Heisenbugs'' due to their
 unpredictable behaviour, can be among the most difficult to
-debug\cite{musuvathi2008osdi}.  The ideas behind concurrency testing
-have been around for some time now\cite{godefroid1996}, and yet
+debug \parencite{musuvathi2008osdi}.  The ideas behind concurrency testing
+have been around for some time now \parencite{godefroid1996}, and yet
 concurrency testing tools are not widely used.  By contributing new
 tools and illustrating what they can do we hope to help address this
 problem.

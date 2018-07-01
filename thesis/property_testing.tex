@@ -15,7 +15,7 @@ tools for generating properties~\sref{property_testing-gen}.
 \section{Properties as Tests}
 \label{sec:property_testing-intro}
 
-Property-based testing\cite{claessen2000}, sometimes called
+Property-based testing \parencite{claessen2000}, sometimes called
 \emph{parameterised unit testing}, is an approach to testing where the
 programmer gives general laws (or properties) which should hold for
 all input values.  For example, the property in
@@ -114,10 +114,10 @@ Legend:\hspace{1em}
 \paragraph{Input value generation}
 Inputs can either be generated randomly or enumerated.  Although
 simple, randomisation tends to work well in practice.
-QuickCheck\cite{claessen2000} is an example of a tool using random
+QuickCheck \parencite{claessen2000} is an example of a tool using random
 value generation.  Alternatively, we may assume that there is some
 enumeration likely to expose useful counterexamples.
-SmallCheck\cite{runciman2008} and LeanCheck\cite{leancheck} enumerate
+SmallCheck \parencite{runciman2008} and LeanCheck \parencite{leancheck} enumerate
 values in size order, on the assumption that most bugs are exhibited
 by simple counterexamples.  Simple counterexamples are more useful to
 the programmer than large ones, so random approaches must have an
@@ -170,16 +170,16 @@ testing of concurrent programs.
 \paragraph{Output}
 How a tool presents its output is of great importance.  Randomly
 generated counterexamples, such as those found by
-QuickCheck\cite{claessen2000}, are often not minimal.  Searching for a
+QuickCheck \parencite{claessen2000}, are often not minimal.  Searching for a
 local minimum by shrinking randomly generated counterexamples before
 displaying them is a common approach.  However, shrinking and
 enumeration are not the only ways to produce small counterexamples.
-Both SmartCheck\cite{pike2014} and Lazy SmallCheck\cite{runciman2008}
-can generalise counter\-examples.  LeanCheck\cite{leancheck} can
+Both SmartCheck \parencite{pike2014} and Lazy SmallCheck \parencite{runciman2008}
+can generalise counter\-examples.  LeanCheck \parencite{leancheck} can
 generalise counterexamples when used with the
-Extrapolate\cite{braquehais2017ifl} tool.  Generalising
+Extrapolate \parencite{braquehais2017ifl} tool.  Generalising
 counterexamples directly can be more efficient than a shrinking
-process as in QuickCheck\cite{pike2014}.  Furthermore, it is often
+process as in QuickCheck \parencite{pike2014}.  Furthermore, it is often
 possible to produce a generalisation which is simpler than any
 concrete counterexample.  \Cref{lst:gencntr} shows such a generalised
 counterexample.  The property here fails for lists which contain
@@ -206,19 +206,19 @@ testing has spread to other languages.
 
 \begin{itemize}
 \item QuviQ provide a commercial version of QuickCheck for
-  Erlang\cite{arts2006}.
+  Erlang \parencite{arts2006}.
 \item The popular JUnit library for Java provides built-in support for
-  parameterised tests\cite{parameterized_tests}, and the
-  junit-quickcheck\cite{junit_quickcheck} library provides a more
+  parameterised tests \parencite{parameterized_tests}, and the
+  junit-quickcheck \parencite{junit_quickcheck} library provides a more
   traditional property testing experience.
 \item The Go standard library provides a
-  testing/quick\cite{testing_quick} module.
-\item The Hypothesis\cite{hypothesis_python} tool for Python
+  testing/quick \parencite{testing_quick} module.
+\item The Hypothesis \parencite{hypothesis_python} tool for Python
   implements property-based testing, but does not do type-directed
   input value generation.
 \item NUnit, the common .NET unit testing library, allows tests to be
-  parameterised with random numeric values\cite{random_attribute}, and with
-  combinations of values of arbitrary types\cite{values_attribute}.
+  parameterised with random numeric values \parencite{random_attribute}, and with
+  combinations of values of arbitrary types \parencite{values_attribute}.
 \end{itemize}
 
 Although QuickCheck was arguably the first tool to popularise this style of
@@ -238,8 +238,8 @@ such properties are surprisingly accurate in practice, and often lead
 to a deeper understanding of the program under test.
 
 \paragraph{Testing}
-QuickSpec\cite{claessen2010,smallbone2017} and
-Speculate\cite{braquehais2017} are tools for Haskell which
+QuickSpec \parencite{claessen2010,smallbone2017} and
+Speculate \parencite{braquehais2017} are tools for Haskell which
 automatically discover equational laws of pure functions.  Both are
 based on generating and testing candidate expressions.  Speculate,
 unlike QuickSpec, can discover inequalities and conditional equations.
@@ -306,7 +306,7 @@ abs y <= x ==>     abs (x + y) == x + y
 \end{listing}
 
 \paragraph{Machine learning}
-The Daikon\cite{ernst2007} tool discovers \emph{likely invariants} of
+The Daikon \parencite{ernst2007} tool discovers \emph{likely invariants} of
 C, C++, Java, and Perl programs.  It observes variables in memory
 during the execution of a program, and applies machine learning
 techniques to discover properties that seem to hold.  These properties
@@ -322,7 +322,7 @@ described here discover properties based on the program API.
 \paragraph{Concurrency testing}
 A variant of the Daikon tool discovers likely invariants of concurrent
 C and C++ programs using code instrumentation and systematic
-concurrency testing techniques\cite{kusano2015}.  The invariants it
+concurrency testing techniques \parencite{kusano2015}.  The invariants it
 finds are so-called \emph{transition invariants} that capture the
 relations amongst mutable state shared between threads.
 
@@ -356,7 +356,7 @@ will not.  The authors argue that examining discrepancies between
 invariants can lead to greater understanding of the software under
 test and diagnosis of errors.
 
-The \textsc{Determin} tool\cite{burnim2010} infers deterministic
+The \textsc{Determin} tool \parencite{burnim2010} infers deterministic
 specifications for procedures which make use of internal parallelism.
 A program may have many such procedures.  These specifications are in
 the form of a precondition and a postcondition over program states.
@@ -378,7 +378,7 @@ state $s$, the variable $v$ gets the same value (if execution
 terminates).''
 
 \paragraph{Example-driven property discovery}
-The Bach\cite{smith2017} tool uses a database of examples of
+The Bach \parencite{smith2017} tool uses a database of examples of
 input/output values from functions to synthesise properties using a
 Datalog-based oracle.  As it is based on examples, it is not tied to
 any particular programming language.  Bach could even be used to

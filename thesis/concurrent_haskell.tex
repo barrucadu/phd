@@ -1,5 +1,5 @@
-In this chapter we give an overview of Concurrent
-Haskell\cite{peytonjones2005,peytonjones1996}.  We use Haskell as the
+In this chapter we give an overview of Concurrent Haskell
+\parencite{peytonjones2005,peytonjones1996}.  We use Haskell as the
 implementation language, and the source of the concurrency abstraction
 we target, in this thesis.  Concurrency is not in the Haskell
 standard, the operations we discuss are available in GHC and may not
@@ -12,7 +12,7 @@ development of a small example
 program~\sref{concurrent_haskell-example}.
 
 Throughout, we compare with the concurrency abstractions of
-Java\cite{lea1996} and Rust\cite{rust2011}.  Java because it is a
+Java \parencite{lea1996} and Rust \parencite{rust2011}.  Java because it is a
 popular language which, like Haskell, has exceptions.  Rust because
 its design borrows from the spirit of functional languages.  Although
 we use Haskell, there is nothing Haskell-specific in our results or
@@ -55,7 +55,7 @@ Thread me = Thread.currentThread();
 \caption{Basic threading operations in Java.}\label{lst:basic_java}
 \end{listing}
 
-In Java\cite{lea1996}, threads are created from classes implementing
+In Java \parencite{lea1996}, threads are created from classes implementing
 the \verb|Runnable| interface, as shown in \Cref{lst:basic_java}.  The
 \verb|Thread| constructor creates a new thread object from a
 \verb|Runnable|, but it does not start until \verb|Thread.start| is
@@ -78,7 +78,7 @@ let me = thread::current();
 \caption{Basic threading operations in Rust.}\label{lst:basic_rust}
 \end{listing}
 
-Rust\cite{rust2011} supports both the Haskell and Java thread creation
+Rust \parencite{rust2011} supports both the Haskell and Java thread creation
 styles, as shown in \Cref{lst:basic_rust}.  The Haskell-style
 \verb|thread::spawn| function takes a closure to execute, creates and
 immediately begins executing a thread, and returns an identifier.  The
@@ -95,9 +95,9 @@ that a particular application of concurrency is only a net gain if
 each thread is operating on a separate core, so that threads are not
 interrupting each other.  GHC uses a \emph{green threading} model,
 where Haskell threads are multiplexed onto a much smaller number of
-operating system threads\cite{marlow2009}.  The number of operating
+operating system threads \parencite{marlow2009}.  The number of operating
 system threads is referred to as the number of \emph{capabilities} or
-\emph{Haskell execution contexts} (HECs)\cite{marlow2009}.  Only
+\emph{Haskell execution contexts} (HECs) \parencite{marlow2009}.  Only
 operating system threads have the possibility of executing truly in
 parallel.
 
@@ -282,7 +282,7 @@ sem.release(/* quantity */);
 \end{listing}
 
 Java does not provide an exact analogue of \verb|MVar|, but it does
-provide semaphores\cite{ewd123}, shown in \Cref{lst:mute_java}, which
+provide semaphores \parencite{ewd123}, shown in \Cref{lst:mute_java}, which
 can be used to control access to a shared resource.  Furthermore,
 every Java object has an associated lock, which can be used to enforce
 mutual exclusion.
@@ -315,14 +315,16 @@ memory model of the underlying processor.  The documentation has this
 to say:
 
 \begin{displayquote}
-  In a concurrent program, \verb|IORef| operations may appear out-of-order to
-  another thread, depending on the memory model of the underlying processor
-  architecture.  For example, on x86, loads can move ahead of stores.
+  In a concurrent program, \verb|IORef| operations may appear
+  out-of-order to another thread, depending on the memory model of the
+  underlying processor architecture.  For example, on x86, loads can
+  move ahead of stores.
 
-  The implementation is required to ensure that reordering of memory operations
-  cannot cause type-correct code to go wrong.  In particular, when inspecting
-  the value read from an \verb|IORef|, the memory writes that created that value
-  must have occurred from the point of view of the current thread.\cite{data_ioref}
+  The implementation is required to ensure that reordering of memory
+  operations cannot cause type-correct code to go wrong.  In
+  particular, when inspecting the value read from an \verb|IORef|, the
+  memory writes that created that value must have occurred from the
+  point of view of the current thread. \parencite{data_ioref}
 \end{displayquote}
 
 Many non-\verb|IORef| operations are \emph{synchronised}, and act as a
@@ -332,7 +334,7 @@ transaction~\sref{concurrent_haskell-stm}, and throwing an
 asynchronous exception~\sref{concurrent_haskell-exc}.  There are also
 synchronised \verb|IORef| operations, shown in
 \Cref{lst:atomic_haskell}.  In our work, we support the Total Store
-Order~(TSO)\cite{owens2009} and Partial Store Order~(PSO)\cite{sparc}
+Order~(TSO) \parencite{owens2009} and Partial Store Order~(PSO) \parencite{sparc}
 models~\sref{dejafu-execution}.
 
 \begin{listing}
@@ -367,15 +369,15 @@ strongest is \verb|SeqCst|, which imposes sequential consistency.
 While relaxed memory models are used for performance, research
 suggests that in languages which statically distinguish between shared
 and thread-local state such as Haskell, sequential consistency can be
-imposed for all shared state with little overhead\cite{vollmer2017}.
+imposed for all shared state with little overhead \parencite{vollmer2017}.
 If implemented in Haskell, this policy would greatly simplify correct
 use of \verb|IORef|s.
 
 \paragraph{Compare-and-swap}
 Modern processor architectures provide an atomic
 \emph{compare-and-swap} instruction, which is typically used in
-implementing lock-free algorithms\cite{dice2013}.  The
-atomic-primops package\cite{atomic_primops} provides a model of this
+implementing lock-free algorithms \parencite{dice2013}.  The
+atomic-primops package \parencite{atomic_primops} provides a model of this
 instruction.
 
 \begin{listing}
@@ -437,7 +439,7 @@ Shared variables are nice, until we need more than one.  As we can
 only claim one \verb|MVar| atomically (or write to one \verb|IORef|
 atomically), it seems we need to introduce additional synchronisation.
 This is unwieldy and prone to bugs.  \emph{Software transactional
-  memory} (STM)\cite{harris2005,shavit1995} is the solution.  STM is
+  memory} (STM) \parencite{harris2005,shavit1995} is the solution.  STM is
 based on the idea of atomic \emph{transactions}.  A transaction
 consists of one or more operations over a collection of
 \emph{transaction variables}, where a transaction may be aborted
@@ -506,7 +508,7 @@ shared variables without worrying about atomicity.  However, using STM
 requires the program to be structured in a way which separates state
 modifications from other IO operations.  Furthermore, due to how
 transactions are aborted and restarted when a conflict occurs, large
-transactions can be slow\cite{le2015}.
+transactions can be slow \parencite{le2015}.
 
 \section{Exceptions}
 \label{sec:concurrent_haskell-exc}
@@ -570,7 +572,7 @@ Rust does not really have exceptions.  The \verb|panic| function,
 shown in \Cref{lst:excs_rust}, raises an error which, if uncaught,
 kills the current thread.  The \verb|catch_unwind| function can be
 used to execute a closure and recover from a panic, but it is not
-guaranteed to catch all panics\cite{catch_unwind}, making panics
+guaranteed to catch all panics \parencite{catch_unwind}, making panics
 unsuitable as a general control-flow mechanism.  The typical Rust
 approach is, like Haskell, to return a type indicating success or
 failure.
@@ -593,7 +595,7 @@ synchronous exceptions thrown with \verb|throw|.
 
 The Java \verb|Thread.stop| method is similar to \verb|killThread|,
 but is considered a bad idea and deprecated, as it causes the target
-thread to immediately release any locks it holds\cite{oracle2017}.
+thread to immediately release any locks it holds \parencite{oracle2017}.
 The preferred approach is the \verb|Thread.interrupt| method, which
 will either throw an exception or set a flag, depending on what the
 target thread is doing.  For example, if the target thread is blocked
@@ -666,7 +668,7 @@ setReminder s = do
   threadDelay (10^6 * s)        -- 3
   putStrLn "Time is up!\BEL"    -- 4
 \end{cminted}
-\caption[A simple alarm program.]{A simple alarm program.  Adapted from~\cite{marlow2013}.}\label{lst:ch_ex1}
+\caption[A simple alarm program.]{A simple alarm program.  Adapted from \cite{marlow2013}.}\label{lst:ch_ex1}
 \end{listing}
 %$
 

@@ -3,7 +3,7 @@
   {[}\dejafu{} is] A martial art in which the user's limbs move in
   time as well as space, [\ldots] It is best described as ``the
   feeling that you have been kicked in the head this way
-  before.''\cite{pratchett2001}
+  before.'' \parencite{pratchett2001}
 \end{displayquote}
 
 \noindent
@@ -21,8 +21,8 @@ testing approach~\sref{dejafu-correctness}.  We present three case
 studies~\sref{dejafu-casestudies}, and finally evaluate our
 results~\sref{dejafu-evaluation}.
 
-This chapter is derived from our previous work \cite{YCS-2016-503} and
-\cite{walker2015}.
+This chapter is derived from our previous work \cite{walker2015} and
+\cite{YCS-2016-503}.
 
 \section{What is \dejafu{}?}
 \label{sec:dejafu-whatis}
@@ -454,7 +454,7 @@ alternative \emph{incomplete} approach to this, and other, concurrency
 problems.
 
 It's not the end for DPOR, however.  Empirical
-studies\cite{thomson2014} have found that many concurrency bugs can be
+studies \parencite{thomson2014} have found that many concurrency bugs can be
 exhibited with only two or three threads.  Furthermore, most
 real-world concurrent programs do not have every single thread
 operating on the same bit of shared state.  So in practice, we will
@@ -628,7 +628,7 @@ There are three memory models supported in \dejafu{}:
 \end{description}
 
 The default memory model for testing is TSO, as that most accurately
-models the behaviour of modern x86 processors\cite{owens2009}.  The
+models the behaviour of modern x86 processors \parencite{owens2009}.  The
 use of a relaxed memory model can require a much larger number of
 schedules when \verb|IORef|s are shared between threads.
 
@@ -1368,7 +1368,7 @@ API is richer than this, and the implicit dependencies between actions
 (such as which actions impose a memory barrier) are not documented.
 
 \Cref{fig:deprel} shows the dependency relation we use in \dejafu{}.
-The relation is conditional\cite{godefroid1993}: we record which
+The relation is conditional \parencite{godefroid1993}: we record which
 \verb|IORef|s have buffered writes, whether each \verb|MVar| is full or
 empty, and what the masking state of every thread is.  A conditional
 dependency relation allows more precise decisions.
@@ -1404,11 +1404,11 @@ dependency relation allows more precise decisions.
       \small \textbf{Dependencies:} \hspace{0.1cm} $t_1 \independent t_2$ \hspace{0.1cm} $t_1 \dependent t_3$
     };
   \end{tikzpicture}
-  \caption[The sleep set optimisation.]{The sleep set optimisation.  Transition $t_1$ may be pruned in state $s_1$ but not in state $s_2$.  The transition has been explored from state $s_0$ and there is no dependent transition between states $s_0$ and $s_1$, but there is between states $s_0$ and $s_2$.  Adapted from~\cite{coons2013}.}\label{fig:sleep}
+  \caption[The sleep set optimisation.]{The sleep set optimisation.  Transition $t_1$ may be pruned in state $s_1$ but not in state $s_2$.  The transition has been explored from state $s_0$ and there is no dependent transition between states $s_0$ and $s_1$, but there is between states $s_0$ and $s_2$.  Adapted from \cite{coons2013}.}\label{fig:sleep}
 \end{figure}
 
 \paragraph{Sleep sets}
-The sleep set optimisation\cite{godefroid1996} is a complementary
+The sleep set optimisation \parencite{godefroid1996} is a complementary
 approach to DPOR which we use to further reduce schedules explored.
 The intuition is as follows: if we are in a state $s_{0}$ and have a
 choice of two scheduling decisions, $t_{1}$ and $t_{2}$, after trying
@@ -1435,11 +1435,11 @@ the previously taken transitions to the sleep set of the new state,
 and removing the dependent transitions.
 
 \paragraph{Schedule bounding}
-\dejafu{} supports pre-emption bounding\cite{musuvathi2007}; fair
-bounding\cite{musuvathi2008}; and depth, or length,
-bounding\cite{russell2002}.  We use a variant of the bounded
-partial-order reduction algorithm~(BPOR)\cite{coons2013}, augmented
-with support for relaxed memory\cite{zhang2015}, as our core testing
+\dejafu{} supports pre-emption bounding \parencite{musuvathi2007}; fair
+bounding \parencite{musuvathi2008}; and depth, or length,
+bounding \parencite{russell2002}.  We use a variant of the bounded
+partial-order reduction algorithm~(BPOR) \parencite{coons2013}, augmented
+with support for relaxed memory \parencite{zhang2015}, as our core testing
 algorithm.  All three bounds are enabled by default, but can be
 selectively disabled or changed.
 
@@ -1512,7 +1512,7 @@ for finding bugs and is much faster than DPOR.
 
 \dejafu{} contains a trace simplifier, which attempts to rewrite
 traces into a shorter form.  Unlike the shrinking done in tools like
-QuickCheck\cite{claessen2000}, \dejafu{}'s trace simplification is
+QuickCheck \parencite{claessen2000}, \dejafu{}'s trace simplification is
 \emph{semantics-preserving}.  An execution trace can be rewritten into
 a simpler form which is guaranteed to produce the same result, and
 there is no need to run the program again to verify this.  We achieve
@@ -1621,7 +1621,7 @@ verify that \dejafu{} finds precisely the behaviours we expect.
 \dejafu{} is not one monolithic implementation.  It has components
 which can be specified and tested in isolation.  For example, the
 dependency relation must be commutative.  We use
-Hedgehog\cite{hedgehog}, a randomised property-testing library, to
+Hedgehog \parencite{hedgehog}, a randomised property-testing library, to
 check these properties of the implementation.
 
 \paragraph{Integration tests}
@@ -1644,7 +1644,7 @@ Our integration tests fall into the following classes:
 \item So-called \emph{litmus tests} for the relaxed memory
   implementation, ensuring that all expected relaxed behaviours are
   observed.
-\item A copy of the async library's\cite{async} test suite, for our
+\item A copy of the async library's \parencite{async} test suite, for our
   \verb|MonadConc| version.
 \item A collection of refinement tests from CoCo, which we shall
   discuss in \Cref{chp:coco}.
@@ -1655,8 +1655,8 @@ Our integration tests fall into the following classes:
 Finally, we have a collection of larger integration tests which serve
 also as example usages of \dejafu{}, three of which we discuss in
 \Cref{sec:dejafu-casestudies}: the auto-update
-library\cite{auto_update}, the monad-par
-library\cite{monad_par,marlow2011}, and the async library\cite{async}.
+library \parencite{auto_update}, the monad-par
+library \parencite{monad_par,marlow2011}, and the async library \parencite{async}.
 
 \subsection{Correct Execution}
 
@@ -1693,7 +1693,7 @@ correspond to how GHC handles scheduling:
   be pre-empted whenever it allocates some memory, which unfortunately
   means that tight loops which do no allocation tend to lock out other
   threads (this only seems to happen with pathological benchmark-style
-  code, however).\cite{control_concurrent}
+  code, however). \parencite{control_concurrent}
 \end{displayquote}
 
 So there are executions involving the pre-emption of the evaluation of
@@ -1781,7 +1781,7 @@ given program.  However, as schedule bounding is involved, some
 results may not be reached.  So instead we require that, for all sets
 of bounds, all results possible subject to those bounds show up under
 testing with the same bounds.  Our core testing algorithm satisfies
-this property\cite{coons2013}.
+this property \parencite{coons2013}.
 
 \section{Case Studies}
 \label{sec:dejafu-casestudies}
@@ -1791,11 +1791,11 @@ Haskell libraries:
 
 \begin{enumerate}
 \item We reproduce a known deadlock in the auto-update
-  library\cite{auto_update}.
+  library \parencite{auto_update}.
 \item We identify and fix a deadlock in the monad-par
-  library\cite{monad_par,marlow2011}.
+  library \parencite{monad_par,marlow2011}.
 \item We use property-based testing to reproduce a known bug in the
-  async library\cite{async}.
+  async library \parencite{async}.
 \end{enumerate}
 
 We chose these libraries because each is by proficient Haskell
@@ -1809,7 +1809,7 @@ test them with \dejafu{}.
 
 \subsection{auto-update}
 
-The auto-update library\cite{auto_update} runs tasks periodically, but
+The auto-update library \parencite{auto_update} runs tasks periodically, but
 only if needed.  For example, a web server may handle each request in
 a new thread, and log the time that the request arrives.  Rather than
 have every such new thread check the time, one thread could be created
@@ -2044,7 +2044,7 @@ catchSome act = catch act $
 \subsection{monad-par}
 \label{sec:dejafu-casestudies-par}
 
-The monad-par library\cite{monad_par,marlow2011} provides a
+The monad-par library \parencite{monad_par,marlow2011} provides a
 traditional-looking concurrency abstraction, giving the programmer
 threads and mutable state, however it is deterministic.  Determinism
 is enforced by restricting shared state: it is an error to write more
@@ -2052,8 +2052,8 @@ than once to the same mutable variable, and read operations block
 until a value has been written.  Programs written using the library
 will either give a deterministic result, or terminate with a
 multiple-write error.  These shared variables, called \verb|IVar|s,
-implement futures\cite{marlow2011}.  Despite its limitations, the
-library can be effective in speeding up pure code\cite{marlow2011}.
+implement futures \parencite{marlow2011}.  Despite its limitations, the
+library can be effective in speeding up pure code \parencite{marlow2011}.
 
 The library provides six different schedulers.  We ported the
 ``direct'' scheduler, a work-stealing scheduler, to the
@@ -2392,7 +2392,7 @@ makeScheds main = do
 \subsection{async}
 \label{sec:dejafu-casestudies-async}
 
-The async library\cite{async} allows programmers to write asynchronous
+The async library \parencite{async} allows programmers to write asynchronous
 code without needing to worry about details such as threads, shared
 state, or exceptions.  \Cref{lst:async_example} shows a typical usage
 of the library.  The \verb|async| function begins executing an
@@ -2462,7 +2462,7 @@ nondeterminism than \verb|ap|.
 Could \dejafu{} have helped here?  We believe so.  By changing the
 \verb|Concurrently| type to be polymorphic over the underlying monad,
 we can substitute in any \verb|MonadConc|.  We can then test the laws.
-We used QuickCheck\cite{claessen2000} for this, but any
+We used QuickCheck \parencite{claessen2000} for this, but any
 property-testing tool which can generate functions and check monadic
 properties would do.
 
@@ -2743,7 +2743,7 @@ had this to say (emphasis mine):
   \emph{I'd like to add that dejafu tests are by far the most reliable
     tests in our suite, in my experience - I am yet to see a
     concurrency bug that they didn't spot, while some other tests
-    missed them!}\cite{tweag2017}
+    missed them!} \parencite{tweag2017}
 \end{displayquote}
 
 \subsection{Richness of the Abstraction}
@@ -2833,14 +2833,14 @@ can be done to improve this matter.
 \subsection{Library Alternatives}
 
 There are popular Haskell libraries specifically for concurrency.  One
-of these is the async library\cite{async}, part of which we looked at
+of these is the async library \parencite{async}, part of which we looked at
 as a case study~\sref{dejafu-casestudies-async}, for expressing
 asynchronous computations.  This library is intended to be a
 higher-level and safer way of expressing asynchronous computations
 with guaranteed cleanup than using threading, mutable state, and
 asynchronous exceptions directly.
 
-Our concurrency library\cite{concurrency}, which provides
+Our concurrency library \parencite{concurrency}, which provides
 \verb|MonadConc|, includes an alternative to async using
 \verb|MonadConc|.  There is a test suite using \dejafu{}.  The test
 suite for async itself just runs most tests a single time, although
@@ -2859,15 +2859,15 @@ use this if I cannot use it with anything I use already?'
 \subsection{Tool Integration}
 
 There are two popular libraries for unit testing in Haskell,
-HUnit\cite{hunit} and Tasty\cite{tasty}.  From the perspective of the
+HUnit \parencite{hunit} and Tasty \parencite{tasty}.  From the perspective of the
 user, the libraries are similar, but from the perspective of the
 implementer, they have different approaches to integration.  The
-hunit-dejafu\cite{hunit_dejafu} and tasty-dejafu\cite{tasty_dejafu}
+hunit-dejafu \parencite{hunit_dejafu} and tasty-dejafu \parencite{tasty_dejafu}
 packages provide integration with both.
 
 These packages provide analogues of the \dejafu{} functions, but using
 the interface of the testing frameworks, rather than computing and
-printing results directly.  The test-framework\cite{test_framework}
+printing results directly.  The test-framework \parencite{test_framework}
 library is also in common use, however it supports integration with
 HUnit, and so needs no special support of its own.
 
@@ -2956,8 +2956,8 @@ concurrent Haskell programs:
   Control.Concurrent library module, although some operations are out
   of scope, or have their behaviour changed~\sref{dejafu-scope}.
 
-\item We use bounded partial-order reduction\cite{coons2013} with
-  relaxed memory\cite{zhang2015} as the core testing algorithm for
+\item We use bounded partial-order reduction \parencite{coons2013} with
+  relaxed memory \parencite{zhang2015} as the core testing algorithm for
   \dejafu{}, but also support a controlled random scheduling
   approach~\sref{dejafu-testing}.
 
