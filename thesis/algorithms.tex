@@ -64,6 +64,19 @@ bug on a single execution is $1/nk^{d−1}$.  The intuition behind PCT
 is that the occurrence of many concurrency bugs depends on orderings
 between only a few actions.
 
+\paragraph{Dynamic partial-order reduction}
+The algorithms we discuss in this chapter are \emph{alternatives} to
+DPOR.  They are useful when the program is too big for a complete
+approach, even with schedule bounding, and so exploring a
+representative sample of executions is all we have left.
+
+There is another approach: combining randomisation with DPOR.
+\cite{sen2007} proposes the RAPOS algorithm, which uses DPOR to prune
+the search space, and then explores a random subset of the partial
+orders discovered.  They show that this approach samples different
+partial orders more uniformly than a simple randomised scheduler, and
+so it is likely to discover faulty executions more reliably.
+
 \section{Weighted Random Scheduling and Swarm Testing}
 \label{sec:algorithms-swarm}
 
