@@ -68,17 +68,17 @@ threads are scheduled during testing.
 \begin{cminted}{haskell}
 example :: MonadConc m => m Bool
 example = do
-    r <- newCRef False
-    fork (threadDelay 1000000 >> writeCRef r True)
-    readCRef r
+    r <- newIORef False
+    fork (threadDelay 1000000 >> writeIORef r True)
+    readIORef r
 \end{cminted}
 \caption{A program with a large delay.}\label{lst:unreasonable}
 \end{listing}
 
-\Cref{lst:unreasonable} shows an example of a program with a delay: a
-\verb|CRef| is created holding the value \verb|False|, which is set to
+\Cref{lst:unreasonable} shows an example of a program with a delay: an
+\verb|IORef| is created holding the value \verb|False|, which is set to
 \verb|True| by another thread after a one hour delay.  Immediately
-after forking the second thread, the \verb|CRef| is read and its value
+after forking the second thread, the \verb|IORef| is read and its value
 returned.  What should a timing-aware \dejafu{} say about this
 program?  Currently, both \verb|True| and \verb|False| are reported as
 possible outcomes.  In reality, however, getting \verb|True| requires

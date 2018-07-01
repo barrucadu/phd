@@ -739,24 +739,24 @@ understanding of our code.
 \paragraph{Choice of implementation}
 Due to their blocking behaviour, \verb|MVar|s can have poor
 performance under contention.  An alternative concurrency primitive is
-the \verb|CRef|.  An atomic compare-and-swap operation allows threads
-using \verb|CRef| values to make progress with little overhead, even
+the \verb|IORef|.  An atomic compare-and-swap operation allows threads
+using \verb|IORef| values to make progress with little overhead, even
 with contention.  \Cref{lst:crefstack} shows our implementation, which
 is similar to the \verb|MVar| stack.
 
 \begin{listing}
 \centering
 \begin{cminted}{haskell}
-newtype CASStack m a = CASStack (CRef m [a])
+newtype CASStack m a = CASStack (IORef m [a])
 
 push :: MonadConc m => a -> CASStack m a -> m ()
-push a (CASStack r) = modifyCRefCAS r (\as -> (a:as, ()))
+push a (CASStack r) = modifyIORefCAS r (\as -> (a:as, ()))
 
 pop :: MonadConc m => CASStack m a -> m (Maybe a)
-pop (CASStack r) = modifyCRefCAS r (\as -> (drop 1 as, listToMaybe as))
+pop (CASStack r) = modifyIORefCAS r (\as -> (drop 1 as, listToMaybe as))
 
 peek :: MonadConc m => CASStack m a -> m (Maybe a)
-peek (CASStack r) = fmap listToMaybe (readCRef r)
+peek (CASStack r) = fmap listToMaybe (readIORef r)
 \end{cminted}
 \caption{A lock-free mutable stack.}
 \label{lst:crefstack}
@@ -765,21 +765,21 @@ peek (CASStack r) = fmap listToMaybe (readCRef r)
 A feature of CoCo that differentiates it from other property-discovery
 tools is the ability to compare two different signatures which have
 compatible observation types.  We can compare the \verb|MVar| and
-\verb|CRef| stacks by simply supplying \emph{both signatures} to the
+\verb|IORef| stacks by simply supplying \emph{both signatures} to the
 tool, each of which contains \verb|push|, \verb|pop|, \verb|peek|,
 \verb|whenJust|, and \verb#|||#.  CoCo then reports 19 properties,
 including the three in \Cref{lst:stacks}.  Here we use the list
 observation again.  Functions with names ending \verb|M| are for
-\verb|MVar| stacks, functions with names ending \verb|C| for
-\verb|CRef| stacks.  These properties tell us what we want to know:
-the \verb|CRef| stack is equivalent to the \verb|MVar| stack.
+\verb|MVar| stacks, functions with names ending \verb|R| for
+\verb|IORef| stacks.  These properties tell us what we want to know:
+the \verb|IORef| stack is equivalent to the \verb|MVar| stack.
 
 \begin{listing}
 \centering
 \begin{cminted}{text}
-   popM @  ===  popC @
-  peekM @  ===  peekC @
-pushM x @  ===  pushC x @
+   popM @  ===  popR @
+  peekM @  ===  peekR @
+pushM x @  ===  pushR x @
 \end{cminted}
 \caption{Discovering properties between signatures.}\label{lst:stacks}
 \end{listing}
@@ -804,7 +804,7 @@ operations to adjust the record in a race-free way.  \emph{Binary
 locks. \emph{Counting semaphores} have an arbitrary number of states.
 An implementation of counting semaphores is provided in the
 Control.Concurrent.QSemN library module.  As with the \verb|MVar| and
-\verb|CRef|, \dejafu{} provides a typeclass-generalised version which
+\verb|IORef|, \dejafu{} provides a typeclass-generalised version which
 we use here.
 
 \begin{listing}

@@ -592,7 +592,7 @@ successful case.
 
 Transactions allow the atomic execution of a sequence of operations
 involving \verb|TVar|s, transactional variables.  Unlike operations on
-\verb|CRef|s or \verb|MVar|s, transactions are composable and the
+\verb|IORef|s or \verb|MVar|s, transactions are composable and the
 whole remains atomic.  We express transactions in a similar way to
 concurrent programs: as a monad of continuations over a primitive
 action type.  As \dejafu{} drives the execution of a concurrent
@@ -613,8 +613,8 @@ There are three memory models supported in \dejafu{}:
 
 \begin{description}
 \item[Sequential Consistency] This model is the most intuitive.  A program
-  behaves as a simple interleaving of the actions in different threads.  When a
-  \texttt{CRef} is written to, that write is immediately visible to all
+  behaves as a simple interleaving of the actions in different threads.  When an
+  \texttt{IORef} is written to, that write is immediately visible to all
   threads.
 
 \item[Total Store Order (TSO)] Each thread has a write buffer.  A thread sees
@@ -623,24 +623,24 @@ There are three memory models supported in \dejafu{}:
   committed in program order.
 
 \item[Partial Store Order (PSO)] A relaxation of TSO where each thread has a
-  write buffer for each \verb|CRef|.  Writes to different \verb|CRef|s by the
+  write buffer for each \verb|IORef|.  Writes to different \verb|IORef|s by the
   same thread are not necessarily committed in program order.
 \end{description}
 
 The default memory model for testing is TSO, as that most accurately
 models the behaviour of modern x86 processors\cite{owens2009}.  The
 use of a relaxed memory model can require a much larger number of
-schedules when \verb|CRef|s are shared between threads.
+schedules when \verb|IORef|s are shared between threads.
 
 \paragraph{Write buffering}
 We model relaxed memory by introducing buffers for thread writes.  When a thread
-writes to a \verb|CRef|, the write is appended to its buffer.  When a thread
-reads from a \verb|CRef|, it reads the value of the newest write in its buffer,
+writes to an \verb|IORef|, the write is appended to its buffer.  When a thread
+reads from an \verb|IORef|, it reads the value of the newest write in its buffer,
 or the most recently committed value if the buffer is empty.  After a write is
 committed, it is removed from its buffer.  Any non-empty buffer may have a write
 committed, but only the oldest write in a buffer may be committed.  \Cref{fig:wb}
 shows the arrangement of buffers for the three memory models in a system with
-two threads and two \verb|CRef|s.
+two threads and two \verb|IORef|s.
 
 \begin{figure}
   \centering
@@ -707,14 +707,14 @@ two threads and two \verb|CRef|s.
     \end{tikzpicture}
     \caption{Partial Store Order}
   \end{subfigure}
-  \caption{Example of write buffering for two threads and two \texttt{CRef}s.}
+  \caption{Example of write buffering for two threads and two \texttt{IORef}s.}
   \label{fig:wb}
 \end{figure}
 
 We divide operations into three categories: \emph{synchronised}
 operations impose a \emph{memory barrier}, committing all writes;
 \emph{partially synchronised} operations commit one or more writes to
-the same \verb|CRef|; and \emph{unsynchronised} operations never cause
+the same \verb|IORef|; and \emph{unsynchronised} operations never cause
 a commit.
 
 \paragraph{Phantom threads}
@@ -745,7 +745,7 @@ the big-step behaviour.  This simplifies some aspects of their
 implementation.
 
 \paragraph{The heap}
-We implement \verb|CRef|s, \verb|MVar|s, and \verb|TVar|s with mutable
+We implement \verb|IORef|s, \verb|MVar|s, and \verb|TVar|s with mutable
 references.  We do not use a pure model of the heap, as we found the
 additional indirection to both increase allocation, and to reduce the
 efficacy of garbage collection.  By using references directly, when
@@ -873,9 +873,9 @@ The \verb|ALift| action is special, as it causes a Haskell-level
 effect to occur.  It produces a continuation by executing some
 \verb|IO| action.
 
-\paragraph{Rules for \texttt{CRef} operations}
-\Cref{fig:sem_cref} shows the semantics for the \verb|CRef|
-operations.  We represent a \verb|CRef| as reference to a pair of a
+\paragraph{Rules for \texttt{IORef} operations}
+\Cref{fig:sem_ioref} shows the semantics for the \verb|IORef|
+operations.  We represent a \verb|IORef| as reference to a pair of a
 number of commits and a latest value.
 
 We use $\texttt{H} \oplus \texttt{B}$ to mean a new heap with all
@@ -889,9 +889,9 @@ $\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]}$ to mean that only the
 buffered writes from thread \verb|tid| are committed.
 
 We use $\texttt{B} + \texttt{(tid, id, a)}$ to mean a new buffer
-state, with a write of value \verb|a| to \verb|CRef| \verb|id| by
+state, with a write of value \verb|a| to \verb|IORef| \verb|id| by
 thread \verb|tid| buffered.  We use $\texttt{B} - \texttt{(tid, id)}$
-to mean removing the oldest buffered write to \verb|CRef| \verb|id| by
+to mean removing the oldest buffered write to \verb|IORef| \verb|id| by
 thread \verb|tid| from the buffer.
 
 The \verb|ACommit| action has no continuation.  The phantom threads
@@ -930,48 +930,48 @@ action after passing an argument to change the masking state.  Only,
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ANewCRef a c}}$&
+\xrightarrow{\texttt{\small ANewIORef a c}}$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$ \\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AReadCRef id c}}$&
+\xrightarrow{\texttt{\small AReadIORef id c}}$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$ \\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(\_, x)}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AReadCRefCAS id c}}$&
+\xrightarrow{\texttt{\small AReadIORefCAS id c}}$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Ticket id n x)}]}\rangle$ \\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(n, x)}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AWriteCRef id a c}}$&
+\xrightarrow{\texttt{\small AWriteIORef id a c}}$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{memtype} = \texttt{SequentialConsistency}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AWriteCRef id a c}}$&
+\xrightarrow{\texttt{\small AWriteIORef id a c}}$&
 $\langle\texttt{C}, \texttt{B} + \texttt{(tid, id, a)}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{memtype} \neq \texttt{SequentialConsistency}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AModCRef id f c}}$&
+\xrightarrow{\texttt{\small AModIORef id f c}}$&
 $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{where $\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]} = \texttt{(n, a)}$}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AModCRefCAS id f c}}$&
+\xrightarrow{\texttt{\small AModIORefCAS id f c}}$&
 $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n, a)}$}\\
 & \\
 \multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ACasCRef id (Ticket id n \_) a c}}$}\\
+\xrightarrow{\texttt{\small ACasIORef id (Ticket id n \_) a c}}$}\\
 \multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (True, Ticket id (n+1) a)}]}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{n} = \texttt{n0}$}\\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, \_)}$}\\
 & \\
 \multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ACasCRef id (Ticket id n \_) \_ c}}$}\\
+\xrightarrow{\texttt{\small ACasIORef id (Ticket id n \_) \_ c}}$}\\
 \multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (False, Ticket id n0 a0)}]}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{n} \neq \texttt{n0}$}\\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, a0)}$}\\
@@ -982,7 +982,7 @@ $\langle\texttt{C}, \texttt{B'}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n+1, 
 \multicolumn{2}{l}{where $\texttt{H}_{[\texttt{id}]} = \texttt{(n, \_)}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{B} - \texttt{(tid, id)} = \texttt{(B', a')}$}
 \end{tabular}
-\caption{Transition semantics of \texttt{CRef} actions.}\label{fig:sem_cref}
+\caption{Transition semantics of \texttt{IORef} actions.}\label{fig:sem_ioref}
 \end{figure}
 
 \begin{figure}
@@ -1314,24 +1314,24 @@ the defaults will suffice for most users.
   \centering
   \footnotesize
   \begin{tabular}{R{4cm}@{\hspace{0.5em}}L{8cm}}
-    \texttt{atomicModifyCRef r \_} $\dependent$& \texttt{x}
+    \texttt{atomicModifyIORef r \_} $\dependent$& \texttt{x}
       \hfill if \texttt{x} uses \texttt{r} \\
     \texttt{atomically x} $\dependent$& \texttt{atomically y}
       \hfill if \texttt{x} writes to a \texttt{TVar} which \texttt{y} accesses \\
-    \texttt{casCRef r \_} $\dependent$& \texttt{x}
+    \texttt{casIORef r \_} $\dependent$& \texttt{x}
       \hfill if \texttt{x} uses \texttt{r} \\
     \texttt{commit \_} $\dependent$& \texttt{b}
       \hfill if \texttt{b} enforces a memory barrier \\
-    \texttt{commit r} $\dependent$& \texttt{writeCRef r}
+    \texttt{commit r} $\dependent$& \texttt{writeIORef r}
       \hfill if \texttt{r} has no buffered writes \\
     \texttt{commit r} $\dependent$& \texttt{x}
-      \hfill if \texttt{x} uses \texttt{r} and is not a \texttt{writeCRef r} \\
+      \hfill if \texttt{x} uses \texttt{r} and is not a \texttt{writeIORef r} \\
     \texttt{crefRead r} $\dependent$& \texttt{b}
       \hfill if \texttt{b} enforces a memory barrier and \texttt{r} has buffered writes \\
     \texttt{crefRead r} $\dependent$& \texttt{x}
       \hfill if \texttt{x} uses \texttt{r} and is not a \texttt{crefRead r} \\
     \texttt{liftIO \_} $\dependent$& \texttt{liftIO \_} \\
-    \texttt{modifyCRefCAS r \_} $\dependent$& \texttt{x}
+    \texttt{modifyIORefCAS r \_} $\dependent$& \texttt{x}
       \hfill if \texttt{x} uses \texttt{r} \\
     \texttt{mvarRead v} $\dependent$& \texttt{mvarRead v}
       \hfill if \texttt{v} is full \\
@@ -1342,12 +1342,12 @@ the defaults will suffice for most users.
     \texttt{setNumCapabilities \_} $\dependent$& \texttt{setNumCapabilities \_} \\
     \texttt{throwTo tgt} $\dependent$& \texttt{x}
       \hfill if \texttt{x} is on thread \texttt{tgt} and can be interrupted \\
-    \texttt{writeCRef r \_} $\dependent$& \texttt{x}
+    \texttt{writeIORef r \_} $\dependent$& \texttt{x}
       \hfill if \texttt{x} uses \texttt{r} and is not a \texttt{commit r} \\
     \texttt{x} $\dependent$& \texttt{y}
       \hfill if \texttt{y} $\dependent$ \texttt{x}
   \end{tabular}
-  \caption[The \dejafu{} dependency relation.]{The \dejafu{} dependency relation.  A \texttt{commit} commits one buffered write to a \texttt{CRef}.  A \texttt{crefRead} is a \texttt{readCRef} or a \texttt{readForCAS}.  An \texttt{mvarWrite} is a \texttt{putMVar} or a \texttt{tryPutMVar}.  An \texttt{mvarRead} is a \texttt{takeMVar}, \texttt{tryTakeMVar}, \texttt{readMVar}, or \texttt{tryReadMVar}.}\label{fig:deprel}
+  \caption[The \dejafu{} dependency relation.]{The \dejafu{} dependency relation.  A \texttt{commit} commits one buffered write to a \texttt{IORef}.  A \texttt{crefRead} is a \texttt{readIORef} or a \texttt{readForCAS}.  An \texttt{mvarWrite} is a \texttt{putMVar} or a \texttt{tryPutMVar}.  An \texttt{mvarRead} is a \texttt{takeMVar}, \texttt{tryTakeMVar}, \texttt{readMVar}, or \texttt{tryReadMVar}.}\label{fig:deprel}
 \end{figure}
 
 \paragraph{Dependency relation}
@@ -1369,7 +1369,7 @@ API is richer than this, and the implicit dependencies between actions
 
 \Cref{fig:deprel} shows the dependency relation we use in \dejafu{}.
 The relation is conditional\cite{godefroid1993}: we record which
-\verb|CRef|s have buffered writes, whether each \verb|MVar| is full or
+\verb|IORef|s have buffered writes, whether each \verb|MVar| is full or
 empty, and what the masking state of every thread is.  A conditional
 dependency relation allows more precise decisions.
 
@@ -1668,7 +1668,7 @@ possible execution under \dejafu{}?
 \paragraph{Program behaviour}
 There is no standard for concurrent Haskell.  There is only what GHC
 provides.  The behaviour of many operations is clear, but for some it
-is not.  \verb|CRef| operations are particularly complicated, as their
+is not.  \verb|IORef| operations are particularly complicated, as their
 behaviour depends on the underlying memory model, which is
 unspecified.  We chose TSO, and assume that the GHC optimiser or code
 generator does not affect the memory model.
@@ -1813,7 +1813,7 @@ The auto-update library\cite{auto_update} runs tasks periodically, but
 only if needed.  For example, a web server may handle each request in
 a new thread, and log the time that the request arrives.  Rather than
 have every such new thread check the time, one thread could be created
-to update a single shared \verb|CRef| every second.  However, if the
+to update a single shared \verb|IORef| every second.  However, if the
 request frequency is less than once per second, this is wasted work.
 The library allows defining a periodic action which only runs when
 needed.
@@ -2200,10 +2200,10 @@ dependent and so tries every possible interleaving of these.
 (Continue,[],LiftIO)
 (Continue,[],LiftIO)
 (Continue,[],LiftIO)
-(Continue,[],ReadCRef 2)
+(Continue,[],ReadIORef 2)
 (Continue,[],LiftIO)
 (Continue,[],NewMVar 7)
-(Continue,[],ModCRef 4)
+(Continue,[],ModIORef 4)
 (Continue,[],GetNumCapabilities 2)
 (Continue,[],BlockedTakeMVar 7)
 \end{cminted}
