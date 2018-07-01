@@ -435,7 +435,12 @@ inside \verb|TVar|s.  We would then be able to check if any
 \verb|TVar| read during a transaction which blocked has a different
 value: if none do, the transaction will just block again.  But we
 cannot do that without putting an \verb|Eq| constraint on
-\verb|writeTVar|, so this would require a new primitive action.
+\verb|writeTVar|, so this would require a new primitive action.  We
+get part of the way there, though.  If a thread is blocked in a
+transaction, \dejafu{} only tries executing it again when at least one
+of the \verb|TVar|s it reads from has been written to, which gives a
+similar effect to the version numbering scheme commonly used in STM
+implementations \parencite{shavit1995}.
 
 \dejafu{} can make use of (2).  \dejafu{} already bounds the maximum
 number of times a thread can yield, so that it can test constructs
