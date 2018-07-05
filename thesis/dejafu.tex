@@ -136,8 +136,8 @@ system.  In particular, we do not support:
 
 \item Automatically detecting if a thread is deadlocked on an
   \verb|MVar| or \verb|TVar| and throwing an exception to it, as we
-  cannot reliably detect deadlock involving only a subset of threads
-  without support from the garbage collector.
+  cannot detect this situation without support from the garbage
+  collector.
 \end{itemize}
 
 We also do not yet support \emph{bound threads}: a Haskell thread
@@ -149,24 +149,12 @@ a prototype implementation, which is planned to be included in the
 next major release of
 \dejafu{}\footnote{\url{https://github.com/barrucadu/dejafu/issues/126}}.
 
-There is more to \verb|IO| than concurrency and exceptions.  \dejafu{} supports
-testing computations with embedded \verb|IO| actions provided that the
-programmer ensures that the \verb|IO| action is atomic; that it is deterministic
-when executed with a fixed schedule; and that it does not block on the action of
-another thread.  Failing to meet any of these conditions may lead to incomplete
-testing.
-
 \paragraph{Semantic departures}
 In the functionality we do support, we model behaviour as close as
 reasonably possible to GHC.  We make a few departures from the
 traditional semantics where there is good reason to do so:
 
 \begin{itemize}
-\item When querying the number of capabilities, we return two if not
-  otherwise set, despite executing everything in the same OS thread.
-  This is to avoid special-case behaviour for one capability, which
-  may reduce concurrency.
-
 \item Runtime errors, such as pattern match failures, can be caught as
   exceptions inside \verb|IO|.  As there is no non-\verb|IO| way to do
   the same, \dejafu{} cannot catch these errors.
@@ -175,6 +163,13 @@ traditional semantics where there is good reason to do so:
   yields.  It is not clear how to incorporate time into the testing
   model.
 \end{itemize}
+
+\paragraph{Embedded \texttt{IO} actions}
+\dejafu{} supports testing computations with embedded \verb|IO|
+actions provided that the programmer ensures that the action is
+atomic; that it is deterministic when executed with a fixed schedule;
+and that it does not block on the action of another thread.  Failing
+to meet any of these conditions may lead to incomplete testing.
 
 \section{Abstracting over Concurrency}
 \label{sec:dejafu-monadconc}
