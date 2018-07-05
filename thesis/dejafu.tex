@@ -1591,8 +1591,9 @@ beginning we can delete a suffix of the trace.
 
 \paragraph{Prune redundant relaxed memory commit actions}
 If a commit action is followed by a memory barrier, possibly with some
-independent actions in between, then the commit can be removed.  The
-barrier will commit the write anyway.
+independent actions in between, the commit can be removed if there are
+no other buffered writes for that \verb|IORef|.  The barrier will
+commit the single write anyway.
 
 \paragraph{Reduce context switching by pulling actions backwards}
 We now walk through the trace from beginning to end, looking for
