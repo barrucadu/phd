@@ -1,21 +1,41 @@
-In this chapter we give an overview of Concurrent Haskell
-\parencite{peytonjones2005,peytonjones1996}.  We use Haskell as the
-implementation language, and the source of the concurrency abstraction
-we target, in this thesis.  Concurrency is not in the Haskell
-standard, the operations we discuss are available in GHC and may not
-be in other compilers.  We cover the basic use of
-concurrency~\sref{concurrent_haskell-threads}, the memory
+In this chapter we discuss the concurrency model of
+interest~\sref{concurrent_haskell-model}, and then give an overview of
+Concurrent Haskell \parencite{peytonjones2005,peytonjones1996}.  We
+use Haskell as the implementation language in this thesis.
+Concurrency is not in the Haskell standard, the operations we discuss
+are available in GHC and may not be in other compilers.  We cover the
+basic use of concurrency~\sref{concurrent_haskell-threads}, the memory
 model~\sref{concurrent_haskell-mmodel}, software transactional
 memory~\sref{concurrent_haskell-stm}, and
 exceptions~\sref{concurrent_haskell-exc}.  We then walk through the
 development of a small example
 program~\sref{concurrent_haskell-example}.
 
-Throughout, we compare with the concurrency abstractions of
-Java \parencite{lea1996} and Rust \parencite{rust2011}.  Java because it is a
-popular language which, like Haskell, has exceptions.  Rust because
-its design borrows from the spirit of functional languages.  Although
-we use Haskell, there is nothing Haskell-specific in our results or
+\section{The Concurrency Model}
+\label{sec:concurrent_haskell-model}
+
+Threads, locks, and shared variables are the bread and butter of
+concurrent programming.  We are interested in models of concurrency
+more complex than this.  In this thesis we focus on the model of
+Concurrent Haskell, which introduces a number of additional features:
+
+\begin{itemize}
+\item \emph{Relaxed memory}, where operations on shared variables may
+  appear to happen out-of-order.
+\item \emph{Software transactional memory}, where groups of shared
+  variables can be operated on together atomically.
+\item \emph{Synchronous exceptions}, where an error in a thread can
+  interrupt its flow of control.
+\item \emph{Asynchronous exceptions}, where one thread can
+  asynchronously interrupt the flow of control of another thread.
+\end{itemize}
+
+These features are not unique to Haskell.  Throughout, we compare with
+the concurrency abstractions of Java \parencite{lea1996} and Rust
+\parencite{rust2011}.  The overlap of functionality is not
+perfect---in some cases Haskell is more expressive, in others these
+languages are more expressive---but we hope to show that, although we
+use Haskell, there is nothing Haskell-specific in our results or
 methods.
 
 \section{Multithreading}
