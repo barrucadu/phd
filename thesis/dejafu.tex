@@ -1667,9 +1667,9 @@ Our integration tests fall into the following classes:
 \paragraph{Example programs}
 Finally, we have a collection of larger integration tests which serve
 also as example usages of \dejafu{}, three of which we discuss in
-\Cref{sec:dejafu-casestudies}: the auto-update
-library \parencite{auto_update}, the monad-par
-library \parencite{monad_par,marlow2011}, and the async library \parencite{async}.
+\Cref{sec:dejafu-casestudies}: the monad-par library
+\parencite{monad_par,marlow2011}, the auto-update library
+\parencite{auto_update}, and the async library \parencite{async}.
 
 \subsection{Correct Execution}
 
@@ -1803,10 +1803,10 @@ We now discuss the process and results of applying \dejafu{} to three
 Haskell libraries:
 
 \begin{enumerate}
-\item We reproduce a known deadlock in the auto-update
-  library \parencite{auto_update}.
 \item We identify and fix a deadlock in the monad-par
   library \parencite{monad_par,marlow2011}.
+\item We reproduce a known deadlock in the auto-update
+  library \parencite{auto_update}.
 \item We use property-based testing to reproduce a known bug in the
   async library \parencite{async}.
 \end{enumerate}
@@ -1819,227 +1819,6 @@ standard pitfalls of concurrent programming encounter problems.
 None of these libraries is written using the \verb|MonadConc|
 abstraction, so we had to modify the existing code before we could
 test them with \dejafu{}.
-
-\subsection{auto-update}
-
-The auto-update library \parencite{auto_update} runs tasks periodically, but
-only if needed.  For example, a web server may handle each request in
-a new thread, and log the time that the request arrives.  Rather than
-have every such new thread check the time, one thread could be created
-to update a single shared \verb|IORef| every second.  However, if the
-request frequency is less than once per second, this is wasted work.
-The library allows defining a periodic action which only runs when
-needed.
-
-The implementation, excluding comments and imports, is reproduced in
-\Cref{lst:autoupdate}.  The library defines a function,
-\verb|mkAutoUpdate|, which forks a worker thread to perform the action
-when required.  The function returns an \verb|IO| action to read the
-current result, if necessary blocking until there is one.  The
-transformation to the \verb|MonadConc| typeclass is straightforward,
-and we omit it here.
-
-\begin{listing}
-\centering
-\begin{cminted}{haskell}
-test_autoupdate :: MonadConc m => m ()
-test_autoupdate = do
-  auto <- mkAutoUpdate defaultUpdateSettings
-  auto
-\end{cminted}
-\caption{An example usage of the auto-update library.}\label{lst:autoupdate_example1}
-\end{listing}
-
-\Cref{lst:autoupdate_example1} shows an example usage of the
-\verb|MonadConc| version of the library.  The
-\verb|defaultUpdateSettings| value describes an auto-updater which
-runs every second, producing the value \verb|()|.  An \verb|MVar| is
-used to communicate to the thread that the updater should run.  Inside
-the worker, a delay is used to ensure that the action is not computed
-too frequently: this is what gives the rate limiting.  So we create an
-auto-updater which produces \verb|()|, and immediately demand the
-value.
-
-\begin{listing}
-\centering
-\begin{cminted}{text}
-> autocheck test_autoupdate
-
-[fail] Never Deadlocks
-        [deadlock] S0--------S1-----------S0-
-[pass] No Exceptions
-[fail] Consistent Result
-        () S0--------S1--------p0--
-
-        [deadlock] S0--------S1-----------S0-
-\end{cminted}
-\caption[Using \dejafu{} to run a collection of standard tests.]{Using \dejafu{} to run a collection of standard tests.  The \texttt{autocheck} function looks for deadlocks, uncaught exceptions in the main thread, and nondeterminism.  Each result is displayed with a simplified view of a representative execution trace.}\label{lst:autoupdate_example2}
-\end{listing}
-
-\paragraph{Testing with \dejafu{}}
-\Cref{lst:autoupdate_example2} shows one way in which we can use
-\dejafu{} to explore the behaviour of our small example.  The
-\verb|autocheck| function looks for some common concurrency errors.
-In this example, \dejafu{} discovers a deadlock.  Each result is
-displayed with a simplified view of a representative execution trace.
-More detailed execution traces are also available, which contain a
-summary of the primitive actions which occurred and the alternative
-scheduling decisions available.
-
-We can see from the trace of the deadlock result that thread 0
-executed for a while, then thread 1, then thread 0 again.  As these
-are all \verb|S| points, each thread executed until it blocked.  So we
-can look at the source code in \Cref{lst:autoupdate_example1} and
-\Cref{lst:autoupdate} to see what happened.
-
-Following the execution by eye, we see this sequence of concurrency
-events:
-
-\begin{enumerate}
-\item Thread 0:
-  \begin{enumerate}
-  \item Line 16: \verb|currRef <- newIORef Nothing|
-  \item Line 17: \verb|needsRunning <- newEmptyMVar|
-  \item Line 18: \verb|lastValue <- newEmptyMVar|
-  \item Line 20: \verb|void $ forkIO $ ...|
-  \item Line 35: \verb|mval <- readIORef currRef|
-  \item Line 39: \verb|void $ tryPutMVar needsRunning ()|
-  \item Line 40: \verb|readMVar lastValue|
-  \item \textbf{Thread 0 is now blocked, as \texttt{lastValue} is empty.}
-  \end{enumerate}
-\item Thread 1:
-  \begin{enumerate}
-  \item Line 21: \verb|takeMVar needsRunning|
-  \item Line 25: \verb|writeIORef currRef $ Just a|
-  \item Line 26: \verb|void $ tryTakeMVar lastValue|
-  \item Line 27: \verb|putMVar lastValue a|
-  \item \textbf{Thread 0 is now unblocked, as \texttt{lastValue} is full.}
-  \item Line 29: \verb|threadDelay $ updateFreq us|
-  \item Line 31: \verb|writeIORef currRef Nothing|
-  \item Line 32: \verb|void $ takeMVar lastValue|
-  \item \textbf{Thread 0 is still unblocked, even though \texttt{lastValue} is now empty again.}
-  \item \textbf{Thread 1 now loops.}
-  \item Line 21: \verb|takeMVar needsRunning|
-  \item \textbf{Thread 1 is now blocked, as \texttt{needsRunning} is empty.}
-  \end{enumerate}
-\item Thread 0:
-  \begin{enumerate}
-  \item Line 40: \verb|readMVar lastValue|
-  \item \textbf{Thread 0 is now blocked, as \texttt{lastValue} is empty.}
-  \end{enumerate}
-\end{enumerate}
-
-Both threads are blocked, so the computation is deadlocked.  The other
-result shown in \Cref{lst:autoupdate_example2} occurs if thread 0
-starts executing after thread 1 delays.  So the root cause of this
-deadlock is clear: deadlock may occur if the call to
-\verb|threadDelay| on line 29 completes before the other thread
-resumes execution.  Despite this bug being rather simple, not
-requiring any pre-emptions at all to trigger, it arose in practice.
-How easy it is to make mistakes when implementing concurrent programs!
-
-\begin{table}
-  \centering
-  \begin{subtable}{\textwidth}
-    \centering
-    \begin{tabular}{lSSSS} \toprule
-      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
-      Bounded DPOR   &  49 & 18 & 0.006 &  119 \\
-      Unbounded DPOR &  80 & 20 & 0.008 &  124 \\
-      Swarm          & 100 & 20 & 0.008 & 1297 \\ \bottomrule
-    \end{tabular}
-    \caption{Keeping all execution traces in memory.}\label{tbl:autoupdate_perf1}
-  \end{subtable}
-
-  % [layout hack]: no gap between the tables otherwise
-  \vspace{1.5em}
-
-  \begin{subtable}{\textwidth}
-    \centering
-    \begin{tabular}{lSSSS} \toprule
-      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
-      Bounded DPOR   &  49 & 18 & 0.006 &  71 \\
-      Unbounded DPOR &  80 & 20 & 0.006 &  63 \\
-      Swarm          & 100 & 20 & 0.006 & 108 \\ \bottomrule
-    \end{tabular}
-    \caption{Only keeping buggy execution traces in memory.}\label{tbl:autoupdate_perf2}
-  \end{subtable}
-  \caption[Performance of the auto-update case study with multiple strategies.]{Performance of the auto-update case study with three different exploration tactics.}\label{tbl:autoupdate_perf}
-\end{table}
-
-\paragraph{Performance of testing}
-\Cref{tbl:autoupdate_perf} shows performance measurements for our test
-case in six different configurations: three different algorithms to
-explore the space of schedules, keeping or discarding execution
-traces.  Both the library itself and our test case are small, so it is
-perhaps no surprise to see that in all configurations, execution only
-takes a fraction of a second.  We can see the effect of the schedule
-bounding: when the bounds are disabled, the number of schedules tried
-almost doubles, and two new deadlocking executions are found.
-
-To reduce memory usage, \dejafu{} is able to discard results or
-execution traces which the user considers uninteresting in some way.
-\Cref{tbl:autoupdate_perf2} shows the impact of this change, where we
-have designated non-deadlocking traces as uninteresting.  The effect
-is particularly significant in the Swarm case, suggesting that Swarm
-may tend to find longer execution traces than DPOR.
-
-\begin{listing}
-  \centering
-  \begin{minipage}{0.5\textwidth}
-  \begin{minted}[linenos]{haskell}
-data UpdateSettings a = UpdateSettings
-    { updateFreq           :: Int
-    , updateSpawnThreshold :: Int
-    , updateAction         :: IO a
-    }
-
-defaultUpdateSettings :: UpdateSettings ()
-defaultUpdateSettings = UpdateSettings
-    { updateFreq           = 1000000
-    , updateSpawnThreshold = 3
-    , updateAction         = return ()
-    }
-
-mkAutoUpdate :: UpdateSettings a -> IO (IO a)
-mkAutoUpdate us = do
-    currRef      <- newIORef Nothing
-    needsRunning <- newEmptyMVar
-    lastValue    <- newEmptyMVar
-
-    void $ forkIO $ forever $ do
-        takeMVar needsRunning
-
-        a <- catchSome $ updateAction us
-
-        writeIORef currRef $ Just a
-        void $ tryTakeMVar lastValue
-        putMVar lastValue a
-
-        threadDelay $ updateFreq us
-
-        writeIORef currRef Nothing
-        void $ takeMVar lastValue
-
-    pure $ do
-        mval <- readIORef currRef
-        case mval of
-            Just val -> return val
-            Nothing -> do
-                void $ tryPutMVar needsRunning ()
-                readMVar lastValue
-
-catchSome :: IO a -> IO a
-catchSome act = catch act $
-  \e -> pure $ throw (e :: SomeException)
-  \end{minted}
-  \end{minipage}
-  \caption{The implementation of the auto-update package.}\label{lst:autoupdate}
-\end{listing}
-
-% [layout hack]: get lst:autoupdate here.
-\FloatBarrier
-
 \subsection{monad-par}
 \label{sec:dejafu-casestudies-par}
 
@@ -2386,6 +2165,226 @@ makeScheds main = do
 \end{listing}
 
 % [layout hack]: get lst:parmonad here.
+\FloatBarrier
+
+\subsection{auto-update}
+
+The auto-update library \parencite{auto_update} runs tasks periodically, but
+only if needed.  For example, a web server may handle each request in
+a new thread, and log the time that the request arrives.  Rather than
+have every such new thread check the time, one thread could be created
+to update a single shared \verb|IORef| every second.  However, if the
+request frequency is less than once per second, this is wasted work.
+The library allows defining a periodic action which only runs when
+needed.
+
+The implementation, excluding comments and imports, is reproduced in
+\Cref{lst:autoupdate}.  The library defines a function,
+\verb|mkAutoUpdate|, which forks a worker thread to perform the action
+when required.  The function returns an \verb|IO| action to read the
+current result, if necessary blocking until there is one.  The
+transformation to the \verb|MonadConc| typeclass is straightforward,
+and we omit it here.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+test_autoupdate :: MonadConc m => m ()
+test_autoupdate = do
+  auto <- mkAutoUpdate defaultUpdateSettings
+  auto
+\end{cminted}
+\caption{An example usage of the auto-update library.}\label{lst:autoupdate_example1}
+\end{listing}
+
+\Cref{lst:autoupdate_example1} shows an example usage of the
+\verb|MonadConc| version of the library.  The
+\verb|defaultUpdateSettings| value describes an auto-updater which
+runs every second, producing the value \verb|()|.  An \verb|MVar| is
+used to communicate to the thread that the updater should run.  Inside
+the worker, a delay is used to ensure that the action is not computed
+too frequently: this is what gives the rate limiting.  So we create an
+auto-updater which produces \verb|()|, and immediately demand the
+value.
+
+\begin{listing}
+\centering
+\begin{cminted}{text}
+> autocheck test_autoupdate
+
+[fail] Never Deadlocks
+        [deadlock] S0--------S1-----------S0-
+[pass] No Exceptions
+[fail] Consistent Result
+        () S0--------S1--------p0--
+
+        [deadlock] S0--------S1-----------S0-
+\end{cminted}
+\caption[Using \dejafu{} to run a collection of standard tests.]{Using \dejafu{} to run a collection of standard tests.  The \texttt{autocheck} function looks for deadlocks, uncaught exceptions in the main thread, and nondeterminism.  Each result is displayed with a simplified view of a representative execution trace.}\label{lst:autoupdate_example2}
+\end{listing}
+
+\paragraph{Testing with \dejafu{}}
+\Cref{lst:autoupdate_example2} shows one way in which we can use
+\dejafu{} to explore the behaviour of our small example.  The
+\verb|autocheck| function looks for some common concurrency errors.
+In this example, \dejafu{} discovers a deadlock.  Each result is
+displayed with a simplified view of a representative execution trace.
+More detailed execution traces are also available, which contain a
+summary of the primitive actions which occurred and the alternative
+scheduling decisions available.
+
+We can see from the trace of the deadlock result that thread 0
+executed for a while, then thread 1, then thread 0 again.  As these
+are all \verb|S| points, each thread executed until it blocked.  So we
+can look at the source code in \Cref{lst:autoupdate_example1} and
+\Cref{lst:autoupdate} to see what happened.
+
+Following the execution by eye, we see this sequence of concurrency
+events:
+
+\begin{enumerate}
+\item Thread 0:
+  \begin{enumerate}
+  \item Line 16: \verb|currRef <- newIORef Nothing|
+  \item Line 17: \verb|needsRunning <- newEmptyMVar|
+  \item Line 18: \verb|lastValue <- newEmptyMVar|
+  \item Line 20: \verb|void $ forkIO $ ...|
+  \item Line 35: \verb|mval <- readIORef currRef|
+  \item Line 39: \verb|void $ tryPutMVar needsRunning ()|
+  \item Line 40: \verb|readMVar lastValue|
+  \item \textbf{Thread 0 is now blocked, as \texttt{lastValue} is empty.}
+  \end{enumerate}
+\item Thread 1:
+  \begin{enumerate}
+  \item Line 21: \verb|takeMVar needsRunning|
+  \item Line 25: \verb|writeIORef currRef $ Just a|
+  \item Line 26: \verb|void $ tryTakeMVar lastValue|
+  \item Line 27: \verb|putMVar lastValue a|
+  \item \textbf{Thread 0 is now unblocked, as \texttt{lastValue} is full.}
+  \item Line 29: \verb|threadDelay $ updateFreq us|
+  \item Line 31: \verb|writeIORef currRef Nothing|
+  \item Line 32: \verb|void $ takeMVar lastValue|
+  \item \textbf{Thread 0 is still unblocked, even though \texttt{lastValue} is now empty again.}
+  \item \textbf{Thread 1 now loops.}
+  \item Line 21: \verb|takeMVar needsRunning|
+  \item \textbf{Thread 1 is now blocked, as \texttt{needsRunning} is empty.}
+  \end{enumerate}
+\item Thread 0:
+  \begin{enumerate}
+  \item Line 40: \verb|readMVar lastValue|
+  \item \textbf{Thread 0 is now blocked, as \texttt{lastValue} is empty.}
+  \end{enumerate}
+\end{enumerate}
+
+Both threads are blocked, so the computation is deadlocked.  The other
+result shown in \Cref{lst:autoupdate_example2} occurs if thread 0
+starts executing after thread 1 delays.  So the root cause of this
+deadlock is clear: deadlock may occur if the call to
+\verb|threadDelay| on line 29 completes before the other thread
+resumes execution.  Despite this bug being rather simple, not
+requiring any pre-emptions at all to trigger, it arose in practice.
+How easy it is to make mistakes when implementing concurrent programs!
+
+\begin{table}
+  \centering
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
+      Bounded DPOR   &  49 & 18 & 0.006 &  119 \\
+      Unbounded DPOR &  80 & 20 & 0.008 &  124 \\
+      Swarm          & 100 & 20 & 0.008 & 1297 \\ \bottomrule
+    \end{tabular}
+    \caption{Keeping all execution traces in memory.}\label{tbl:autoupdate_perf1}
+  \end{subtable}
+
+  % [layout hack]: no gap between the tables otherwise
+  \vspace{1.5em}
+
+  \begin{subtable}{\textwidth}
+    \centering
+    \begin{tabular}{lSSSS} \toprule
+      & {Schedules} & {Deadlocks} & {Time (s)} & {Max Residency (kB)} \\ \midrule
+      Bounded DPOR   &  49 & 18 & 0.006 &  71 \\
+      Unbounded DPOR &  80 & 20 & 0.006 &  63 \\
+      Swarm          & 100 & 20 & 0.006 & 108 \\ \bottomrule
+    \end{tabular}
+    \caption{Only keeping buggy execution traces in memory.}\label{tbl:autoupdate_perf2}
+  \end{subtable}
+  \caption[Performance of the auto-update case study with multiple strategies.]{Performance of the auto-update case study with three different exploration tactics.}\label{tbl:autoupdate_perf}
+\end{table}
+
+\paragraph{Performance of testing}
+\Cref{tbl:autoupdate_perf} shows performance measurements for our test
+case in six different configurations: three different algorithms to
+explore the space of schedules, keeping or discarding execution
+traces.  Both the library itself and our test case are small, so it is
+perhaps no surprise to see that in all configurations, execution only
+takes a fraction of a second.  We can see the effect of the schedule
+bounding: when the bounds are disabled, the number of schedules tried
+almost doubles, and two new deadlocking executions are found.
+
+To reduce memory usage, \dejafu{} is able to discard results or
+execution traces which the user considers uninteresting in some way.
+\Cref{tbl:autoupdate_perf2} shows the impact of this change, where we
+have designated non-deadlocking traces as uninteresting.  The effect
+is particularly significant in the Swarm case, suggesting that Swarm
+may tend to find longer execution traces than DPOR.
+
+\begin{listing}
+  \centering
+  \begin{minipage}{0.5\textwidth}
+  \begin{minted}[linenos]{haskell}
+data UpdateSettings a = UpdateSettings
+    { updateFreq           :: Int
+    , updateSpawnThreshold :: Int
+    , updateAction         :: IO a
+    }
+
+defaultUpdateSettings :: UpdateSettings ()
+defaultUpdateSettings = UpdateSettings
+    { updateFreq           = 1000000
+    , updateSpawnThreshold = 3
+    , updateAction         = return ()
+    }
+
+mkAutoUpdate :: UpdateSettings a -> IO (IO a)
+mkAutoUpdate us = do
+    currRef      <- newIORef Nothing
+    needsRunning <- newEmptyMVar
+    lastValue    <- newEmptyMVar
+
+    void $ forkIO $ forever $ do
+        takeMVar needsRunning
+
+        a <- catchSome $ updateAction us
+
+        writeIORef currRef $ Just a
+        void $ tryTakeMVar lastValue
+        putMVar lastValue a
+
+        threadDelay $ updateFreq us
+
+        writeIORef currRef Nothing
+        void $ takeMVar lastValue
+
+    pure $ do
+        mval <- readIORef currRef
+        case mval of
+            Just val -> return val
+            Nothing -> do
+                void $ tryPutMVar needsRunning ()
+                readMVar lastValue
+
+catchSome :: IO a -> IO a
+catchSome act = catch act $
+  \e -> pure $ throw (e :: SomeException)
+  \end{minted}
+  \end{minipage}
+  \caption{The implementation of the auto-update package.}\label{lst:autoupdate}
+\end{listing}
+
+% [layout hack]: get lst:autoupdate here.
 \FloatBarrier
 
 \subsection{async}
