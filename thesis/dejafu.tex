@@ -1462,12 +1462,13 @@ main = do
 \caption{A program with a race condition.}\label{lst:daemon1}
 \end{listing}
 
-\Cref{lst:daemon1} has two results: \verb|Nothing|, and
-\verb|Just "hello world"|.  However, there is no dependency between
-\verb|myThreadId| and \verb|tryReadMVar|, so if the scheduler favours
-the main thread, we do not see the other result.  Introducing a
-dependency between the last action of the execution and everything
-else solves this problem.
+\Cref{lst:daemon1} gives a small concurrent program with two possible
+results: \verb|Nothing|, and \verb|Just "hello world"|.  If the
+scheduler favours the main thread we only see the \verb|Nothing| case,
+as there is no dependency between \verb|myThreadId| and
+\verb|tryReadMVar|.  Introducing a dependency between the last action
+of the execution (the \verb|tryReadMVar v| in this case) and
+everything else solves this problem.
 
 \begin{listing}
 \centering
@@ -1498,6 +1499,14 @@ ensuring that every decision is tried at least once, we do not need to
 introduce an additional dependency between the final action of the
 main thread and everything else, and can just let DPOR do its job as
 usual.
+
+By executing every thread to completion in at least one execution, we
+do see some redundant schedules.  For example, if a thread does not
+communicate with any other thread, then an execution which schedules
+it could in principle be modified to not schedule the thread, or
+perhaps even pruned entirely.  However, we see a subset of the
+executions explore by introducing a dependency between the final
+action with everything else.
 
 \section{Execution traces}
 \label{sec:dejafu-traces}
