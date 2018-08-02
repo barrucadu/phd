@@ -2491,12 +2491,14 @@ eq (Concurrently left) (Concurrently right) = monadicIO $ do
 
 \Cref{lst:aplaw1} shows a \emph{passing} property.  There is no
 concurrent interference between the two arguments to \verb|<*>| and
-\verb|ap|, so the bug does not manifest.  Our \verb|eq| function
-checks that two \verb|Concurrently| actions produce the same sets of
-results.  For the reader unfamiliar with \verb|QuickCheck|:
-\verb|Fun a b| represents a function of type \verb|a -> b|; and
-\verb|monadicIO| converts an \verb|IO| action into a test which passes
-if it contains no failing assertions.
+\verb|ap|, so the bug does not manifest.  For the reader unfamiliar
+with \verb|QuickCheck|: \verb|Fun a b| represents a function of type
+\verb|a -> b|.  The property runs both concurrent actions with
+\dejafu{}, and compares the sets of results.  The property passes if
+and only if the sets of results are equal.  This is one way in which
+two concurrent programs can be equivalent, we discuss this idea
+further in \Cref{chp:coco} where we extend our notion of equivalence
+to stateful computations.
 
 Our \verb|prop_monad_ap1| property is uninteresting in a sense because
 it is clearly free from concurrency errors: the very errors which we
