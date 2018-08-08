@@ -19,14 +19,13 @@ languages.
 
 With a controlled scheduling technique, execution of a program is
 serialised and the controlling scheduler drives the program.  Program
-schedules are either explored
-\emph{systematically} \parencite{coons2013,flanagan2005,musuvathi2008,musuvathi2007}
-(often called `systematic concurrency testing' or `SCT') or
-randomly \parencite{burckhardt2010,thomson2016}.  Non-controlled methods do
-not provide their own scheduler, and instead use delays and priorities
-to affect execution \parencite{yu2012}.  Controlled scheduling techniques
-are attractive because of their ability to record and replay program
-executions.
+schedules are either explored \emph{systematically}
+\parencite{flanagan2005,musuvathi2007} (often called `systematic
+concurrency testing' or `SCT') or randomly \parencite{thomson2016}.
+Non-controlled methods do not provide their own scheduler, and instead
+use delays and priorities to affect execution \parencite{yu2012}.
+Controlled scheduling techniques are attractive because of their
+ability to record and replay program executions.
 
 Controlled scheduling can be implemented by overriding the concurrency
 primitives of the language \parencite{walker2015}; by instrumenting the
@@ -37,14 +36,14 @@ Random techniques typically cannot ensure that all distinct results
 are found---cannot be complete---and are usually run for some
 predetermined number of program executions.
 
-Typically we assume that all possible executions are
+Typically we require that all possible executions are
 \emph{terminating}: leading to successful completion or a failure
-state such as deadlock.  Another common assumption is that the number
-of possible executions is \emph{finite}: forbidding finite but
-arbitrarily long executions, as can be created with constructs such as
-spinlocks \parencite{siberschatz1993}.  We can sacrifice completeness to do
-away with these assumptions, as we shall see in
-\Cref{sec:sct-bounding}.
+state such as deadlock after a finite number of scheduling decisions.
+Another common requirement is that the number of possible executions
+is \emph{finite}: forbidding finite but arbitrarily long executions,
+as can be created with constructs such as spinlocks
+\parencite{siberschatz1993}.  We can sacrifice completeness to do away
+with these requirements, as we shall see in \Cref{sec:sct-bounding}.
 
 \section{Dynamic Partial-order Reduction}
 \label{sec:sct-dpor}
@@ -81,7 +80,7 @@ In other words, independent transitions cannot enable (unblock) or
 disable (block) each other, and enabled independent transitions
 commute.  When implementing DPOR, we typically identify a sufficient
 and easy-to-compute condition for dependency, rather than work with
-this relational definition directly.
+this semantics-based definition directly.
 
 Typically, the presentation of algorithms assumes a simple core
 concurrent language of just reads and writes.  This gives rise to a
@@ -146,14 +145,12 @@ actions.
 
 Our dependency relation for Haskell~\sref{dejafu-testing} is rather
 more complex, as there are more actions than just reads and writes.
-We express it as a few general conditions over different sorts of
-reads and writes, with a collection of special cases for software
-transactional memory and exceptions.  Additionally, a Haskell program
-terminates when the main thread terminates, which complicates matters
-further.  A na\"{\i}ve implementation of this, imposing a dependency
-between the final action of the main thread and everything else, leads
-to too many executions being tried to be of practical use.  We discuss
-these issues further in \Cref{sec:dejafu-testing}.
+Additionally, a Haskell program terminates when the main thread
+terminates, which complicates matters further.  A na\"{\i}ve
+implementation of this, imposing a dependency between the final action
+of the main thread and everything else, leads to too many executions
+being tried to be of practical use.  We discuss these issues further
+in \Cref{sec:dejafu-testing}.
 
 \subsection{Total and Partial Orders}
 
@@ -186,19 +183,23 @@ have been explored.
 \subsection{Relaxed Memory Models}
 
 In the name of performance, modern processors implement memory models
-that are weaker than sequential consistency \parencite{lamport1979} by using
-optimisations such as speculative execution, buffering, and caching.
-Unlike sequential consistency, where a concurrent program behaves as a
-simple interleaving of atomic thread actions, relaxed memory models
-can be more complex, making program analysis and debugging difficult.
-For example, under Total Store Order (TSO), which x86 processors
-use \parencite{owens2009}, reads and writes in the same thread to different
-memory locations may be re-ordered.  Under Partial Store Order (PSO),
-a relaxation of TSO \parencite{sparc}, two writes in the same thread, but to
-different memory locations, may also be reordered.
+that are weaker than sequential consistency \parencite{lamport1979} by
+using optimisations such as speculative execution, buffering, and
+caching.  Unlike sequential consistency, where a concurrent program
+behaves as a simple interleaving of atomic thread actions, relaxed
+memory models can be more complex, making program analysis and
+debugging difficult.  For example, under Total Store Order (TSO),
+which x86 processors use \parencite{owens2009}, a read and a write in
+the same thread to different memory locations may be re-ordered.
+Under Partial Store Order (PSO), a relaxation of TSO
+\parencite{sparc}, two writes in the same thread, but to different
+memory locations, may also be reordered.
 
-A simple buffering technique can be used model the nondeterminism of
-these unsynchronised operations under TSO and PSO \parencite{zhang2015}:
+SCT techniques assume that there is only one source of nondeterminism:
+the scheduler.  If a second source is added, such as when writes
+become visible, adapting existing algorithms is difficult.  We can
+reconcile relaxed memory nondeterminism and scheduler nondeterminism
+using a simple buffering technique \parencite{zhang2015}:
 
 \begin{itemize}
 \item Under TSO, each thread has a queue of buffered writes.
@@ -213,13 +214,9 @@ the thread which made it.  Buffered writes are committed to the
 globally visible memory nondeterministically.  To model this, we can
 introduce one additional \emph{phantom thread} for each nonempty
 buffer.  When scheduled, a phantom thread commits the oldest write
-from its buffer.
-
-SCT techniques assume that there is only one source of nondeterminism:
-the scheduler.  If a second source is added, such as when writes are
-committed, it is difficult to adapt existing algorithms directly.
-But, by using phantom threads, the two sources of nondeterminism are
-unified, and existing algorithms just work \parencite{zhang2015}.
+from its buffer.  By using phantom threads, the two sources of
+nondeterminism are unified, and existing algorithms just work
+\parencite{zhang2015}.
 
 \subsection{Maximal Causality Reduction}
 
@@ -304,8 +301,7 @@ with a bound value equal to a fixed parameter.  A variant is
 increased \parencite{musuvathi2007}.  Another variant is where an
 inequality, rather than an equality, is used.  This variant explores
 the same schedules as iterative bounding, but does not impose the same
-ordering.  In practice, `schedule bounding' typically refers to this
-third type.
+ordering.
 
 \subsection{Integration with DPOR}
 
@@ -369,6 +365,48 @@ state, depending on which thread gets scheduled.  So in
 added as a conservative backtracking point, undoing the work of DPOR
 in that case.  In practice the addition of backtracking points in this
 way tends not to greatly increase the search space \parencite{coons2013}.
+
+\begin{listing}
+\centering
+\begin{minipage}{\linewidth}
+\begin{algorithmic}
+\Function{Explore}{$S$}
+  \State $s \gets \mathrm{final}(S)$
+  \State \textit{\# add backtrack points}
+  \For{$u \gets Tid$}
+    \For{$v \gets Tid, u \neq v$}
+      \State \textit{\# find most recent dependent transition}
+      \If{$\exists i = \mathrm{max}(\{i \in \mathrm{dom}~S~|~S_{i} \dependent \mathrm{next}(s,\ u) \land S_{i}.tid = v\})$}
+        \State \Call{Backtrack}{$S,\ i,\ u$}
+      \EndIf
+    \EndFor
+  \EndFor
+  \State \textit{\# continue the search by exploring successor states}
+  \State \Call{Initialise}{$S$}
+  \State $visited \gets \varnothing$
+  \While{$\exists u \in (\mathrm{enabled}(s) \cap \mathrm{backtrack}(s) \setminus visited)$}
+    \State add $u$ to $visited$
+    \If{$\mathrm{\textsc{Bv}}(S.next(s,\ u)) \leq c$}
+      \State \Call{Explore}{$S.next(s,\ u)$}
+    \EndIf
+  \EndWhile
+\EndFunction
+\end{algorithmic}
+\end{minipage}
+  \caption[The bounded DPOR algorithm.]{The bounded DPOR algorithm.  $S$ is a sequence of scheduling decisions.  The \textsc{Explore} and \textsc{Initialise} functions are specific to each bound function.  The \textsc{Bv} function computes the bound value of a state.  Adapted from \cite{coons2013}.}\label{lst:bpor_algo}
+\end{listing}
+
+\Cref{lst:bpor_algo} gives the bounded DPOR algorithm
+\parencite{coons2013}.  The \textsc{Explore} function is common to all
+bound functions: it takes a sequence of scheduling decisions, which is
+empty at first, and systematically explores states reachable from it.
+The \textsc{Backtrack} and \textsc{Initialise} functions are specific
+to the bound function: \textsc{Backtrack} adds scheduling decisions to
+the backtrack set for a state and introduces the necessary
+conservative backtracking points, and \textsc{Initialise} seeds the
+backtrack set with at least one scheduling decision.  When execution
+of $\mathrm{\textsc{Explore}}(\varnothing)$ terminates, all unique
+states reachable within the bound will have been explored.
 
 \section{In Functional Languages}
 \label{sec:sct-functional}
