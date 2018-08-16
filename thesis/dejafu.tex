@@ -1629,15 +1629,23 @@ after \verb|X|.
 \section{Soundness and Completeness}
 \label{sec:dejafu-correctness}
 
-Correctness for \dejafu{} divides along a natural separation in the
-theory: correctness of a single execution of a concurrent program, and
-correctness of the testing framework which discovers new executions.
-There is also the concern of correctness of the implementation with
-respect to the theory.  We do not attempt to formally verify the
-implementation, but we do have an extensive test suite.  Testing a
-testing tool is a little different to testing a regular program.  Most
-of our tests consist of nondeterministic programs, where we want to
-verify that \dejafu{} finds precisely the behaviours we expect.
+Correctness for \dejafu{} is about two questions:
+
+\begin{itemize}
+\item Is the set of results which are possible under normal execution
+  the same as the set of results which are possible under \dejafu{}?
+\item Will \dejafu{} discover all of these possible results?
+\end{itemize}
+
+These two questions highlight a natural separation in the theory: the
+correspondence of \dejafu{}'s concurrency semantics to those of GHC,
+and the correctness of the machinery to discover new executions.
+
+We do not attempt to formally verify the \dejafu{} implementation, but
+we do have an extensive test suite.  Testing a testing tool is a
+little different to testing a regular program.  Most of our tests
+consist of nondeterministic programs, where we want to verify that
+\dejafu{} finds precisely the behaviours we expect.
 
 \paragraph{Property tests}
 \dejafu{} is not one monolithic implementation.  It has components
