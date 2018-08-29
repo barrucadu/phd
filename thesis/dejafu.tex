@@ -55,11 +55,10 @@ tuples.
 
 The outputs which \dejafu{} produces are pairs, where the first
 component is the result of the program and the second is the execution
-trace which led to it.  A program may not complete successfully: it
-may deadlock or throw an exception in the main thread which does not
-get caught.  If the program does complete successfully, the first
-component of the tuple will be a \verb|Right| containing the actual
-value produced, otherwise it will be a \verb|Left| and the
+trace which led to it.  A program may not complete successfully: for
+example, it may deadlock.  If the program does complete successfully,
+the first component of the tuple will be a \verb|Right| containing the
+actual value produced, otherwise it will be a \verb|Left| and the
 \verb|Failure| value will show what went wrong.  A \verb|Trace| is a
 list of scheduling decisions, with a summary of what the chosen thread
 did in that step of execution.
@@ -79,9 +78,8 @@ In outline, \verb|runSCTWithSettings| works like so:
   \end{enumerate}
 \end{enumerate}
 
-We produce different schedules by maintaining some state, and using
-that when choosing threads.  \dejafu{} supports three ways to explore
-the behaviours of a concurrent program:
+We produce different schedules by making step (b) stateful.  \dejafu{}
+supports three ways to explore the behaviours of a concurrent program:
 
 \begin{description}
 \item[Randomly] Threads are chosen using a uniform random
@@ -111,14 +109,81 @@ the behaviours of a concurrent program:
   discuss further in \Cref{sec:dejafu-testing}.
 \end{description}
 
-\dejafu{} tests use predicates on the list of result pairs.  These
-predicates can check anything, for example all results being
-\verb|Right|s and equal.  To remove result pairs that we don't want a
-predicate to examine, \dejafu{} supports ``online'' filtering, where
-such pairs are discarded as they are found.  This is configured in the
-\verb|Settings| value.
+\subsection{What sort of bugs can \dejafu{} detect?}
+\dejafu{} produces a list of \verb|(Either Failure a, Trace)| values,
+where the \verb|a| is the result of a successful execution.  \dejafu{}
+supports ``online'' filtering, removing uninteresting result pairs or
+execution traces as they are found.  Configuration for this online
+filtering is passed to \verb|runSCTWithSettings| via the
+\verb|Settings| value.  \dejafu{} tests use predicates on the final,
+filtered, list of pairs: these predicates can check anything, for
+example all results being \verb|Right|s and equal.  If an execution
+yields a \verb|Left| value, we say that it has \emph{failed}.
+\dejafu{} can detect a few different types of failure:
 
-\paragraph{Scope}
+\begin{description}
+\item[Deadlocks] Every thread is blocked.
+\item[STM deadlocks] Every thread is blocked \emph{and} the main
+  thread is blocked in an STM transaction.
+\item[Uncaught exceptions] The main thread is killed by an exception.
+\end{description}
+
+There are two types of failure which \dejafu{} itself may raise:
+
+\begin{description}
+\item[Aborts] All scheduling decisions are forbidden by schedule
+  bounding.
+\item[Internal errors] An internal invariant is broken.  This
+  indicates a bug in \dejafu{}.
+\end{description}
+
+Finally, there are two types of failure which can arise through
+improper use of \dejafu{}, due to weaknesses in the current API
+design.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+gives :: (Eq a, Show a) => [Either Failure a] -> Predicate a
+gives expected = ProPredicate
+    { pdiscard = \r  -> if r `elem` expected then Just DiscardTrace else Nothing
+    , peval    = \xs -> go expected [] xs (defaultFail xs)
+    }
+  where
+    go waitingFor alreadySeen ((x, _):xs) res
+      -- If it's a result we're waiting for, move it to the
+      -- @alreadySeen@ list and continue.
+      | x `elem` waitingFor  = go (filter (/=x) waitingFor) (x:alreadySeen) xs res
+      -- If it's a result we've already seen, continue.
+      | x `elem` alreadySeen = go waitingFor alreadySeen xs res
+      -- If it's not a result we expected, fail.
+      | otherwise = res
+    go [] _ [] res =
+      res { _pass = True }
+    go es _ [] res =
+      res { _failureMsg = unlines (map (\e -> "Expected: " ++ show e) es) }
+
+    defaultFail xs = Result
+      { _pass       = False
+      , _failures   = filter (\(r, _) -> r `notElem` expected) xs
+      , _failureMsg = ""
+      }
+\end{cminted}
+\caption[The \texttt{gives} predicate.]{The \texttt{gives} predicate.  The \texttt{pdiscard} component is used for online filtering, removing uninteresting traces as they are found.  The \texttt{peval} component takes the final list of pairs and determines if the test passes or fails.}\label{lst:gives}
+\end{listing}
+
+\Cref{lst:gives} shows the provided \verb|gives| predicate, which is
+used to check that a program produces exactly the desired set of
+results, failing if unexpected results are present or expected results
+are not.  The \verb|gives| predicate reduces memory usage by using
+online filtering to discard the execution traces of expected results,
+as we are only interested in execution traces which yield
+\emph{unexpected} results.  There is nothing special about
+\verb|gives|, it is just a normal function written using the \dejafu{}
+API.  It is provided as an example of the sort of thing that \dejafu{}
+can be used to check.
+
+\subsection{Scope}
 We aim to support most of the functionality of GHC’s concurrency API.
 However, some operations are more trouble than they're worth: for
 example, operations which introduce additional sources of
