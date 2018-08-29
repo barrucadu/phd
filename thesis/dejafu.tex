@@ -233,6 +233,8 @@ which registers an invariant to be checked at the end of STM
 transactions.
 
 \subsection{Scope}
+\label{sec:dejafu-whatis-scope}
+
 We aim to support most of the functionality of GHC’s concurrency API.
 However, some operations are more trouble than they're worth: for
 example, operations which introduce additional sources of
@@ -2188,8 +2190,13 @@ When running our test case in a loop using \verb|IO|, to verify that
 we really had fixed the problem, another issue arose which \dejafu{}
 did \emph{not} find.  After a while, the main thread would be killed
 by a \verb|BlockedIndefinitelyOnMVar| exception.  Such exceptions are
-out of scope~\sref{dejafu-scope}, so \dejafu{} could never find this
-new problem.
+out of scope~\sref{dejafu-whatis-scope}, so \dejafu{} could never find
+this new problem.  There is always a gap between the real
+system---GHC's runtime---and the model---\dejafu{}'s semantics.
+\dejafu{} is just one component of the Haskell programmer's toolbox,
+it is not the be-all and end-all for concurrency testing.  However,
+for the class of bugs which \dejafu{} can find, it is much more
+effective than simply running the program in \verb|IO| many times.
 
 By turning on the library's debugging output, and adding some more of
 our own, we were able to track the problem down to the same logic as
@@ -2224,14 +2231,6 @@ handler which throws any received exception to its creator.  In this
 case, the creator was the main thread, so the whole program is
 terminated.  The solution is to check if the computation has
 terminated before blocking.
-
-\paragraph{Two different concurrency bugs}
-The second problem appears to be far more prevalent under normal
-execution than the deadlock, which requires an unfair schedule.  This
-shows that just using \dejafu{} is not enough, it is always possible
-to have such an out of scope bug which \dejafu{} cannot find for you.
-
-Fixes for both issues have been merged into the monad-par library.
 
 \begin{listing}
   \begin{sublisting}{\textwidth}
