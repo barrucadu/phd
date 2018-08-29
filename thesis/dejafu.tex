@@ -347,6 +347,7 @@ instance Monad n => MonadConc (ConcT r n) where
 \caption{A fragment of the \texttt{MonadConc} testing implementation.}\label{lst:mvarops}
 \end{listing}
 
+\paragraph{Implementation}
 The type for our testing implementation is called \verb|ConcT r n|,
 which is a monad that has access to references of type \verb|r| in a
 monad of type \verb|n|.  \Cref{lst:mvarops} shows a fragment of the
@@ -576,14 +577,18 @@ real-world concurrent programs do not have every single thread
 operating on the same bit of shared state.  So in practice, we will
 tend not to see this exponential growth in schedules tried.
 
-\section{Executing Concurrent Programs}
+\section{Modelling Concurrent Programs}
 \label{sec:dejafu-execution}
 
 We represent operations in the \verb|MonadConc| typeclass by the
 \verb|Action| type.  Each action describes some effect and contains a
 continuation.  A concurrent computation is a sequence of these
 continuation values.  Each thread is terminated by a distinguished
-\emph{stop} primitive, which has no continuation.
+\emph{stop} primitive, which has no continuation.  \Cref{lst:m} gives
+the definition and typeclass instances of the \dejafu{} continuation
+monad\footnote{\dejafu{} aims to support the latest three major
+  releases of GHC, so in the real implementation use conditional
+  compilation.}.
 
 % [layout hack]: get lst:100sols here
 \FloatBarrier
@@ -591,37 +596,24 @@ continuation values.  Each thread is terminated by a distinguished
 \begin{listing}
 \centering
 \begin{cminted}{haskell}
-newtype M n r a = M { runM :: (a -> Action n r) -> Action n r }
+newtype ConcT n a = M { runM :: (a -> Action n) -> Action n }
 
-instance Functor (M n r) where
+instance Functor (ConcT n) where
   fmap f m = M (\c -> runM m (c . f))
 
-instance Applicative (M n r) where
+instance Applicative (ConcT n) where
   pure x  = M (\c -> AReturn (c x))
   f <*> v = M (\c -> runM f (\g -> runM v (c . g)))
 
-instance Monad (M n r) where
+instance Monad (ConcT n) where
   return  = pure
   m >>= k = M (\c -> runM m (\x -> runM (k x) c))
 
-instance MonadFail (M n r) where
+instance MonadFail (ConcT n) where
   fail e = M (\_ -> AThrow (MonadFailException e))
 \end{cminted}
 \caption{The \dejafu{} continuation monad.}\label{lst:m}
 \end{listing}
-
-\Cref{lst:m} gives the definition and typeclass instances of the
-\dejafu{} continuation monad.  The \verb|Functor| instance allows
-applying a function to the input of the continuation.  The
-\verb|Applicative| instance allows injecting a pure value into the
-\verb|M| type, by constructing a continuation which consumes this
-value.  It also allows extracting a function from one computation, a
-value from another, and applying them.  The \verb|Monad| instance
-allows sequencing.  Finally, the \verb|MonadFail| instance allows
-signalling a pattern match failure in a monadic
-expression\footnote{\dejafu{} aims to support the latest three major
-  releases of GHC, so in the real implementation use conditional
-  compilation.}.
 
 \begin{listing}
 \centering
@@ -668,17 +660,16 @@ limit\footnote{\url{https://github.com/barrucadu/dejafu/issues/27} and
   \url{issues/113}}.
 
 \paragraph{Scheduling}
-The choice of which thread to execute is made by a scheduler function,
-which is supplied by the user.  The scheduler is called even if there
-is only one runnable thread, to keep things simple.  A scheduler has
-the type declared in \Cref{lst:scheduler}.  It is a stateful function
-which is given the previous action and the runnable threads, which
-possibly returns a thread to run.  If no thread is returned, the
-computation is aborted.  Aborting is used in the implementation of
-schedule bounding.  The state is used in the implementation of
-partial-order reduction and random scheduling: in the former, the
-state is a list of scheduling decisions; in the latter, the state is a
-random number generator.
+The choice of which thread to execute is made by a scheduler function.
+The scheduler is called even if there is only one runnable thread, to
+keep things simple.  A scheduler has the type declared in
+\Cref{lst:scheduler}.  It is a stateful function which is given the
+previous action and the runnable threads, which possibly returns a
+thread to run.  If no thread is returned, the computation is aborted.
+Aborting is used in the implementation of schedule bounding.  The
+state is used in the implementation of DPOR and random scheduling: in
+the former, the state is a list of scheduling decisions still to make;
+in the latter, the state is a random number generator.
 
 \begin{listing}
 \centering
@@ -698,11 +689,9 @@ newtype Scheduler state = Scheduler
 When testing concurrent computations, we are interested in both
 success and failure.  If a computation succeeds and returns a value,
 we want to know that; if it enters a failure state such as deadlock,
-we also want to know that.  The result of a single execution of the
-program is a value of type \verb|Either Failure result|, where the
-\verb|Failure| type is an enumeration of error conditions that
-\dejafu{} can detect, and the \verb|result| type is the result in the
-successful case.
+we also want to know that.  We achieve this by reporting failure: the
+result of a single execution of the program is a value of type
+\verb|(Either Failure result, Trace)|.
 
 \subsection{Software Transactional Memory}
 
@@ -1404,28 +1393,12 @@ $\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\
 \section{Testing Concurrent Programs}
 \label{sec:dejafu-testing}
 
-\dejafu{} uses a combination of dynamic partial-order reduction and
-schedule bounding to test programs.  Controlled random scheduling
-using a fixed number of executions is also available.  A \dejafu{}
-test has the following components:
+\dejafu{} uses a combination of DPOR and schedule bounding to test
+programs by default.  Controlled random scheduling using a fixed
+number of executions is also available.  The testing algorithm to use,
+and its configuration, is controlled with the \verb|Settings|
+value~\sref{dejafu-whatis}.
 
-\begin{itemize}
-\item The testing algorithm to use plus any configuration it needs.
-  The default is DPOR with schedule bounding.
-\item The memory model.  The default is total store order (TSO).
-\item A function to determine if the test passes: taking the final
-  collection of results and traces and giving a list of failing
-  executions.
-\item A function to optionally discard results as they are produced,
-  not considering them when determining if the test passes.  This is
-  for performance: execution traces can use a lot of memory, and
-  typically we are only interested in a subset.
-\item Finally, the \verb|MonadConc| action to execute.
-\end{itemize}
-
-To make the tool easier to use, we provide a collection of different
-testing functions, with varying levels of detail exposed, hoping that
-the defaults will suffice for most users.
 \begin{figure}
   \centering
   \footnotesize
