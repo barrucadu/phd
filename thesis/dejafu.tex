@@ -183,6 +183,45 @@ as we are only interested in execution traces which yield
 API.  It is provided as an example of the sort of thing that \dejafu{}
 can be used to check.
 
+\paragraph{Equivalence testing}
+\dejafu{} supports testing the observational equivalence of two
+concurrent programs.  Observational equivalence here means that the
+observable effects of the program on a distinguished piece of shared
+state, using some observation function provided by the programmer, are
+equal for both programs.
+
+\Cref{lst:evalSigWithSeed} shows the heart of the equivalence testing.
+It is built on top of the usual \verb|runSCTWithSettings| function,
+but encapsulates some concerns relevant to equivalence testing.  In
+particular, \verb|evalSigWithSeed| introduces concurrent interference,
+which is necessary to distinguish atomic from non-atomic operations in
+some cases.  Every execution, including failing executions, yields an
+observation value.  This is necessary because a failing execution may
+nevertheless modify the state before it fails.  We build on top of
+this function a tool to generate a number of initial states and
+compare two programs for all of them.  Two programs are
+observationally equivalent, up to the given interference and
+observation functions, if each initial state yields the same sets
+observations.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+evalSigWithSeed :: (MonadConc m, Ord o)
+  => (x -> ConcT m s)       -- ^ Create a new instance of the state.
+  -> (s -> x -> ConcT m o)  -- ^ The observation to make.
+  -> (s -> x -> ConcT m ()) -- ^ Perform some concurrent interference.
+  -> (s -> ConcT m ())      -- ^ The expression to evaluate.
+  -> x                      -- ^ Pure value used to initialise the state.
+  -> m (Set (Maybe Failure, o))
+\end{cminted}
+\caption[The \texttt{evalSigWithSeed} function.]{The \texttt{evalSigWithSeed} function.  Runs a concurrent program and returns a set of observations and possible failures.}\label{lst:evalSigWithSeed}
+\end{listing}
+
+We build upon this further in \Cref{chp:coco} where we also discuss
+refinement, and how to \emph{discover} rather than just \emph{test}
+these properties.
+
 \paragraph{Invariant testing}
 A feature which \dejafu{} does \emph{not} currently have, but which
 makes sense, is invariant testing.  A function could be provided to
