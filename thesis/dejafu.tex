@@ -183,6 +183,16 @@ as we are only interested in execution traces which yield
 API.  It is provided as an example of the sort of thing that \dejafu{}
 can be used to check.
 
+\paragraph{Invariant testing}
+A feature which \dejafu{} does \emph{not} currently have, but which
+makes sense, is invariant testing.  A function could be provided to
+register an arbitrary concurrency action as an invariant.  As
+\dejafu{} drives the execution of the program under test, these
+invariants can be checked atomically.  This would be similar to, but
+more general than, the function \verb|always :: STM Bool -> STM ()|,
+which registers an invariant to be checked at the end of STM
+transactions.
+
 \subsection{Scope}
 We aim to support most of the functionality of GHC’s concurrency API.
 However, some operations are more trouble than they're worth: for
