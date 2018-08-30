@@ -87,9 +87,20 @@ programs.
 The primary goal of this thesis is to demonstrate that concurrency
 testing techniques, typically described in the context of a simple
 core language, can be successfully applied to languages with rich
-concurrency abstractions.  This demonstration is in the form of
-libraries and tools for testing Concurrent Haskell programs, with an
-evaluation of their effectiveness with example applications.
+concurrency abstractions.  Specifically, we want:
+
+\begin{itemize}
+\item A concurrency testing tool which simultaneously supports
+  multiple aspects of concurrency which are traditionally considered
+  difficult: such as relaxed memory, software transactional memory,
+  and inter-thread signals.
+\item To show that supporting these features does not render a tool
+  too expensive, in time or space, to be of practical value.
+\end{itemize}
+
+To meet and demonstrate our objectives, we develop libraries and tools
+for testing Concurrent Haskell programs, and evaluate their
+effectiveness on sample applications.
 
 Our contributions are:
 
