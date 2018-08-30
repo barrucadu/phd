@@ -1028,13 +1028,15 @@ the part of \dejafu{}.
 
 \paragraph{Value of reported properties}
 Although only supported by a finite number of test cases, the
-properties reported by CoCo are surprisingly accurate in practice.
-These properties can provide helpful insights into the behaviour of
-functions.  As demonstrated in the semaphore case study, surprising
-properties can suggest that implementations of some functions rely on
-unstated assumptions.  Even without such implementation surprises, it
-can be difficult to read concurrent source code and grasp all its
-consequences.
+properties reported by CoCo appear accurate in practice.  The number
+of test cases to try is an integer variable in CoCo, so more extensive
+testing can be performed, at the expense of time and space, by
+increasing it.  These properties can provide helpful insights into the
+behaviour of functions.  As demonstrated in the semaphore case study,
+surprising properties can suggest that implementations of some
+functions rely on unstated assumptions.  Even without such
+implementation surprises, it can be difficult to read concurrent
+source code and grasp all its consequences.
 
 \paragraph{Wide data types}
 CoCo can be made to go wrong.  CoCo only performs a limited number of
@@ -1147,9 +1149,9 @@ discovering properties of functions operating on shared mutable state:
   \dejafu{} to discover these sets~\sref{coco-hiw}.
 
 \item CoCo properties are conjectures supported only by a finite
-  number of test cases, but are surprisingly accurate in practice.
-  However, there are some weaknesses: for example, data types with
-  many constructors are a poor fit for the small number of enumerative
+  number of test cases, but appear accurate in practice.  However,
+  there are some weaknesses: for example, data types with many
+  constructors are a poor fit for the small number of enumerative
   tests we perform to decide if a property holds or not.  We have not
   attempted a formal proof of correctness of
   CoCo~\sref{coco-correctness}.
