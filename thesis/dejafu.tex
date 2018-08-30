@@ -110,6 +110,8 @@ supports three ways to explore the behaviours of a concurrent program:
 \end{description}
 
 \subsection{What sort of bugs can \dejafu{} detect?}
+\label{sec:dejafu-whatis-bugs}
+
 \dejafu{} produces a list of \verb|(Either Failure a, Trace)| values,
 where the \verb|a| is the result of a successful execution.  \dejafu{}
 supports ``online'' filtering, removing uninteresting result pairs or

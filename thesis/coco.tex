@@ -17,49 +17,46 @@ This chapter is derived from our previous work \cite{tfp-coco} and
 \section{Key Concerns of Observing Concurrent Programs}
 \label{sec:coco-concerns}
 
-In implementing a tool to discover properties of \emph{concurrent}
-programs, we have some concerns which are not applicable to sequential
-programs.  Firstly, concurrent programs may be nondeterministic; so if
-we simply compared results of single executions, the discovered
-properties may not hold in the general case.  Secondly, mutable state
-is subject to interference from other threads; so if we do not
-consider concurrent interference, the discovered properties may not
-hold when there are more threads involved.  Finally, we need to decide
-what it means for two concurrent programs to be related.
-
-\paragraph{Nondeterminism}
-If we restrict the nondeterminism in our program to schedule
-nondeterminism, we can use systematic concurrency testing
-(SCT) \parencite{coons2013,flanagan2005,musuvathi2008,musuvathi2007}
-techniques as implemented in \dejafu{}, discussed in
-\Cref{chp:dejafu}, to produce the set of results of a generated
-program fragment.
-
-\paragraph{Interference}
-We do not know what sort of interference may lead to interesting
-results.  So CoCo requires the programmer to supply a function with
-effects, which is executed concurrently during property discovery, to
-provide this interference.  By supplying different sorts of
-interference, the programmer can see how the functions under test
-behave in different concurrent contexts.
+CoCo works by generating program fragments and then comparing their
+results, to see if any interesting properties hold.  Unlike tools for
+discovering properties of \emph{sequential} programs, such as
+QuickSpec \parencite{smallbone2017} and Speculate
+\parencite{braquehais2017}, CoCo cannot simply compare the results of
+single executions.  There are three key concerns which concurrency
+gives rise to: (1)~we need to decide what it means for two concurrent
+programs to be equivalent; (2)~concurrent programs may be
+nondeterministic, so if we simply compared results of single
+executions the discovered properties may not hold in the general case;
+and (3)~mutable state is subject to interference from other threads,
+so if we do not consider concurrent interference, the discovered
+properties may not hold when there are more threads involved.
 
 \paragraph{Properties}
 We formulate our properties in terms of \emph{observational
   refinement} \parencite{he1986}, where the observations we take are
-snapshots of the state.  CoCo requires the programmer to supply an
-observation function to produce these snapshots.  By varying their
-observation function, the programmer can see different aspects of the
-functions under test.
+snapshots of the state.  \dejafu{} provides support for testing if two
+programs are observationally equivalent~\sref{dejafu-whatis-bugs},
+according to a programmer-supplied observation function.
 
-We define a \emph{behaviour} of a concurrent program as a pair of a
-final observation, taken after the program terminates, and a possible
-failure.  By considering the set of a program's possible behaviours,
-rather than simply final observations, we can distinguish between
-operations which may fail and those which do not.  Properties that we
-report are of the form \verb|A === B|, meaning that the sets of
-behaviours of \verb|A| and \verb|B| are equal; and \verb|A ->- B|,
-meaning that the set of behaviours of \verb|A| is a strict subset of
-the set of behaviours of \verb|B|.
+Properties that we report are of the form \verb|A === B|, meaning that
+\verb|A| and \verb|B| are observationally equivalent; and
+\verb|A ->- B|, meaning that \verb|A| is a strict observational
+refinement of \verb|B|.  CoCo works by generating program fragments
+and then using \dejafu{} to test these relations.
+
+\paragraph{Nondeterminism and Interference}
+As in \dejafu{}, CoCo restricts nondeterminism to scheduler
+nondeterminism, which allows the use of \dejafu{}'s systematic
+concurrency testing.
+
+\paragraph{Interference}
+If CoCo reports that two program fragments are equivalent in some
+sense, then they should be broadly interchangeable.  However, if we
+did not consider concurrent interference, they may not be.  CoCo
+requires the programmer to supply a function with effects, which is
+executed concurrently during testing, to provide this interference.
+By supplying different sorts of interference, the programmer can see
+how the functions under test behave in different concurrent contexts.
 
 \section{An Illustrative Example}
 \label{sec:coco-example}
