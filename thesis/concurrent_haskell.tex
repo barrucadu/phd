@@ -30,6 +30,11 @@ Concurrent Haskell, which introduces a number of additional features:
   asynchronously interrupt the flow of control of another thread.
 \end{itemize}
 
+Concurrency testing algorithms are typically presented in the setting
+of a simple core concurrent language of just reads and writes.  We
+choose Concurrent Haskell, and the features it provides, because it
+cannot be decomposed into this simple case.
+
 These features are not unique to Haskell.  Throughout, we compare with
 the concurrency abstractions of Java \parencite{lea1996} and Rust
 \parencite{rust2011}.  The overlap of functionality is not
