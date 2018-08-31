@@ -102,14 +102,12 @@ To meet and demonstrate our objectives, we develop libraries and tools
 for testing Concurrent Haskell programs, and evaluate their
 effectiveness on sample applications.
 
-Our contributions are:
+Our major contributions are:
 
 \begin{itemize}
 \item A library for effectively testing Concurrent Haskell programs,
   in \Cref{chp:dejafu}.  We demonstrate its effectiveness with case
   studies of three concurrency-using Haskell libraries.
-\item An operational semantics for Concurrent Haskell, in
-  \Cref{chp:dejafu}.
 \item A new scheduling algorithm for randomised testing to allow
   testing programs where complete testing does not scale, in
   \Cref{chp:algorithms}.  We evaluate its bug-finding ability on a
@@ -118,6 +116,26 @@ Our contributions are:
   on shared mutable state in the presence of concurrent interference,
   in \Cref{chp:coco}.  We give case studies of three concurrent data
   structures.
+\end{itemize}
+
+In achieving these major contributions, we also achieve several
+smaller ones along the way:
+
+\begin{itemize}
+\item An abstraction over the GHC Haskell concurrency API, extended
+  with named threads and shared variables to make debugging easier, in
+  \Cref{sec:dejafu-monadconc}.
+\item An operational semantics for Concurrent Haskell, in
+  \Cref{sec:dejafu-semantics}.
+\item A method for soundly incorporating daemon threads, threads which
+  are automatically terminated when the main thread terminates, into a
+  concurrency testing setting, in \Cref{sec:dejafu-testing}.
+\item An algorithm for semantics-preserving simplification of
+  execution traces, in \Cref{sec:dejafu-traces}.
+\item Case studies of applying concurrency testing to three Haskell
+  libraries, in \Cref{sec:dejafu-casestudies}.
+\item A method for generating program fragments containing lambda
+  terms in a restricted setting, in \Cref{sec:coco-hiw-gen}.
 \end{itemize}
 
 \section{Chapter Preview}
