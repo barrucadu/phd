@@ -888,7 +888,6 @@ a thread \verb|t|:
 
 \begin{itemize}
 \item \verb|t.K| is its current continuation.
-\item \verb|t.I| is the set of identifiers it is blocked on.
 \item \verb|t.E| is its exception handler stack.
 \item \verb|t.M| is its exception masking state.
 \end{itemize}
@@ -920,7 +919,7 @@ explain them when first used; and we omit the semantic rules for
 actions implement a \dejafu{}-specific utility function, and are not
 essential to the concurrency model.
 
-\newcommand{\semlrule}[1]{\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \langle\texttt{#1}, \texttt{I}, \texttt{E}, \texttt{M}\rangle\right]}\rangle}
+\newcommand{\semlrule}[1]{\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \langle\texttt{#1}, \texttt{E}, \texttt{M}\rangle\right]}\rangle}
 
 \begin{figure}
 \centering
@@ -931,7 +930,7 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{id} \mapsto \te
 \multicolumn{2}{l}{\hphantom{where }$\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset Unmasked >> mb >> \textbackslash b -> reset m0 >> pure b}$}\\
-\multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \texttt{Thread \{ K = act umask, I = }\varnothing\texttt{, E = [], M = m0 \}}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \texttt{Thread \{ K = act umask, E = [], M = m0 \}}$}\\
 & \\
 $\semlrule{ALift n}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
@@ -1001,12 +1000,8 @@ phantom thread for each nonempty buffer, and no more.
 \Cref{fig:sem_mvar} shows the semantics for the \verb|MVar|
 operations.  We represent an \verb|MVar| as a reference to a
 \verb|Maybe| value.  These operations enforce a write barrier, and
-some of them may cause the thread to block.  We model a thread
-blocking by storing the identifiers it is blocked on, and leaving its
-continuation untouched.  The scheduler loop will not choose the thread
-again until it is unblocked.  We use
-$\texttt{T} \Uparrow \texttt{ids}$ to mean that we unblock all threads
-blocked on any of the given identifiers.
+some of them may cause the thread to block.  We omit semantic rules
+for actions which would immediately block.
 
 \paragraph{Rules for exceptions and masking}
 \Cref{fig:sem_exc} shows the semantics for the exception and masking
@@ -1080,40 +1075,28 @@ $\semlrule{ANewMVar c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$ \\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
-$\semlrule{APutMVar id \_{}}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just \_}$}\\
-& \\
 $\semlrule{APutMVar id a c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]} \Uparrow \{\texttt{id}\}\rangle$\\
+$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
 $\semlrule{ATakeMVar id c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]} \Uparrow \{\texttt{id}\}\rangle$\\
+$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
-& \\
-$\semlrule{ATakeMVar id \_}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$} \\
 & \\
 $\semlrule{AReadMVar id c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
-& \\
-$\semlrule{AReadMVar id \_}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
 $\semlrule{ATryPutMVar id c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c False}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just \_}$}\\
 & \\
 $\semlrule{ATryPutMVar id a c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c True}]} \Uparrow \{\texttt{id}\}\rangle$\\
+$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c True}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
 $\semlrule{ATryTakeMVar id c}\rightarrow$\\
-\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Just x)}]} \Uparrow \{\texttt{id}\}\rangle$}\\
+\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Just x)}]}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
 $\semlrule{ATryTakeMVar id c}\rightarrow$&
@@ -1130,7 +1113,7 @@ $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\tex
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
 $\semlrule{AThrow e}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \varnothing;~\texttt{tid}.\texttt{E} \mapsto \texttt{hs};~\texttt{tid}.\texttt{K} \mapsto \texttt{h e}]}\rangle$ \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{E} \mapsto \texttt{hs};~\texttt{tid}.\texttt{K} \mapsto \texttt{h e}]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{h:hs}$}\\
 & \\
 $\semlrule{AThrow e}\rightarrow$&
@@ -1138,7 +1121,7 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \v
 \multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{[]}$}\\
 & \\
 $\semlrule{AThrowTo id e c}\rightarrow$\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{id}.\texttt{I} \mapsto \varnothing;~\texttt{id}.\texttt{E} \mapsto \texttt{hs};~\texttt{id}.\texttt{K} \mapsto \texttt{h e}]}\rangle$} \\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{id}.\texttt{E} \mapsto \texttt{hs};~\texttt{id}.\texttt{K} \mapsto \texttt{h e}]}\rangle$} \\
 \multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
 \multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{h:hs}$}\\
 & \\
@@ -1147,16 +1130,12 @@ $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\tex
 \multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
 \multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{[]}$}\\
 & \\
-$\semlrule{AThrowTo id e c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$ \\
-\multicolumn{2}{l}{if $\lnot~ \texttt{interruptible T}_{[\texttt{id}]}$}\\
-& \\
 $\semlrule{ACatching i inner c}\rightarrow$\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{inner (APopCatching . c)};~\texttt{tid}.\texttt{I} \mapsto \texttt{h:hs}]\rangle}$} \\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{inner (APopCatching . c)};~\texttt{tid}.\texttt{E} \mapsto \texttt{h:hs}]\rangle}$} \\
 \multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{hs}$}\\
 & \\
 $\semlrule{APopCatching c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{tid}.\texttt{I} \mapsto \texttt{hs}]\rangle}$ \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{tid}.\texttt{E} \mapsto \texttt{hs}]\rangle}$ \\
 \multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{\_:hs}$}\\
 & \\
 $\semlrule{AMasking m act c}\rightarrow$\\
