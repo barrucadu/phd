@@ -919,7 +919,9 @@ explain them when first used; and we omit the semantic rules for
 actions implement a \dejafu{}-specific utility function, and are not
 essential to the concurrency model.
 
-\newcommand{\semlrule}[1]{\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \langle\texttt{#1}, \texttt{E}, \texttt{M}\rangle\right]}\rangle}
+\newcommand{\semlfullrule}[4]{\langle\texttt{C}_{#1}, \texttt{B}_{#2}, \texttt{H}_{#3}, \texttt{T}_{\left[\texttt{tid} \mapsto \langle\texttt{#4}, \texttt{E}, \texttt{M}\rangle\right]}\rangle}
+\newcommand{\semlheaprule}[2]{\semlfullrule{}{}{[\texttt{id} \mapsto \texttt{#2}]}{#1}}
+\newcommand{\semlrule}[1]{\semlfullrule{}{}{}{#1}}
 
 \begin{figure}
 \centering
@@ -1075,36 +1077,29 @@ $\semlrule{ANewMVar c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$ \\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
-$\semlrule{APutMVar id a c}\rightarrow$&
+$\semlheaprule{APutMVar id a c}{Nothing}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
-$\semlrule{ATakeMVar id c}\rightarrow$&
+$\semlheaprule{ATakeMVar id c}{Just x}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
-$\semlrule{AReadMVar id c}\rightarrow$&
+$\semlheaprule{AReadMVar id c}{Just x}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
-$\semlrule{ATryPutMVar id c}\rightarrow$&
+$\semlheaprule{ATryPutMVar id c}{Just \_}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c False}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just \_}$}\\
 & \\
-$\semlrule{ATryPutMVar id a c}\rightarrow$&
+$\semlheaprule{ATryPutMVar id a c}{Nothing}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c True}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
-$\semlrule{ATryTakeMVar id c}\rightarrow$\\
+$\semlheaprule{ATryTakeMVar id c}{Just x}\rightarrow$\\
 \multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Just x)}]}\rangle$}\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
-$\semlrule{ATryTakeMVar id c}\rightarrow$&
+$\semlheaprule{ATryTakeMVar id c}{Nothing}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c Nothing}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$} \\
 & \\
-$\semlrule{ATryReadMVar id c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c H}_{[\texttt{id}]}]}\rangle$
+$\semlheaprule{ATryReadMVar id c}{x}\rightarrow$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$
 \end{tabular}
 \caption{Transition semantics of \texttt{MVar} actions.}\label{fig:sem_mvar}
 \end{figure}
