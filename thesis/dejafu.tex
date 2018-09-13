@@ -899,11 +899,9 @@ $\texttt{T}_{[\texttt{id}.\texttt{K} \mapsto \texttt{c}]}$ to denote a
 new thread map where the continuation of thread \texttt{id} is now
 \texttt{c}, and similarly for other fields.
 
-There are two global bindings which are in scope for every rule:
-(1)~\verb|memtype|, the memory model for relaxed memory operations,
-which is \verb|SequentialConsistency|, \verb|TotalStoreOrder|, or
-\verb|PartialStoreOrder|; and (2)~\verb|tid|, the identifier of the
-currently executing thread.
+We use \verb|memtype| to denote the memory model for relaxed memory
+operations, which is \verb|SequentialConsistency|,
+\verb|TotalStoreOrder|, or \verb|PartialStoreOrder|.
 
 For some rules we include side-conditions or local definitions.  We
 use Haskell syntax for these.
@@ -922,11 +920,12 @@ explain them when first used; and we omit the semantic rules for
 actions implement a \dejafu{}-specific utility function, and are not
 essential to the concurrency model.
 
+\newcommand{\semlrule}[1]{\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \langle\texttt{#1}, \texttt{I}, \texttt{E}, \texttt{M}\rangle\right]}\rangle}
+
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AFork act c}}$&
+$\semlrule{AFork act c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{id} \mapsto \texttt{new};~\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
@@ -934,31 +933,23 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{id} \mapsto \te
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset Unmasked >> mb >> \textbackslash b -> reset m0 >> pure b}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \texttt{Thread \{ K = act umask, I = }\varnothing\texttt{, E = [], M = m0 \}}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ALift n}}$&
+$\semlrule{ALift n}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
 \multicolumn{2}{l}{where \texttt{c} is the result of executing the Haskell action \texttt{n}}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AGetNumCapabilities c}}$&
+$\semlrule{AGetNumCapabilities c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c C}]}\rangle$\\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ASetNumCapabilities i c}}$&
+$\semlrule{ASetNumCapabilities i c}\rightarrow$&
 $\langle\texttt{i}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AMyTId c}}$&
+$\semlrule{AMyTId c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c tid}]}\rangle$\\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AYield c}}$&
+$\semlrule{AYield c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ADelay c}}$&
+$\semlrule{ADelay c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AReturn c}}$&
+$\semlrule{AReturn c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$\\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AStop}}$&
+$\semlrule{AStop}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$
 \end{tabular}
 \caption{Transition semantics of basic multithreading actions.}\label{fig:sem_multithreading}
@@ -1036,58 +1027,48 @@ action after passing an argument to change the masking state.  Only,
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ANewIORef a c}}$&
+$\semlrule{ANewIORef a c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$ \\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AReadIORef id c}}$&
+$\semlrule{AReadIORef id c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$ \\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(\_, x)}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AReadIORefCAS id c}}$&
+$\semlrule{AReadIORefCAS id c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Ticket id n x)}]}\rangle$ \\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(n, x)}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AWriteIORef id a c}}$&
+$\semlrule{AWriteIORef id a c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{memtype} = \texttt{SequentialConsistency}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AWriteIORef id a c}}$&
+$\semlrule{AWriteIORef id a c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B} + \texttt{(tid, id, a)}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{memtype} \neq \texttt{SequentialConsistency}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AModIORef id f c}}$&
+$\semlrule{AModIORef id f c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{where $\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]} = \texttt{(n, a)}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AModIORefCAS id f c}}$&
+$\semlrule{AModIORefCAS id f c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]}\rangle$ \\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n, a)}$}\\
 & \\
-\multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ACasIORef id (Ticket id n \_) a c}}$}\\
+\multicolumn{2}{l}{$\semlrule{ACasIORef id (Ticket id n \_) a} \rightarrow$}\\
 \multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (True, Ticket id (n+1) a)}]}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{n} = \texttt{n0}$}\\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, \_)}$}\\
 & \\
-\multicolumn{2}{l}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ACasIORef id (Ticket id n \_) \_ c}}$}\\
+\multicolumn{2}{l}{$\semlrule{ACasIORef id (Ticket id n \_) \_} \rightarrow$}\\
 \multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (False, Ticket id n0 a0)}]}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{n} \neq \texttt{n0}$}\\
 \multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, a0)}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ACommit idT idC}}$&
-$\langle\texttt{C}, \texttt{B'}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}\rangle$\\
-\multicolumn{2}{l}{where $\texttt{H}_{[\texttt{id}]} = \texttt{(n, \_)}$}\\
-\multicolumn{2}{l}{\hphantom{where }$\texttt{B} - \texttt{(tid, id)} = \texttt{(B', a')}$}
+$\semlrule{ACommit idT idC}\rightarrow$&
+$\langle\texttt{C}, \texttt{B'}, \texttt{H}_{[\texttt{idC} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$\\
+\multicolumn{2}{l}{where $\texttt{H}_{[\texttt{idC}]} = \texttt{(n, \_)}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{B} - \texttt{(idT, idC)} = \texttt{(B', a')}$}
 \end{tabular}
 \caption{Transition semantics of \texttt{IORef} actions.}\label{fig:sem_ioref}
 \end{figure}
@@ -1095,63 +1076,51 @@ $\langle\texttt{C}, \texttt{B'}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n+1, 
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ANewMVar c}}$&
+$\semlrule{ANewMVar c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c id}]}\rangle$ \\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small APutMVar id \_{}}}$&
+$\semlrule{APutMVar id \_{}}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just \_}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small APutMVar id a c}}$&
+$\semlrule{APutMVar id a c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()}]} \Uparrow \{\texttt{id}\}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ATakeMVar id c}}$&
+$\semlrule{ATakeMVar id c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]} \Uparrow \{\texttt{id}\}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ATakeMVar id \_}}$&
+$\semlrule{ATakeMVar id \_}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$} \\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AReadMVar id c}}$&
+$\semlrule{AReadMVar id c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c x}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AReadMVar id \_}}$&
+$\semlrule{AReadMVar id \_}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ATryPutMVar id c}}$&
+$\semlrule{ATryPutMVar id c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c False}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just \_}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ATryPutMVar id a c}}$&
+$\semlrule{ATryPutMVar id a c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c True}]} \Uparrow \{\texttt{id}\}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ATryTakeMVar id c}}$& \\
+$\semlrule{ATryTakeMVar id c}\rightarrow$\\
 \multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c (Just x)}]} \Uparrow \{\texttt{id}\}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Just x}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ATryTakeMVar id c}}$&
+$\semlrule{ATryTakeMVar id c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c Nothing}]}\rangle$\\
 \multicolumn{2}{l}{if $\texttt{H}_{[\texttt{id}]} = \texttt{Nothing}$} \\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ATryReadMVar id c}}$&
+$\semlrule{ATryReadMVar id c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c H}_{[\texttt{id}]}]}\rangle$
 \end{tabular}
 \caption{Transition semantics of \texttt{MVar} actions.}\label{fig:sem_mvar}
@@ -1160,52 +1129,43 @@ $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\tex
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AThrow e}}$&
+$\semlrule{AThrow e}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \varnothing;~\texttt{tid}.\texttt{E} \mapsto \texttt{hs};~\texttt{tid}.\texttt{K} \mapsto \texttt{h e}]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{h:hs}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AThrow e}}$&
+$\semlrule{AThrow e}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{[]}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AThrowTo id e c}}$&\\
+$\semlrule{AThrowTo id e c}\rightarrow$\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{id}.\texttt{I} \mapsto \varnothing;~\texttt{id}.\texttt{E} \mapsto \texttt{hs};~\texttt{id}.\texttt{K} \mapsto \texttt{h e}]}\rangle$} \\
 \multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
 \multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{h:hs}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AThrowTo id e c}}$&
+$\semlrule{AThrowTo id e c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{id} \mapsto \varnothing]}\rangle$ \\
 \multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
 \multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{[]}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AThrowTo id e c}}$&
+$\semlrule{AThrowTo id e c}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \{\texttt{id}\}]}\rangle$ \\
 \multicolumn{2}{l}{if $\lnot~ \texttt{interruptible T}_{[\texttt{id}]}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small ACatching i inner c}}$&\\
+$\semlrule{ACatching i inner c}\rightarrow$\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{inner (APopCatching . c)};~\texttt{tid}.\texttt{I} \mapsto \texttt{h:hs}]\rangle}$} \\
 \multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{hs}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small APopCatching c}}$&
+$\semlrule{APopCatching c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{tid}.\texttt{I} \mapsto \texttt{hs}]\rangle}$ \\
 \multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{\_:hs}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AMasking m act c}}$&\\
+$\semlrule{AMasking m act c}\rightarrow$\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{act umask (AResetMask m0 . c)};~\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$} \\
 \multicolumn{2}{l}{where $\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset m0 >> mb >> \textbackslash b -> reset m >> pure b}$}\\
 & \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AResetMask m c}}$&
+$\semlrule{AResetMask m c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c ()};~\texttt{tid}.\texttt{M} \mapsto \texttt{m}]}\rangle$
 \end{tabular}
 \caption{Transition semantics of exception actions.}\label{fig:sem_exc}
