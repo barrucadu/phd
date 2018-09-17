@@ -1143,182 +1143,34 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 \FloatBarrier
 \subsection{Semantics of Software Transactional Memory}
 
-We express our STM semantics similarly, as transition rules for a
-context tuple
-$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$:
-
-\begin{itemize}
-\item \verb|H|, the heap.
-\item \verb|K|, the current continuation.
-\item \verb|R|, the set of \verb|TVar|s which have been read from.
-\item \verb|W|, the set of \verb|TVar|s which have been written to.
-\end{itemize}
-
-From the point of view of a transaction there is only one thread,
-which is the one executing the transaction.  So our context does not
-contain a thread map, as with concurrency, but just the single
-continuation of interest.  We also track which \verb|TVar|s have been
-read from or written to, which are used to handle blocking of aborted
-transactions, and in the DPOR implementation to determine dependency
-between transactions.
+Here we only give the semantics of the \verb|atomically| function, a
+full operational semantics of STM is given in \cite{harris2005}.  The
+STM semantics are small-step reductions of the form
+$M; \Theta, \Delta \Rightarrow N; \Theta', \Delta'$, where $M$ and $N$
+are Haskell expressions, $\Theta$ is the heap, and $\Delta$ is the set
+of \verb|TVar| variables which have been accessed.  We use
+$\xRightarrow{*}$ to denote a sequence of multiple small-step
+reductions.
 
 \begin{figure}[h]
 \centering
-\begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AAtom stm c}}$&
-$\langle\texttt{C}, \varnothing, \texttt{H'} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{c a}]} \Uparrow \texttt{W}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Success a H', \_, W)}$} \\
-& \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AAtom stm \_}}$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{I} \mapsto \texttt{R}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Aborted, R, \_)}$} \\
-& \\
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle
-\xrightarrow{\texttt{\small AAtom stm \_}}$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid}.\texttt{K} \mapsto \texttt{AThrow e}]}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Exception e, \_, \_)}$}
-\end{tabular}
+\begin{prooftree}
+\AxiomC{$\texttt{stm};~\texttt{H} \oplus \texttt{B}, \varnothing \xRightarrow{*} \texttt{return x};~\texttt{H'}, \texttt{\_}$}
+\UnaryInfC{$\semlrule{AAtom stm c} \rightarrow \langle\texttt{C}, \varnothing, \texttt{H'}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$}
+\end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$\texttt{stm};~\texttt{H} \oplus \texttt{B}, \varnothing \xRightarrow{*} \texttt{throw x};~\texttt{H'}, \texttt{\_}$}
+\UnaryInfC{$\semlrule{AAtom stm \_} \rightarrow \langle\texttt{C}, \varnothing, \texttt{H'}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{AThrow x}]}\rangle$}
+\end{prooftree}
 \caption{Transition semantics for \texttt{AAtom}.}\label{fig:sem_aatom}
 \end{figure}
 
-\paragraph{Rules for executing transactions}
-\Cref{fig:sem_aatom} shows the semantics for \verb|AAtom|, the bridge
-between the concurrency and the STM semantics, where the \verb|runSTM|
-function runs a transaction to completion.  There are three possible
-results: (1)~the transaction succeeded, which gives the final value
-and the new heap; (2)~the transaction was aborted; and (3)~an uncaught
-exception was raised, which gives the exception.  Each case also
-returns the \verb|TVar|s read from and written to.  Executing a
-transaction enforces a memory barrier, regardless of the result.
-
-As we have modelled the heap as a pure heterogeneous map in our
-semantics, we do not need to explicitly undo the effects of an
-unsuccessful transaction.  We simply discard the updated heap.  In the
-real implementation, we construct and apply an action to undo the
-effects of a transaction.
-
-\paragraph{Rules for basic STM actions}
-\Cref{fig:sem_stm1} shows the basic STM actions.  The \verb|SRetry|,
-\verb|SThrow|, and \verb|SStop| actions all end the transaction, but
-do not contain a continuation.  They are recognised by the
-\verb|runSTM| function, and cause it to return.
-
-\paragraph{Rules for catching \texttt{SRetry}}
-\Cref{fig:sem_stm2} shows the semantics for the \verb|SOrElse| action,
-which catches \verb|SRetry|.  The three cases where the first
-transaction aborts reveal a subtle detail: when the first transaction
-aborts, the \verb|TVar|s it has read must still be included in the set
-that the transaction as a whole read from.  It may not have called
-\verb|SRetry| if those \verb|TVar|s had a different value.  If the
-transaction as a whole is aborted, throwing away those \verb|TVar|
-identifiers could result in the thread not being unblocked where it
-should
-be\footnote{\url{https://github.com/barrucadu/dejafu/issues/55}}.
-
-\paragraph{Rules for catching \texttt{SThrow}}
-\Cref{fig:sem_stm3} shows the semantics for the \verb|SCatch| action,
-which catches \verb|SThrow| if the exception is of the appropriate
-type.  The \verb|handles| function checks if the handler can handle
-that exception type.  This is similar to \verb|raise| for the
-concurrency semantic rules, but it only looks at one exception
-handler, rather than a stack of them.
-
-\paragraph{Big-step semantics}
-Both \verb|SOrElse| and \verb|SCatch| look more like what you would
-expect in a big-step semantics than a small-step semantics, as they
-evaluate entire transactions.  We use this style because transactions
-are atomic, and it simplifies the implementation.
-
-\begin{figure}
-\centering
-\begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SNew a c}}$&
-$\langle\texttt{H}_{[\texttt{id} \mapsto \texttt{a}]}, \texttt{c id}, \texttt{R}, \texttt{W}\rangle$\\
-\multicolumn{2}{l}{where \texttt{id} is fresh}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SRead id c}}$&
-$\langle\texttt{H}, \texttt{c H}_{[\texttt{id}]}, \{\texttt{id}\} \cup \texttt{R}, \texttt{W}\rangle$\\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SWrite id a c}}$&
-$\langle\texttt{H}_{[\texttt{id} \mapsto \texttt{a}]}, \texttt{c ()}, \texttt{R}, \{\texttt{id}\} \cup \texttt{W}\rangle$\\
-$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SRetry}}$&
-$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$\\
-$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SThrow \_}}$&
-$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$\\
-$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SStop}}$&
-$\langle\texttt{H}, \texttt{K}, \texttt{R}, \texttt{W}\rangle$
-\end{tabular}
-\caption{Transition semantics for the basic STM actions.}\label{fig:sem_stm1}
-\end{figure}
-
-\begin{figure}
-\centering
-\begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SOrElse stm1 \_ c}}$&
-$\langle\texttt{H'}, \texttt{c a}, \texttt{R} \cup \texttt{R'}, \texttt{W} \cup \texttt{W'}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Success a H', R', W')}$}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SOrElse stm1 \_ \_}}$&
-$\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Exception e, R', \_)}$}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SOrElse stm1 stm2 c}}$&
-$\langle\texttt{H'}, \texttt{c a}, \texttt{R} \cup \texttt{R1} \cup \texttt{R2}, \texttt{W} \cup \texttt{W'}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Aborted, R1, \_)}$}\\
-\multicolumn{2}{l}{\hphantom{if }$\texttt{runSTM H stm2} = \texttt{(Success a H', R2, W')}$}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SOrElse stm1 stm2 c}}$&
-$\langle\texttt{H'}, \texttt{SRetry}, \texttt{R} \cup \texttt{R1} \cup \texttt{R2}, \texttt{W}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Aborted, R1, \_)}$}\\
-\multicolumn{2}{l}{\hphantom{if }$\texttt{runSTM H stm2} = \texttt{(Aborted, R2, \_)}$}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SOrElse stm1 stm2 c}}$&
-$\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R1} \cup \texttt{R2}, \texttt{W}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm1} = \texttt{(Aborted, R1, \_)}$}\\
-\multicolumn{2}{l}{\hphantom{if }$\texttt{runSTM H stm2} = \texttt{(Exception e, R2, \_)}$}
-\end{tabular}
-\caption{Transition semantics for the \texttt{SOrElse} action.}\label{fig:sem_stm2}
-\end{figure}
-
-\begin{figure}
-\centering
-\begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SCatch \_ stm c}}$&
-$\langle\texttt{H'}, \texttt{c a}, \texttt{R} \cup \texttt{R'}, \texttt{W} \cup \texttt{W'}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Success a H', R', W')}$}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SCatch \_ stm c}}$&
-$\langle\texttt{H'}, \texttt{SRetry}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Aborted, R', \_)}$}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SCatch h stm \_}}$&
-$\langle\texttt{H'}, \texttt{h e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Exception e, R', \_)}$}\\
-\multicolumn{2}{l}{\hphantom{if }$\texttt{handles h e}$}\\
-& \\
-$\langle\texttt{H}, \_, \texttt{R}, \texttt{W}\rangle
-\xrightarrow{\texttt{\small SCatch h stm \_}}$&
-$\langle\texttt{H'}, \texttt{SThrow e}, \texttt{R} \cup \texttt{R'}, \texttt{W}\rangle$\\
-\multicolumn{2}{l}{if $\texttt{runSTM H stm} = \texttt{(Exception e, R', \_)}$}\\
-\multicolumn{2}{l}{\hphantom{if }$\lnot~ \texttt{handles h e}$}
-\end{tabular}
-\caption{Transition semantics for the \texttt{SCatch} action.}\label{fig:sem_stm3}
-\end{figure}
+\Cref{fig:sem_aatom} gives the semantics of executing transactions.
+Executing an STM transaction enforces a memory barrier, and writes
+inside the transaction are synchronised.  If the transaction reduces
+to a \verb|throw| expression, the exception is re-thrown in the
+thread.
 
 \FloatBarrier
 \section{Testing Concurrent Programs}

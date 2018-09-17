@@ -30,6 +30,7 @@
 \usepackage{multicol}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{bussproofs}
 \usepackage{csquotes}
 \usepackage{caption}
 \usepackage{subcaption}
@@ -123,6 +124,10 @@
 % Maths
 \newcommand{\dependent}{\nleftrightarrow}
 \newcommand{\independent}{\leftrightarrow}
+
+\makeatletter
+\newcommand{\xRightarrow}[2][]{\ext@arrow 0359\Rightarrowfill@{#1}{#2}}
+\makeatother
 
 % Document metadata
 \title{Revealing Behaviours of Concurrent Functional Programs by Systematic Testing}
