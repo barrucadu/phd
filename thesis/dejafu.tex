@@ -840,16 +840,15 @@ nondeterminism.  We take this approach from \cite{zhang2015}.
 \section{Operational Semantics}
 \label{sec:dejafu-semantics}
 
-Fundamental to how \dejafu{} works is an operational semantics for
-Haskell concurrency, in the form of a step function on primitive
-actions.  Given the current state, which we call the context, the
-identifier of the chosen thread, and its primitive action, we either
-indicate a failure condition, or produce a new context; in both cases
-we return a log of what happened, to put into the execution trace
-returned to the user.  The STM primitive actions also have an
-operational semantics.  As transactions are atomic, we only care about
-the big-step behaviour.  This simplifies some aspects of their
-implementation.
+Fundamental to \dejafu{} is an operational semantics for Haskell
+concurrency, in the form of a step function on primitive actions.
+Given the current state, which we call the context, the identifier of
+the chosen thread, and its primitive action, we either indicate a
+failure condition, or produce a new context; in both cases we return a
+log of what happened, to put into the execution trace returned to the
+user.  The STM primitive actions also have an operational semantics.
+As transactions are atomic, we only care about the big-step behaviour,
+which simplifies some aspects of their implementation.
 
 \paragraph{The heap}
 We implement \verb|IORef|s, \verb|MVar|s, and \verb|TVar|s with mutable
@@ -867,35 +866,30 @@ not a limitation in practice because we never want to re-use contexts.
 However, for STM, we do have to compute an action to undo effects,
 which is applied if a transaction fails.
 
-To simplify the presentation of rules, we use a pure heap model in
-this section.
+To simplify the presentation of our semantic rules, in this section we
+use a pure model of the heap as a heterogeneous map.
 
-\subsection{Semantics of Concurrency}
-
-We express our concurrency semantics as transition rules for a context
-tuple $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle$:
+\paragraph{Syntax}
+We express our concurrency semantics as transitions on a context
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle$:
 
 \begin{itemize}
-\item \verb|C| is the number of capabilities.
-\item \verb|B| is the relaxed-memory buffer state.
+\item \verb|C| is the number of capabilities, a natural number.
+\item \verb|B| is the relaxed-memory buffer, the representation
+  depends on the memory model.
 \item \verb|H| is the heap, a heterogeneous map from identifiers to
   Haskell values.
-\item \verb|T| is a mapping from thread identifiers to thread tuples.
-  For a thread:
+\item \verb|T| is a map from thread identifiers to threads
+  $\langle\texttt{K}, \texttt{E}, \texttt{M}\rangle$:
   \begin{itemize}
-  \item \verb|K| is its current continuation.
-  \item \verb|E| is its exception handler stack.
-  \item \verb|M| is its exception masking state.
+  \item \verb|K| is the next primitive action to execute.
+  \item \verb|E| is the stack of exception handler functions.
+  \item \verb|M| is the exception masking state.
   \end{itemize}
 \end{itemize}
 
-We write $\texttt{M}_{[\texttt{k} \mapsto \texttt{v}]}$ to denote a
-new map which maps the key \texttt{k} to the value \texttt{v}.  We use
-\verb|memtype| to denote the memory model for relaxed memory
-operations, which is \verb|SequentialConsistency|,
-\verb|TotalStoreOrder|, or \verb|PartialStoreOrder|.  For some rules
-we include side-conditions or local definitions.  We use Haskell
-syntax for these.
+For some rules we include side-conditions or local definitions.  We
+use Haskell syntax for these.
 
 \paragraph{Simplifications and omissions}
 The semantic rules we present are for the small-step behaviour.  They
@@ -904,12 +898,9 @@ This scheduling loop picks a thread to step, steps it, and continues
 until every thread is blocked or the main thread terminates.
 
 In addition to modelling the heap as part of the context, we make some
-other changes for presentation purposes.  We omit building the
-execution trace; we omit the definitions of helper functions, but
-explain them when first used; and we omit the semantic rules for
-\verb|ASub| and \verb|AStopSub|.  The \verb|ASub| and \verb|AStopSub|
-actions implement a \dejafu{}-specific utility function, and are not
-essential to the concurrency model.
+other changes for presentation purposes: we omit building the
+execution trace and we omit the definitions of helper functions, but
+explain them when first used.
 
 \newcommand{\semfullthread}[3]{\langle\texttt{#1}, \texttt{#2}, \texttt{#3}\rangle}
 \newcommand{\semthread}[1]{\semfullthread{#1}{E}{M}}
@@ -918,16 +909,17 @@ essential to the concurrency model.
 \newcommand{\semlheaprule}[2]{\semlfullrule{}{}{[\texttt{id} \mapsto \texttt{#2}]}{#1}}
 \newcommand{\semlrule}[1]{\semlfullrule{}{}{}{#1}}
 
+\subsection{Basic Concurrency}
+
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\semlrule{AFork act c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c id};~\texttt{id} \mapsto \texttt{new}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AFork act c}{E}{m0}\right]}\rangle\rightarrow$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c id}{E}{m0};~\texttt{id} \mapsto \texttt{new}]}\rangle$\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
-\multicolumn{2}{l}{\hphantom{where }$\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset Unmasked >> mb >> \textbackslash b -> reset m0 >> pure b}$}\\
-\multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \texttt{Thread \{ K = act umask, E = [], M = m0 \}}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \langle\texttt{act umask}, \texttt{[]}, \texttt{m0}\rangle$}\\
 & \\
 $\semlrule{ALift n}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
@@ -951,66 +943,59 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \v
 \caption{Transition semantics of basic multithreading actions.}\label{fig:sem_multithreading}
 \end{figure}
 
-\paragraph{Rules for basic multithreading}
 \Cref{fig:sem_multithreading} shows the semantics for the basic
-multithreading operations.  The rule for \verb|AFork| implements
-\verb|forkWithUnmask|, so it constructs a function to run an action
-umasked.  The \verb|fork| function is a special case of
-\verb|forkWithUnmask| which ignores this argument.  There is no
-separate action for \verb|forkOn|, as we do not model which capability
-a thread is executing on.  We use ``\verb|id| is fresh'' to mean that
-\verb|id| is a new, globally unique, identifier.  We use
-$\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$ to mean that the
-thread is deleted.
+multithreading operations.  These rules do not involve memory, so they
+leave the relaxed-memory buffer and heap untouched.  We use
+``\verb|id| is fresh'' to mean that \verb|id| is a new unique
+identifier, which we use when creating threads, \verb|IORef|s, and
+\verb|MVar|s.  We write $\texttt{M}_{[\texttt{k} \mapsto \texttt{v}]}$
+to denote a new map which maps the key \texttt{k} to the value
+\texttt{v}.
+
+Rather than have one primitive action for each of the \verb|fork|-like
+functions, we only provide \verb|AFork|, which implements
+\verb|forkWithUnmask|, and implement the others in terms of this.  We
+do not model which capability a thread is executing on, so we do not
+also need an ``\verb|AForkOn|'' action.
 
 The \verb|ALift| action is special, as it causes a Haskell-level
 effect to occur.  It produces a continuation by executing some
 \verb|IO| action.
 
-\paragraph{Rules for \texttt{IORef} operations}
+In \verb|AStop|, we use
+$\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$ to mean that the given
+thread is deleted.
+
+\paragraph{\texttt{IORef} operations}
 \Cref{fig:sem_ioref} shows the semantics for the \verb|IORef|
 operations.  We represent a \verb|IORef| as reference to a pair of a
 number of commits and a latest value.
 
 We use $\texttt{H} \oplus \texttt{B}$ to mean a new heap with all
-writes from each buffer committed, in order.  This is a memory
-barrier.  The order in which buffers are committed is deterministic,
-but arbitrary.  So in general, $\oplus$ will cause the writes of one
-thread to `win'.  The DPOR machinery imposes a dependency between such
-barrier actions and \verb|ACommit| actions, so in practice we do
-explore different orderings of commits.  We use
+buffered writes nondeterministically committed, in some order
+permitted by the memory model.  This is a memory barrier.  We use
 $\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]}$ to mean that only the
-buffered writes from thread \verb|tid| are committed.
+buffered writes from thread \verb|tid| are committed.  Under
+sequential consistency there are no buffered writes, so
+$\texttt{H} \oplus \texttt{\_} = \texttt{H}$.
 
-We use $\texttt{B} + \texttt{(tid, id, a)}$ to mean a new buffer
-state, with a write of value \verb|a| to \verb|IORef| \verb|id| by
-thread \verb|tid| buffered.  We use $\texttt{B} - \texttt{(tid, id)}$
-to mean removing the oldest buffered write to \verb|IORef| \verb|id| by
-thread \verb|tid| from the buffer.
+We present the rules for writing and committing to an \verb|IORef|,
+which depends on the memory model, in
+\Cref{sec:dejafu-semantics-writes}
 
-The \verb|ACommit| action has no continuation.  The phantom threads
-which we introduce to perform commits are created before the scheduler
-is invoked, and deleted after each action.  There is always one
-phantom thread for each nonempty buffer, and no more.
-
-\paragraph{Rules for \texttt{MVar} operations}
+\paragraph{\texttt{MVar} operations}
 \Cref{fig:sem_mvar} shows the semantics for the \verb|MVar|
 operations.  We represent an \verb|MVar| as a reference to a
-\verb|Maybe| value.  These operations enforce a write barrier, and
-some of them may cause the thread to block.  We omit semantic rules
-for actions which would immediately block.
+\verb|Maybe| value.  These operations enforce a memory barrier, and
+some of them may cause the thread to block.  We model blocking by
+omitting semantic rules for actions which would block.
 
-\paragraph{Rules for exceptions and masking}
+\paragraph{Exceptions and masking}
 \Cref{fig:sem_exc} shows the semantics for the exception and masking
-operations.  The \verb|raise| function pops from a thread's exception
-handler stack until it finds a handler for the given exception.  The
+operations.  The \verb|raise| function pops from a stack of exception
+handlers until it finds a handler for the given exception.  The
 \verb|interruptible| function checks if the given thread can be
 interrupted with an exception.
-
-The \verb|AThrowTo| action can cause a thread to block, but there are
-no rules here which would unblock the thread: this is handled in the
-scheduler loop.  Many of the rules affect whether a thread can receive
-an asynchronous exception, so we handle it in one place.
 
 The \verb|AMasking| action is similar to \verb|AFork|: it runs an
 action after passing an argument to change the masking state.  Only,
@@ -1025,42 +1010,30 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}
 & \\
 $\semlrule{AReadIORef id c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$ \\
-\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(\_, x)}$}\\
+\multicolumn{2}{l}{where $\texttt{(\_, x)} = (\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]}$}\\
 & \\
 $\semlrule{AReadIORefCAS id c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c (Ticket id n x)}]}\rangle$ \\
-\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]} = \texttt{(n, x)}$}\\
+\multicolumn{2}{l}{where $\texttt{(n, x)} = (\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]}$}\\
 & \\
-$\semlrule{AWriteIORef id a c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$ \\
-\multicolumn{2}{l}{if $\texttt{memtype} = \texttt{SequentialConsistency}$}\\
+$\semlrule{AModIORef id f c}\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{l}{where $\texttt{(n, a)} = \texttt{H} \oplus \texttt{B}_{[\texttt{tid}]}$}\\
 & \\
-$\semlrule{AWriteIORef id a c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B} + \texttt{(tid, id, a)}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$ \\
-\multicolumn{2}{l}{if $\texttt{memtype} \neq \texttt{SequentialConsistency}$}\\
-& \\
-$\semlrule{AModIORef id f c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$ \\
-\multicolumn{2}{l}{where $\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]} = \texttt{(n, a)}$}\\
-& \\
-$\semlrule{AModIORefCAS id f c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$ \\
-\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n, a)}$}\\
+$\semlrule{AModIORefCAS id f c}\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{l}{where $\texttt{(n, a)} = (\texttt{H} \oplus \texttt{B})_{[\texttt{id}]}$}\\
 & \\
 \multicolumn{2}{l}{$\semlrule{ACasIORef id (Ticket id n \_) a} \rightarrow$}\\
-\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c (True, Ticket id (n+1) a)}]}\rangle$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c (True, Ticket id (n+1) a)}]}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{n} = \texttt{n0}$}\\
-\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, \_)}$}\\
+\multicolumn{2}{l}{where $\texttt{(n0, \_)} = (\texttt{H} \oplus \texttt{B})_{[\texttt{id}]}$}\\
 & \\
 \multicolumn{2}{l}{$\semlrule{ACasIORef id (Ticket id n \_) \_} \rightarrow$}\\
-\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c (False, Ticket id n0 a0)}]}\rangle$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c (False, Ticket id n0 a0)}]}\rangle$}\\
 \multicolumn{2}{l}{if $\texttt{n} \neq \texttt{n0}$}\\
-\multicolumn{2}{l}{where $(\texttt{H} \oplus \texttt{B})_{[\texttt{id}]} = \texttt{(n0, a0)}$}\\
-& \\
-$\semlrule{ACommit idT idC}\rightarrow$&
-$\langle\texttt{C}, \texttt{B'}, \texttt{H}_{[\texttt{idC} \mapsto \texttt{(n+1, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$\\
-\multicolumn{2}{l}{where $\texttt{H}_{[\texttt{idC}]} = \texttt{(n, \_)}$}\\
-\multicolumn{2}{l}{\hphantom{where }$\texttt{B} - \texttt{(idT, idC)} = \texttt{(B', a')}$}
+\multicolumn{2}{l}{where $\texttt{(n0, a0)} = (\texttt{H} \oplus \texttt{B})_{[\texttt{id}]}$}\\
+&
 \end{tabular}
 \caption{Transition semantics of \texttt{IORef} actions.}\label{fig:sem_ioref}
 \end{figure}
@@ -1068,30 +1041,29 @@ $\langle\texttt{C}, \texttt{B'}, \texttt{H}_{[\texttt{idC} \mapsto \texttt{(n+1,
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\semlrule{ANewMVar c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c id}]}\rangle$ \\
+\multicolumn{2}{r}{$\semlrule{ANewMVar c} \rightarrow \langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c id}]}\rangle$}\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
-$\semlheaprule{APutMVar id a c}{Nothing}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$\\
+$\semlheaprule{APutMVar id a c}{Nothing}$\hfill$\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
 & \\
-$\semlheaprule{ATakeMVar id c}{Just x}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$\\
+$\semlheaprule{ATakeMVar id c}{Just x}$\hfill$\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$}\\
 & \\
 $\semlheaprule{AReadMVar id c}{Just x}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$\\
 & \\
-$\semlheaprule{ATryPutMVar id c}{Just \_}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c False}]}\rangle$\\
+$\semlheaprule{ATryPutMVar id c}{Just \_}$\hfill$\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c False}]}\rangle$}\\
 & \\
-$\semlheaprule{ATryPutMVar id a c}{Nothing}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c True}]}\rangle$\\
+$\semlheaprule{ATryPutMVar id a c}{Nothing}$\hfill$\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c True}]}\rangle$}\\
 & \\
-$\semlheaprule{ATryTakeMVar id c}{Just x}\rightarrow$\\
-\multicolumn{2}{l}{\hfill $\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c (Just x)}]}\rangle$}\\
+$\semlheaprule{ATryTakeMVar id c}{Just x}$\hfill$\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c (Just x)}]}\rangle$}\\
 & \\
-$\semlheaprule{ATryTakeMVar id c}{Nothing}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c Nothing}]}\rangle$\\
+$\semlheaprule{ATryTakeMVar id c}{Nothing}$\hfill$\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c Nothing}]}\rangle$}\\
 & \\
 $\semlheaprule{ATryReadMVar id c}{x}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$
@@ -1102,34 +1074,29 @@ $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\tex
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\semlrule{AThrow e}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{h e}{hs}{M}]}\rangle$ \\
-\multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{h:hs}$}\\
-& \\
-$\semlrule{AThrow e}\rightarrow$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AThrow e}{hs}{M}\right]}\rangle\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$ \\
-\multicolumn{2}{l}{if $\texttt{raise T}_{[\texttt{tid}]}~\texttt{e} = \texttt{[]}$}\\
+\multicolumn{2}{l}{if $\texttt{null (raise hs e)}$}\\
+& \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AThrow e}{hs}{M}\right]}\rangle\rightarrow$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{h e}{hs}{M}]}\rangle$ \\
+\multicolumn{2}{l}{if \texttt{not (null (raise hs e))}}\\
+\multicolumn{2}{l}{where \texttt{(h:hs)} = \texttt{raise hs e}}\\
 & \\
 $\semlrule{AThrowTo id e c}\rightarrow$\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()};~\texttt{id}.\texttt{E} \mapsto \texttt{hs};~\texttt{id}.\texttt{K} \mapsto \texttt{h e}]}\rangle$} \\
-\multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
-\multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{h:hs}$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()};~\texttt{id} \mapsto \semfullthread{AThrow e}{E'}{M'}]}\rangle$} \\
+\multicolumn{2}{l}{if \texttt{interruptible id}}\\
+\multicolumn{2}{l}{where $\langle\texttt{\_}, \texttt{E'}, \texttt{M'}\rangle = \texttt{T}_{[\texttt{id}]}$}\\
 & \\
-$\semlrule{AThrowTo id e c}\rightarrow$&
-$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()};~\texttt{id} \mapsto \varnothing]}\rangle$ \\
-\multicolumn{2}{l}{if $\texttt{interruptible T}_{[\texttt{id}]}$}\\
-\multicolumn{2}{l}{\hphantom{if }$\texttt{raise T}_{[\texttt{id}]}~\texttt{e} = \texttt{[]}$}\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{ACatching i inner c}{hs}{M}\right]}\rangle\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{inner (APopCatching . c)}{h:hs}{M}]}\rangle$} \\
 & \\
-$\semlrule{ACatching i inner c}\rightarrow$\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{inner (APopCatching . c)}{h:hs}{M}]\rangle}$} \\
-\multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{hs}$}\\
-& \\
-$\semlrule{APopCatching c}\rightarrow$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{APopCatching c}{\_:hs}{M}\right]}\rangle\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c ()}{hs}{M}]\rangle}$ \\
-\multicolumn{2}{l}{where $\texttt{T}_{[\texttt{tid}.\texttt{E}]} = \texttt{\_:hs}$}\\
 & \\
-$\semlrule{AMasking m act c}\rightarrow$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AMasking m act c}{E}{m0}\right]}\rangle\rightarrow$&\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{act umask (AResetMask m0 . c)}{E}{m}]}\rangle$} \\
+& \\
 \multicolumn{2}{l}{where $\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset m0 >> mb >> \textbackslash b -> reset m >> pure b}$}\\
@@ -1140,8 +1107,75 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 \caption{Transition semantics of exception actions.}\label{fig:sem_exc}
 \end{figure}
 
-\FloatBarrier
-\subsection{Semantics of Software Transactional Memory}
+\subsection{The Memory Model}
+\label{sec:dejafu-semantics-writes}
+
+To avoid giving all of our semantic rules which read from memory three
+times, we have used the $\oplus$ operator, to denote synchronising any
+buffered writes to the global memory in a nondeterministic fashion.
+The behaviour of this operator depends on the memory model:
+
+\begin{itemize}
+\item Under sequential consistency, there are no buffered writes, so
+  $\texttt{H} \oplus \texttt{\_} = \texttt{H}$.
+\item Under total store order, we give each thread a buffer, so
+  \verb|B| is a map from thread identifiers to sequences of writes.
+  Here $\texttt{H} \oplus \texttt{B}$ selects a thread with buffered
+  writes nondeterministically, and pops and performs the oldest write
+  from its buffer.  This process is repeated until there are no
+  remaining buffered writes.
+\item Under partial store order, there is a buffer for each (thread,
+  \verb|IORef|) pair, but the process of performing the writes is
+  otherwise the same.
+\end{itemize}
+
+\paragraph{Writing to an \texttt{IORef}}
+\Cref{fig:sem_ioref_relaxed_w} gives the semantic rules for writing to
+an \verb|IORef|.  There is one rule for each memory model,
+corresponding to the buffering strategy used.  Under sequential
+consistency, the write goes straight to the heap; under TSO, the write
+is appended to the buffer for the chosen thread; and under PSO the
+write is appended to the buffer for the chosen (thread, \verb|IORef|)
+pair.
+
+\paragraph{Committing buffered writes}
+\Cref{fig:sem_ioref_relaxed_c} gives the semantic rules for committing
+buffered \verb|IORef| writes.  There is no rule for sequential
+consistency, as there are no buffered writes in that case.  Another
+way to think of the $\oplus$ operator is that it performs all possible
+commit actions.
+
+\begin{figure}
+\centering
+\begin{tabular}{r@{\hspace{0.5em}}l}
+\multicolumn{2}{c}{$\semlrule{AWriteIORef id a c}\rightarrow\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{l}{if using sequential consistency}\\
+& \\
+$\semlfullrule{}{[\texttt{tid} \mapsto \texttt{buf}]}{}{AWriteIORef id a c}\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}_{[\texttt{tid} \mapsto \texttt{(buf ++ (id, a))}]}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{l}{if using total store order}\\
+& \\
+$\semlfullrule{}{[\texttt{(tid, id)} \mapsto \texttt{buf}]}{}{AWriteIORef id a c}\rightarrow$&\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}_{[\texttt{(tid, id)} \mapsto \texttt{(buf ++ a)}]}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{l}{if using partial store order}
+\end{tabular}
+\caption{Transition semantics of writing to \texttt{IORef}s.}\label{fig:sem_ioref_relaxed_w}
+\end{figure}
+
+\begin{figure}
+\centering
+\begin{tabular}{r@{\hspace{0.5em}}l}
+$\langle\texttt{C}, \texttt{B}_{[\texttt{tid} \mapsto \texttt{((id, a):buf)}]}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n, \_)}]}, \texttt{T}\rangle \rightarrow$&
+$\langle\texttt{C}, \texttt{B}_{[\texttt{tid} \mapsto \texttt{buf}]}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}\rangle$ \\
+\multicolumn{2}{l}{if using total store order}\\
+$\langle\texttt{C}, \texttt{B}_{[\texttt{(tid, id)} \mapsto \texttt{(a:buf)}]}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n, \_)}]}, \texttt{T}\rangle \rightarrow$&
+$\langle\texttt{C}, \texttt{B}_{[\texttt{(tid, id)} \mapsto \texttt{buf}]}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(n+1, a)}]}, \texttt{T}\rangle$ \\
+\multicolumn{2}{l}{if using partial store order}
+\end{tabular}
+\caption{Transition semantics of committing \texttt{IORef} writes.}\label{fig:sem_ioref_relaxed_c}
+\end{figure}
+
+\subsection{Software Transactional Memory}
 
 Here we only give the semantics of the \verb|atomically| function, a
 full operational semantics of STM is given in \cite{harris2005}.  The
