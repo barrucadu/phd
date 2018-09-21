@@ -1360,10 +1360,12 @@ API is richer than this, and the implicit dependencies between actions
 (such as which actions impose a memory barrier) are not documented.
 
 \Cref{fig:deprel} shows the dependency relation we use in \dejafu{}.
-The relation is conditional \parencite{godefroid1993}: we record which
-\verb|IORef|s have buffered writes, whether each \verb|MVar| is full or
-empty, and what the masking state of every thread is.  A conditional
-dependency relation allows more precise decisions.
+We use a conditional dependency relation \parencite{godefroid1993}.
+Whether two actions are dependent depends on an approximation of the
+current state: we record which \verb|IORef|s have buffered writes,
+whether each \verb|MVar| is full or empty, and what the masking state
+of every thread is.  A conditional dependency relation allows more
+precise decisions.
 
 \begin{figure}
   \centering
