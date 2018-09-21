@@ -846,9 +846,9 @@ Given the current state, which we call the context, the identifier of
 the chosen thread, and its primitive action, we either indicate a
 failure condition, or produce a new context; in both cases we return a
 log of what happened, to put into the execution trace returned to the
-user.  The STM primitive actions also have an operational semantics.
-As transactions are atomic, we only care about the big-step behaviour,
-which simplifies some aspects of their implementation.
+user.  Our semantics is similar in spirit to \cite{vollmer2017},
+however we model a much larger set of operations, and support partial
+store order as well as total store order.
 
 \paragraph{The heap}
 We implement \verb|IORef|s, \verb|MVar|s, and \verb|TVar|s with mutable
