@@ -1053,8 +1053,9 @@ which depends on the memory model, in
 \Cref{fig:sem_mvar} shows the semantics for the \verb|MVar|
 operations.  We represent an \verb|MVar| as a reference to a
 \verb|Maybe| value.  These operations enforce a memory barrier, and
-some of them may cause the thread to block.  We model blocking by
-omitting semantic rules for actions which would block.
+some of them may cause the thread to block.  A thread can enforce a
+memory barrier even if it blocks.  We model blocking by not changing
+the continuation for the chosen thread.
 
 \paragraph{Exceptions and masking}
 \Cref{fig:sem_exc} shows the semantics for the exception and masking
@@ -1110,14 +1111,23 @@ $\semlrule{AModIORefCAS id f c}\rightarrow$&\\
 \multicolumn{2}{r}{$\semlrule{ANewMVar c} \rightarrow \langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c id}]}\rangle$}\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
+$\semlheaprule{APutMVar id \_ \_}{Just \_}$\hfill$\rightarrow$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}\rangle$\\
+& \\
 $\semlheaprule{APutMVar id a c}{Nothing}$\hfill$\rightarrow$&\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$}\\
 & \\
 $\semlheaprule{ATakeMVar id c}{Just x}$\hfill$\rightarrow$&\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$}\\
 & \\
+$\semlheaprule{ATakeMVar id \_ \_}{Nothing}$\hfill$\rightarrow$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}\rangle$\\
+& \\
 $\semlheaprule{AReadMVar id c}{Just x}\rightarrow$&
 $\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$\\
+& \\
+$\semlheaprule{AReadMVar id \_ \_}{Nothing}$\hfill$\rightarrow$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}\rangle$\\
 & \\
 $\semlheaprule{ATryPutMVar id c}{Just \_}$\hfill$\rightarrow$&\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c False}]}\rangle$}\\
@@ -1150,9 +1160,13 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 \multicolumn{2}{l}{where \texttt{(h:hs)} = \texttt{raise hs e}}\\
 & \\
 $\semlrule{AThrowTo id e c}\rightarrow$\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c};~\texttt{id} \mapsto \semfullthread{AThrow e}{E'}{M'}]}\rangle$} \\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c};~\texttt{id} \mapsto \semfullthread{AThrow e}{E'}{M'}]}\rangle$}\\
 \multicolumn{2}{l}{if \texttt{interruptible id}}\\
 \multicolumn{2}{l}{where $\langle\texttt{\_}, \texttt{E'}, \texttt{M'}\rangle = \texttt{T}_{[\texttt{id}]}$}\\
+& \\
+$\semlrule{AThrowTo id \_ \_}\rightarrow$&
+$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}\rangle$\\
+\multicolumn{2}{l}{if \texttt{not (interruptible id)}}\\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{ACatching i inner c}{hs}{M}\right]}\rangle\rightarrow$&\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{inner (APopCatching . c)}{h:hs}{M}]}\rangle$} \\
@@ -1263,6 +1277,11 @@ reductions.
 \AxiomC{$\texttt{stm};~\texttt{H} \oplus \texttt{B}, \varnothing \xRightarrow{*} \texttt{throw x};~\texttt{H'}, \texttt{\_}$}
 \UnaryInfC{$\semlrule{AAtom stm \_} \rightarrow \langle\texttt{C}, \varnothing, \texttt{H'}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{AThrow x}]}\rangle$}
 \end{prooftree}
+
+\begin{prooftree}
+\AxiomC{$\texttt{stm};~\texttt{H} \oplus \texttt{B}, \varnothing \xRightarrow{*} \texttt{retry};~\texttt{\_}, \texttt{\_}$}
+\UnaryInfC{$\semlrule{AAtom stm \_} \rightarrow \langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}\rangle$}
+\end{prooftree}
 \caption{Transition semantics for \texttt{AAtom}.}\label{fig:sem_aatom}
 \end{figure}
 
@@ -1270,7 +1289,8 @@ reductions.
 Executing an STM transaction enforces a memory barrier, and writes
 inside the transaction are synchronised.  If the transaction reduces
 to a \verb|throw| expression, the exception is re-thrown in the
-thread.
+thread.  As in the \verb|MVar| and exception semantics, a transaction
+which blocks still imposes a memory barrier.
 
 \FloatBarrier
 \section{Testing Concurrent Programs}
