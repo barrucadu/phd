@@ -891,6 +891,72 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle$:
 For some rules we include side-conditions or local definitions.  We
 use Haskell syntax for these.
 
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+data Action n
+  -- Basic multithreading
+  = AFork ((forall b. ConcT n b -> ConcT n b) -> Action n) (ThreadId -> Action n)
+  | AGetNumCapabilities     (Int -> Action n)
+  | ASetNumCapabilities Int        (Action n)
+  | AMyTId (ThreadId -> Action n)
+  | ALift           (n (Action n))
+  | AYield             (Action n)
+  | ADelay             (Action n)
+  | AReturn            (Action n)
+  | AStop
+
+  -- IORefs and relaxed memory
+  | forall a.   ANewIORef                      a (ModelIORef n a -> Action n)
+  | forall a.   AReadIORef    (ModelIORef n a)                (a -> Action n)
+  | forall a.   AReadIORefCas (ModelIORef n a)    (ModelTicket a -> Action n)
+  | forall a.   AWriteIORef   (ModelIORef n a) a                   (Action n)
+  | forall a b. AModIORef     (ModelIORef n a) (a -> (a, b))  (b -> Action n)
+  | forall a b. AModIORefCas  (ModelIORef n a) (a -> (a, b))  (b -> Action n)
+  | forall a.   ACasIORef (ModelIORef n a) (ModelTicket a) a
+      ((Bool, ModelTicket a) -> Action n)
+  | ACommit ThreadId IORefId
+
+  -- MVars
+  | forall a. ANewMVar                       (ModelMVar n a -> Action n)
+  | forall a. APutMVar     (ModelMVar n a) a                  (Action n)
+  | forall a. ATakeMVar    (ModelMVar n a)               (a -> Action n)
+  | forall a. AReadMVar    (ModelMVar n a)               (a -> Action n)
+  | forall a. ATryPutMVar  (ModelMVar n a) a          (Bool -> Action n)
+  | forall a. ATryTakeMVar (ModelMVar n a)         (Maybe a -> Action n)
+  | forall a. ATryReadMVar (ModelMVar n a)         (Maybe a -> Action n)
+
+  -- Exceptions
+  | forall e.   Exception e => AThrow e
+  | forall e.   Exception e => AThrowTo ThreadId e (Action n)
+  | forall a e. Exception e => ACatching (e -> ConcT n a) (ConcT n a)
+      (a -> Action n)
+  | forall a.   AMasking MaskingState
+      ((forall b. ConcT n b -> ConcT n b) -> ConcT n a) (a -> Action n)
+  | AResetMask   MaskingState (Action n)
+  | APopCatching              (Action n)
+
+  -- STM
+  | forall a. AAtom (ModelSTM n a) (a -> Action n)
+\end{cminted}
+\caption{The primitive concurrency actions.}\label{lst:actionty}
+\end{listing}
+
+\paragraph{Primitive actions}
+\Cref{lst:actionty} gives the primitive actions for concurrency.
+Execution happens in the context of an underlying monad, the \verb|n|
+parameter to the \verb|Action| type, which we use to provide the
+mutable variables we use for model \verb|IORef|s, \verb|MVar|s, and
+\verb|TVar|s.  This monad is usually \verb|IO|, but can be any
+\verb|MonadConc|.
+
+\dejafu{} communicates the result of the computation back to the
+caller by inserting an \verb|ALift| action which writes the result to
+a mutable variable at the end of the main thread.  Our implementation
+of model execution is more similar to cooperative multitasking than
+pre-emptive multitasking: if evaluating a primitive action fails to
+terminate, the entire computation locks up.
+
 \paragraph{Simplifications and omissions}
 The semantic rules we present are for the small-step behaviour.  They
 are tied together by a scheduling loop which we do not present here.
@@ -917,7 +983,7 @@ explain them when first used.
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AFork act c}{E}{m0}\right]}\rangle\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c id}{E}{m0};~\texttt{id} \mapsto \texttt{new}]}\rangle$\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
-\multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' k}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset Unmasked >> mb >> \textbackslash b -> reset m0 >> pure b}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \langle\texttt{act umask}, \texttt{[]}, \texttt{m0}\rangle$}\\
 & \\
@@ -928,15 +994,15 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 $\semlrule{AGetNumCapabilities c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c C}]}\rangle$\\
 $\semlrule{ASetNumCapabilities i c}\rightarrow$&
-$\langle\texttt{i}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$\\
+$\langle\texttt{i}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
 $\semlrule{AMyTId c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c tid}]}\rangle$\\
 $\semlrule{AYield c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
 $\semlrule{ADelay c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
 $\semlrule{AReturn c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
 $\semlrule{AStop}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$
 \end{tabular}
@@ -1017,11 +1083,11 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 \multicolumn{2}{l}{where $\texttt{(n, x)} = (\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]})_{[\texttt{id}]}$}\\
 & \\
 $\semlrule{AModIORef id f c}\rightarrow$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$}\\
 \multicolumn{2}{l}{where $\texttt{(n, a)} = \texttt{H} \oplus \texttt{B}_{[\texttt{tid}]}$}\\
 & \\
 $\semlrule{AModIORefCAS id f c}\rightarrow$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, (\texttt{H} \oplus \texttt{B})_{[\texttt{id} \mapsto \texttt{(n+1, f a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$}\\
 \multicolumn{2}{l}{where $\texttt{(n, a)} = (\texttt{H} \oplus \texttt{B})_{[\texttt{id}]}$}\\
 & \\
 \multicolumn{2}{l}{$\semlrule{ACasIORef id (Ticket id n \_) a} \rightarrow$}\\
@@ -1045,7 +1111,7 @@ $\semlrule{AModIORefCAS id f c}\rightarrow$&\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
 $\semlheaprule{APutMVar id a c}{Nothing}$\hfill$\rightarrow$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Just a}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$}\\
 & \\
 $\semlheaprule{ATakeMVar id c}{Just x}$\hfill$\rightarrow$&\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c x}]}\rangle$}\\
@@ -1084,7 +1150,7 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 \multicolumn{2}{l}{where \texttt{(h:hs)} = \texttt{raise hs e}}\\
 & \\
 $\semlrule{AThrowTo id e c}\rightarrow$\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()};~\texttt{id} \mapsto \semfullthread{AThrow e}{E'}{M'}]}\rangle$} \\
+\multicolumn{2}{r}{$\langle\texttt{C}, \varnothing, \texttt{H} \oplus \texttt{B}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c};~\texttt{id} \mapsto \semfullthread{AThrow e}{E'}{M'}]}\rangle$} \\
 \multicolumn{2}{l}{if \texttt{interruptible id}}\\
 \multicolumn{2}{l}{where $\langle\texttt{\_}, \texttt{E'}, \texttt{M'}\rangle = \texttt{T}_{[\texttt{id}]}$}\\
 & \\
@@ -1092,17 +1158,17 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \maps
 \multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{inner (APopCatching . c)}{h:hs}{M}]}\rangle$} \\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{APopCatching c}{\_:hs}{M}\right]}\rangle\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c ()}{hs}{M}]\rangle}$ \\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c}{hs}{M}]\rangle}$ \\
 & \\
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AMasking m act c}{E}{m0}\right]}\rangle\rightarrow$&\\
 \multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{act umask (AResetMask m0 . c)}{E}{m}]}\rangle$} \\
 & \\
 \multicolumn{2}{l}{where $\texttt{m0} = \texttt{T}_{[\texttt{tid}.\texttt{M}]}$}\\
-\multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k ())}$}\\
+\multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' (k)}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset m0 >> mb >> \textbackslash b -> reset m >> pure b}$}\\
 & \\
 $\semlrule{AResetMask m c}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c ()}{E}{m}]}\rangle$
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c}{E}{m}]}\rangle$
 \end{tabular}
 \caption{Transition semantics of exception actions.}\label{fig:sem_exc}
 \end{figure}
@@ -1148,15 +1214,15 @@ commit actions.
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-\multicolumn{2}{c}{$\semlrule{AWriteIORef id a c}\rightarrow\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{c}{$\semlrule{AWriteIORef id a c}\rightarrow\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$}\\
 \multicolumn{2}{l}{if using sequential consistency}\\
 & \\
 $\semlfullrule{}{[\texttt{tid} \mapsto \texttt{buf}]}{}{AWriteIORef id a c}\rightarrow$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}_{[\texttt{tid} \mapsto \texttt{(buf ++ (id, a))}]}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}_{[\texttt{tid} \mapsto \texttt{(buf ++ (id, a))}]}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$}\\
 \multicolumn{2}{l}{if using total store order}\\
 & \\
 $\semlfullrule{}{[\texttt{(tid, id)} \mapsto \texttt{buf}]}{}{AWriteIORef id a c}\rightarrow$&\\
-\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}_{[\texttt{(tid, id)} \mapsto \texttt{(buf ++ a)}]}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c ()}]}\rangle$}\\
+\multicolumn{2}{r}{$\langle\texttt{C}, \texttt{B}_{[\texttt{(tid, id)} \mapsto \texttt{(buf ++ a)}]}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$}\\
 \multicolumn{2}{l}{if using partial store order}
 \end{tabular}
 \caption{Transition semantics of writing to \texttt{IORef}s.}\label{fig:sem_ioref_relaxed_w}
