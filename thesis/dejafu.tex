@@ -9,15 +9,17 @@
 \noindent
 Specialised tools are necessary to test concurrent programs.  In this
 chapter we present and evaluate \dejafu{}, our library for testing
-concurrency in Haskell.  We discuss the scope of the
-tool~\sref{dejafu-scope} and present our abstraction over the GHC
-Haskell concurrency functionality~\sref{dejafu-monadconc}.  We then
-show an example of a small logic puzzle which we can represent as a
-concurrent program~\sref{dejafu-100}.  We explain how programs using
-our abstraction are executed~\sref{dejafu-execution}, and give our
+concurrency in Haskell.  We give an overview of the
+tool~\sref{dejafu-whatis}, including the scope of bugs we aim to
+detect, and present our abstraction over the GHC Haskell concurrency
+functionality~\sref{dejafu-monadconc}.  We then show an example of a
+small logic puzzle which we can represent as a concurrent
+program~\sref{dejafu-100}.  We explain how programs using our
+abstraction are executed~\sref{dejafu-execution}, and give our
 semantic rules~\sref{dejafu-semantics}.  We explain how we test
-programs~\sref{dejafu-testing}, and argue the correctness of the
-testing approach~\sref{dejafu-correctness}.  We present three case
+programs~\sref{dejafu-testing} and how we present execution traces to
+the user~\sref{dejafu-traces}.  We then argue the correctness of our
+approach~\sref{dejafu-correctness}.  We present three case
 studies~\sref{dejafu-casestudies}, and finally evaluate our
 results~\sref{dejafu-evaluation}.
 
@@ -90,20 +92,21 @@ supports three ways to explore the behaviours of a concurrent program:
   Exploration terminates after a fixed number of executions.  We
   discuss this algorithm further in \Cref{chp:algorithms}.
 
-\item[DPOR] Uses a notion of ``todo sets,'' where each
-  scheduling point has an associated set of threads to try in future
-  executions.  Execution terminates when all such sets are empty.
+\item[DPOR] Uses a notion of ``to-do sets,'' where each scheduling
+  point has an associated set of threads to try in future executions.
+  Execution terminates when all such sets are empty.
 
   During execution, at each scheduling point, if the previously chosen
   thread is still runnable, choose that; otherwise, take all runnable
-  threads, choose one arbitrarily, and record the others in the todo
+  threads, choose one arbitrarily, and record the others in the to-do
   set for this scheduling point.
 
   After execution, the trace is examined to find pairs of dependent
   actions: for each thread $T$, for each action in thread $T$, find
   the most recent dependent action (if one exists) in a different
-  thread, and add $T$ to the todo set corresponding to that scheduling
-  point if $T$ is runnable; otherwise add all runnable threads.
+  thread, and add $T$ to the to-do set corresponding to that
+  scheduling point if $T$ is runnable; otherwise add all runnable
+  threads.
 
   There are some subtleties and additional optimisations, which we
   discuss further in \Cref{sec:dejafu-testing}.
@@ -121,12 +124,10 @@ filtering is passed to \verb|runSCTWithSettings| via the
 filtered, list of pairs: these predicates can check anything, for
 example all results being \verb|Right|s and equal.  If an execution
 yields a \verb|Left| value, we say that it has \emph{failed}.
-\dejafu{} can detect a few different types of failure:
+\dejafu{} can detect two different types of failure:
 
 \begin{description}
 \item[Deadlocks] Every thread is blocked.
-\item[STM deadlocks] Every thread is blocked \emph{and} the main
-  thread is blocked in an STM transaction.
 \item[Uncaught exceptions] The main thread is killed by an exception.
 \end{description}
 
@@ -174,13 +175,13 @@ gives expected = ProPredicate
 \caption[The \texttt{gives} predicate.]{The \texttt{gives} predicate.  The \texttt{pdiscard} component is used for online filtering, removing uninteresting traces as they are found.  The \texttt{peval} component takes the final list of pairs and determines if the test passes or fails.}\label{lst:gives}
 \end{listing}
 
-\Cref{lst:gives} shows the provided \verb|gives| predicate, which is
-used to check that a program produces exactly the desired set of
-results, failing if unexpected results are present or expected results
-are not.  The \verb|gives| predicate reduces memory usage by using
-online filtering to discard the execution traces of expected results,
-as we are only interested in execution traces which yield
-\emph{unexpected} results.  There is nothing special about
+For an example of a \dejafu{} predicate, see \Cref{lst:gives}.  The
+\verb|gives| predicate is used to check that a program produces
+exactly the desired set of results, failing if unexpected results are
+present or expected results are not.  The predicate reduces memory
+usage by using online filtering to discard the execution traces of
+expected results, as we are only interested in execution traces which
+yield \emph{unexpected} results.  There is nothing special about
 \verb|gives|, it is just a normal function written using the \dejafu{}
 API.  It is provided as an example of the sort of thing that \dejafu{}
 can be used to check.
@@ -230,9 +231,9 @@ makes sense, is invariant testing.  A function could be provided to
 register an arbitrary concurrency action as an invariant.  As
 \dejafu{} drives the execution of the program under test, these
 invariants can be checked atomically.  This would be similar to, but
-more general than, the function \verb|always :: STM Bool -> STM ()|,
-which registers an invariant to be checked at the end of STM
-transactions.
+more general than, the GHC Haskell function
+\verb|always :: STM Bool -> STM ()|, which registers an invariant to
+be checked at the end of STM transactions.
 
 \subsection{Scope}
 \label{sec:dejafu-whatis-scope}
@@ -249,13 +250,13 @@ system.  In particular, we do not support:
   nondeterminism.
 
 \item Operations to query which capability (OS thread) a Haskell
-  thread is running on, as this introduces an additional source of
-  nondeterminism.
+  thread is running on, as this also introduces an additional source
+  of nondeterminism.
 
 \item Automatically detecting if a thread is deadlocked on an
   \verb|MVar| or \verb|TVar| and throwing an exception to it, as we
-  cannot detect this situation without support from the garbage
-  collector.
+  cannot detect this situation in general without support from the
+  garbage collector.
 \end{itemize}
 
 We also do not yet support \emph{bound threads}: a Haskell thread
@@ -299,7 +300,7 @@ the first approach in \dejafu{}.  Haskell's typeclass machinery lets
 us specify an interface for concurrency, and to provide different
 concrete implementations.  There is one implementation using the
 \verb|IO| type and the standard functions; there is another using our
-own type, based on continuations which we can inspect.
+own type, which we can inspect.
 
 \begin{listing}
 \centering
@@ -335,8 +336,8 @@ least one.
 \begin{listing}
 \centering
 \begin{cminted}{haskell}
-instance Monad n => MonadConc (ConcT r n) where
-  type MVar (ConcT r n) = ModelMVar r
+instance Monad n => MonadConc (ConcT m) where
+  type MVar (ConcT m) = ModelMVar m
   -- other types omitted
 
   newEmptyMVarN n = toConc (ANewMVar n)
@@ -350,13 +351,14 @@ instance Monad n => MonadConc (ConcT r n) where
 \end{listing}
 
 \paragraph{Implementation}
-The type for our testing implementation is called \verb|ConcT r n|,
-which is a monad that has access to references of type \verb|r| in a
-monad of type \verb|n|.  \Cref{lst:mvarops} shows a fragment of the
-instance of \verb|MonadConc| for this type.  Each concurrency
-operation is of the same form: we take the arguments and wrap them up
-inside a data structure whose final argument is a continuation, which
-is then converted into a \verb|ConcT| value.
+The type for our testing implementation is called \verb|ConcT m|,
+which is a monad that has access to mutable references provided by
+some monad \verb|m|, which will typically be \verb|IO|.
+\Cref{lst:mvarops} shows a fragment of the instance of
+\verb|MonadConc| for this type.  Each concurrency operation is of the
+same form: we take the arguments and wrap them up inside a data
+structure whose final argument is a continuation, which is then
+converted into a \verb|ConcT| value.
 
 We represent a concurrent computation as a large value.  We can
 inspect each step of the computation by looking at the data
@@ -543,18 +545,17 @@ redundant or not:
   yield.  So we should never schedule a prisoner who will yield.
 \end{enumerate}
 
-\dejafu{} cannot make use of (1).  However, it would be possible to
-implement this optimisation if \dejafu{} were able to compare values
-inside \verb|TVar|s.  We would then be able to check if any
-\verb|TVar| read during a transaction which blocked has a different
-value: if none do, the transaction will just block again.  But we
-cannot do that without putting an \verb|Eq| constraint on
-\verb|writeTVar|, so this would require a new primitive action.  We
-get part of the way there, though.  If a thread is blocked in a
-transaction, \dejafu{} only tries executing it again when at least one
-of the \verb|TVar|s it reads from has been written to, which gives a
-similar effect to the version numbering scheme commonly used in STM
-implementations \parencite{shavit1995}.
+\dejafu{} cannot make use of (1).  It would be possible to implement
+this optimisation if \dejafu{} were able to compare values inside
+\verb|TVar|s, as we would be able to check if any \verb|TVar| read
+during a blocked transaction has a different value: if none do, the
+transaction will just block again.  This would require a new primitive
+action, as we cannot do that without putting an \verb|Eq| constraint
+on \verb|writeTVar|.  We get part of the way there, though.  If a
+thread is blocked in a transaction, \dejafu{} only tries executing it
+again when at least one of the \verb|TVar|s it reads from has been
+written to, which is similar to the version numbering scheme commonly
+used in STM implementations \parencite{shavit1995}.
 
 \dejafu{} can make use of (2).  \dejafu{} already bounds the maximum
 number of times a thread can yield, so that it can test constructs
@@ -582,18 +583,16 @@ tend not to see this exponential growth in schedules tried.
 \section{Modelling Concurrent Programs}
 \label{sec:dejafu-execution}
 
-We represent operations in the \verb|MonadConc| typeclass by the
-\verb|Action| type.  Each action describes some effect and contains a
-continuation.  A concurrent computation is a sequence of these
-continuation values.  Each thread is terminated by a distinguished
+We represent operations in the \verb|MonadConc| typeclass by an
+\verb|Action| type, which we give in full in
+\Cref{sec:dejafu-semantics}.  Each action describes some effect and
+contains a continuation.  A concurrent computation is a sequence of
+these action values.  Each thread is terminated by a distinguished
 \emph{stop} primitive, which has no continuation.  \Cref{lst:m} gives
 the definition and typeclass instances of the \dejafu{} continuation
 monad\footnote{\dejafu{} aims to support the latest three major
-  releases of GHC, so in the real implementation use conditional
+  releases of GHC, so in the real implementation we use conditional
   compilation.}.
-
-% [layout hack]: get lst:100sols here
-\FloatBarrier
 
 \begin{listing}
 \centering
@@ -691,9 +690,9 @@ newtype Scheduler state = Scheduler
 When testing concurrent computations, we are interested in both
 success and failure.  If a computation succeeds and returns a value,
 we want to know that; if it enters a failure state such as deadlock,
-we also want to know that.  We achieve this by reporting failure: the
-result of a single execution of the program is a value of type
-\verb|(Either Failure result, Trace)|.
+we also want to know that.  As we have seen earlier, we achieve this
+by reporting failure: the result of a single execution of the program
+is a value of type \verb|(Either Failure result, Trace)|.
 
 \subsection{Software Transactional Memory}
 
@@ -729,9 +728,10 @@ There are three memory models supported in \dejafu{}:
   \emph{committed}, which may happen later.  Writes by the same thread are
   committed in program order.
 
-\item[Partial Store Order (PSO)] A relaxation of TSO where each thread has a
-  write buffer for each \verb|IORef|.  Writes to different \verb|IORef|s by the
-  same thread are not necessarily committed in program order.
+\item[Partial Store Order (PSO)] A relaxation of TSO where each thread
+  has a write buffer for each \verb|IORef|.  Writes to different
+  \verb|IORef|s by the same thread may not be committed in program
+  order.
 \end{description}
 
 The default memory model for testing is TSO, as that most accurately
@@ -825,16 +825,14 @@ the same \verb|IORef|; and \emph{unsynchronised} operations never cause
 a commit.
 
 \paragraph{Phantom threads}
-In a sequentially consistent memory model, the set of runnable threads
-is exactly the set of threads created by forking which are not
-blocked.  Under our model of relaxed memory, however, this is not the
-case.  For each write buffer, we introduce one \emph{phantom thread}.
-When scheduled, a phantom thread commits the oldest write in its
-corresponding buffer.
-
-This may seem like an odd approach: why create new threads to model
-relaxed memory?  By using phantom threads, relaxed memory
-nondeterminism becomes just another aspect of scheduling
+For each write buffer, we introduce a \emph{phantom thread}.  When
+executed, a phantom thread commits the oldest write from its
+corresponding buffer.  So when using sequentially consistency, the set
+of runnable threads is exactly the set of threads created by forking
+which are not blocked, but when using a relaxed memory model, this is
+not the case.  This may seem like an odd approach: why create new
+threads to model relaxed memory?  By using phantom threads, relaxed
+memory nondeterminism becomes just another aspect of scheduling
 nondeterminism.  We take this approach from \cite{zhang2015}.
 
 \section{Operational Semantics}
@@ -845,10 +843,10 @@ concurrency, in the form of a step function on primitive actions.
 Given the current state, which we call the context, the identifier of
 the chosen thread, and its primitive action, we either indicate a
 failure condition, or produce a new context; in both cases we return a
-log of what happened, to put into the execution trace returned to the
-user.  Our semantics is similar in spirit to \cite{vollmer2017},
-however we model a much larger set of operations, and support partial
-store order as well as total store order.
+log of what happened, to produce an execution trace for the user.  Our
+semantics is similar in spirit to \cite{vollmer2017}, however we model
+a much larger set of operations, and support partial store order as
+well as total store order.
 
 \paragraph{The heap}
 We implement \verb|IORef|s, \verb|MVar|s, and \verb|TVar|s with mutable
@@ -896,7 +894,8 @@ use Haskell syntax for these.
 \begin{cminted}{haskell}
 data Action n
   -- Basic multithreading
-  = AFork ((forall b. ConcT n b -> ConcT n b) -> Action n) (ThreadId -> Action n)
+  = AFork String ((forall b. ConcT n b -> ConcT n b) -> Action n)
+      (ThreadId -> Action n)
   | AGetNumCapabilities     (Int -> Action n)
   | ASetNumCapabilities Int        (Action n)
   | AMyTId (ThreadId -> Action n)
@@ -907,7 +906,7 @@ data Action n
   | AStop
 
   -- IORefs and relaxed memory
-  | forall a.   ANewIORef                      a (ModelIORef n a -> Action n)
+  | forall a.   ANewIORef     String           a (ModelIORef n a -> Action n)
   | forall a.   AReadIORef    (ModelIORef n a)                (a -> Action n)
   | forall a.   AReadIORefCas (ModelIORef n a)    (ModelTicket a -> Action n)
   | forall a.   AWriteIORef   (ModelIORef n a) a                   (Action n)
@@ -918,7 +917,7 @@ data Action n
   | ACommit ThreadId IORefId
 
   -- MVars
-  | forall a. ANewMVar                       (ModelMVar n a -> Action n)
+  | forall a. ANewMVar     String            (ModelMVar n a -> Action n)
   | forall a. APutMVar     (ModelMVar n a) a                  (Action n)
   | forall a. ATakeMVar    (ModelMVar n a)               (a -> Action n)
   | forall a. AReadMVar    (ModelMVar n a)               (a -> Action n)
@@ -980,7 +979,7 @@ explain them when first used.
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AFork act c}{E}{m0}\right]}\rangle\rightarrow$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AFork \_ act c}{E}{m0}\right]}\rangle\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c id}{E}{m0};~\texttt{id} \mapsto \texttt{new}]}\rangle$\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' k}$}\\
@@ -1013,47 +1012,43 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \v
 multithreading operations.  These rules do not involve memory, so they
 leave the relaxed-memory buffer and heap untouched.  We use
 ``\verb|id| is fresh'' to mean that \verb|id| is a new unique
-identifier, which we use when creating threads, \verb|IORef|s, and
-\verb|MVar|s.  We write $\texttt{M}_{[\texttt{k} \mapsto \texttt{v}]}$
+identifier.  We write $\texttt{M}_{[\texttt{k} \mapsto \texttt{v}]}$
 to denote a new map which maps the key \texttt{k} to the value
 \texttt{v}.
 
 Rather than have one primitive action for each of the \verb|fork|-like
 functions, we only provide \verb|AFork|, which implements
-\verb|forkWithUnmask|, and implement the others in terms of this.  We
-do not model which capability a thread is executing on, so we do not
-also need an ``\verb|AForkOn|'' action.
+\verb|forkWithUnmask| for named threads, and implement the others in
+terms of this.  We do not model which capability a thread is executing
+on, so we do not also need an ``\verb|AForkOn|'' action.
 
-The \verb|ALift| action is special, as it causes a Haskell-level
-effect to occur.  It produces a continuation by executing some
-\verb|IO| action.
-
-In \verb|AStop|, we use
-$\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$ to mean that the given
+The \verb|ALift| and \verb|AStop| actions are a little unlike the
+others.  \verb|ALift| causes a Haskell-level effect to occur,
+producing a continuation by executing some \verb|IO| action.
+\verb|AStop| has no continuation, we use
+$\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$ to mean that the
 thread is deleted.
 
 \paragraph{\texttt{IORef} operations}
 \Cref{fig:sem_ioref} shows the semantics for the \verb|IORef|
 operations.  We represent a \verb|IORef| as reference to a pair of a
-number of commits and a latest value.
+number of commits and a latest value.  We present the rules for
+writing to and committing to an \verb|IORef|, which depends on the
+memory model, in \Cref{sec:dejafu-semantics-writes}
 
 We use $\texttt{H} \oplus \texttt{B}$ to mean a new heap with all
-buffered writes nondeterministically committed, in some order
+buffered writes committed, nondeterministically, in some order
 permitted by the memory model.  This is a memory barrier.  We use
 $\texttt{H} \oplus \texttt{B}_{[\texttt{tid}]}$ to mean that only the
 buffered writes from thread \verb|tid| are committed.  Under
 sequential consistency there are no buffered writes, so
 $\texttt{H} \oplus \texttt{\_} = \texttt{H}$.
 
-We present the rules for writing and committing to an \verb|IORef|,
-which depends on the memory model, in
-\Cref{sec:dejafu-semantics-writes}
-
 \paragraph{\texttt{MVar} operations}
 \Cref{fig:sem_mvar} shows the semantics for the \verb|MVar|
 operations.  We represent an \verb|MVar| as a reference to a
 \verb|Maybe| value.  These operations enforce a memory barrier, and
-some of them may cause the thread to block.  A thread can enforce a
+some of them may cause the thread to block.  An action can enforce a
 memory barrier even if it blocks.  We model blocking by not changing
 the continuation for the chosen thread.
 
@@ -1062,16 +1057,19 @@ the continuation for the chosen thread.
 operations.  The \verb|raise| function pops from a stack of exception
 handlers until it finds a handler for the given exception.  The
 \verb|interruptible| function checks if the given thread can be
-interrupted with an exception.
+interrupted with an exception.  A thread can be interrupted if its
+masking state is ``unmasked'', or if its masking state is
+``interruptible'' and it is blocked.
 
 The \verb|AMasking| action is similar to \verb|AFork|: it runs an
-action after passing an argument to change the masking state.  Only,
-\verb|AMasking| runs the action in the current thread.
+action after passing an argument to change the masking state.
+However, unlike \verb|AFork|, \verb|AMasking| runs the action in the
+current thread rather than creating a new one.
 
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-$\semlrule{ANewIORef a c}\rightarrow$&
+$\semlrule{ANewIORef \_ a c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{(0, a)}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c id}]}\rangle$ \\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
@@ -1108,7 +1106,7 @@ $\semlrule{AModIORefCAS id f c}\rightarrow$&\\
 \begin{figure}
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
-\multicolumn{2}{r}{$\semlrule{ANewMVar c} \rightarrow \langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c id}]}\rangle$}\\
+\multicolumn{2}{r}{$\semlrule{ANewMVar \_ c} \rightarrow \langle\texttt{C}, \texttt{B}, \texttt{H}_{[\texttt{id} \mapsto \texttt{Nothing}]}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c id}]}\rangle$}\\
 \multicolumn{2}{l}{where \texttt{id} is fresh}\\
 & \\
 $\semlheaprule{APutMVar id \_ \_}{Just \_}$\hfill$\rightarrow$&
@@ -1193,7 +1191,7 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 To avoid giving all of our semantic rules which read from memory three
 times, we have used the $\oplus$ operator, to denote synchronising any
 buffered writes to the global memory in a nondeterministic fashion.
-The behaviour of this operator depends on the memory model:
+The behaviour of this operator depends on the memory model used.
 
 \begin{itemize}
 \item Under sequential consistency, there are no buffered writes, so
@@ -1205,8 +1203,8 @@ The behaviour of this operator depends on the memory model:
   from its buffer.  This process is repeated until there are no
   remaining buffered writes.
 \item Under partial store order, there is a buffer for each (thread,
-  \verb|IORef|) pair, but the process of performing the writes is
-  otherwise the same.
+  \verb|IORef|) pair, but the process is otherwise the same as for
+  TSO.
 \end{itemize}
 
 \paragraph{Writing to an \texttt{IORef}}
@@ -1257,9 +1255,9 @@ $\langle\texttt{C}, \texttt{B}_{[\texttt{(tid, id)} \mapsto \texttt{buf}]}, \tex
 
 \subsection{Software Transactional Memory}
 
-Here we only give the semantics of the \verb|atomically| function, a
-full operational semantics of STM is given in \cite{harris2005}.  The
-STM semantics are small-step reductions of the form
+Here we only give the semantics of the \verb|AAtom| action, a full
+operational semantics of STM is given in \cite{harris2005}.  The STM
+semantics are small-step reductions of the form
 $M; \Theta, \Delta \Rightarrow N; \Theta', \Delta'$, where $M$ and $N$
 are Haskell expressions, $\Theta$ is the heap, and $\Delta$ is the set
 of \verb|TVar| variables which have been accessed.  We use
@@ -1429,13 +1427,12 @@ the previously taken transitions to the sleep set of the new state,
 and removing the dependent transitions.
 
 \paragraph{Schedule bounding}
-\dejafu{} supports pre-emption bounding \parencite{musuvathi2007}; fair
-bounding \parencite{musuvathi2008}; and depth, or length,
+\dejafu{} supports pre-emption bounding \parencite{musuvathi2007};
+fair bounding \parencite{musuvathi2008}; and depth, or length,
 bounding \parencite{russell2002}.  We use a variant of the bounded
-partial-order reduction algorithm~(BPOR) \parencite{coons2013}, augmented
-with support for relaxed memory \parencite{zhang2015}, as our core testing
-algorithm.  All three bounds are enabled by default, but can be
-selectively disabled or changed.
+partial-order reduction algorithm~(BPOR) \parencite{coons2013},
+augmented with support for relaxed memory \parencite{zhang2015}, as
+our core testing algorithm.  All three bounds are enabled by default.
 
 \paragraph{Daemon threads}
 A daemon thread is a thread which is automatically killed after the
@@ -1498,9 +1495,7 @@ By executing every thread to completion in at least one execution, we
 do see some redundant schedules.  For example, if a thread does not
 communicate with any other thread, then an execution which schedules
 it could in principle be modified to not schedule the thread, or
-perhaps even pruned entirely.  However, we see a subset of the
-executions explore by introducing a dependency between the final
-action with everything else.
+perhaps even pruned entirely.
 
 \section{Execution traces}
 \label{sec:dejafu-traces}
@@ -1547,9 +1542,9 @@ S0----------P2--P3-----S0--S2---S1--P0----
 \end{listing}
 
 \Cref{lst:trace_simplification} shows three execution traces generated
-by random scheduling, from a test of \dejafu{}'s relaxed memory
-implementation.  These traces are displayed in a pretty-printed form
-which gives just the essence of the scheduling decisions:
+by random scheduling, from one of the tests in the \dejafu{}
+testsuite.  These traces are displayed in a pretty-printed form which
+gives just the essence of the scheduling decisions:
 
 \begin{itemize}
 \item \verb|Sn|: indicates that thread \verb|n| started executing
@@ -1590,7 +1585,8 @@ sort.
 
 Recall that a Haskell program terminates when the main thread does.
 So by moving actions of the main thread, thread 0, towards the
-beginning we can delete a suffix of the trace.
+beginning we can then delete a suffix of the trace.  This is the main
+way in which we can produce shorter traces.
 
 \paragraph{Prune redundant relaxed memory commit actions}
 If a commit action is followed by a memory barrier, possibly with some
@@ -1602,10 +1598,9 @@ commit the single write anyway.
 We now walk through the trace from beginning to end, looking for
 opportunities to pull actions backwards.  If we have the trace
 \verb|[(t1, X), (t2, Y), (t1, Z)]|, where \verb|Y| and \verb|Z| are
-independent, the this transformation re-orders the trace to
-\verb|[(t1, X), (t1, Z), (t2, Y)]|.  We allow arbitrary separations,
-as long as all of the actions in the middle are independent with the
-action being pulled backwards.
+independent, this transformation re-orders the trace to
+\verb|[(t1, X), (t1, Z), (t2, Y)]|.  We allow any number of
+independent actions before the action being pulled backwards.
 
 \paragraph{Reduce context switching by pushing actions forwards}
 This is much like the ``pull back'' transformation.  We walk the
@@ -1656,7 +1651,7 @@ be hard to isolate and fix, but in practice failures in different
 components tend to manifest differently.  For example, a failure in
 the DPOR implementation tends to manifest as invalid schedules being
 generated; whereas a failure in the concurrency implementation tends
-to manifest as incorrect results.
+to manifest as incorrect results of individual executions.
 
 Our integration tests fall into the following classes:
 
@@ -1999,15 +1994,15 @@ dependent and so tries every possible interleaving of these.
 \caption{The final ten entries of the deadlocking monad-par trace.}\label{lst:parmonad_example3}
 \end{listing}
 
-Following the code by eye as we read a 793-entry trace is not a
-feasible approach here.  So instead, let's look at the last few
-entries in the trace, shown in \Cref{lst:parmonad_example3}.  Each
-trace entry is a tuple consisting of: the scheduling decision made,
-the alternative decisions possible, and what the thread did.  As this
-is right before deadlock, it is not surprising that there are no other
-threads which could be scheduled.  There are only four calls to
-\verb|getNumCapabilities| in the code we ported.  So we can look at
-each, to find one where the surrounding context matches the trace.
+Following the code by eye as we read a 793-entry trace is not
+realistic.  So instead, let's look at the last few entries in the
+trace, shown in \Cref{lst:parmonad_example3}.  Each trace entry is a
+tuple consisting of the scheduling decision made, the alternative
+decisions possible, and what the thread did.  As this is right before
+deadlock, it is not surprising that there are no other threads which
+could be scheduled.  There are only four calls to
+\verb|getNumCapabilities| in the code we ported.  We can look at each,
+to find the code which matches the trace.
 
 \begin{listing}
 \centering
@@ -2036,12 +2031,11 @@ steal work, it creates an empty \verb|MVar| which it adds to a shared
 list, called \verb|idle|; if that list already has an entry for every
 other thread, they are woken by writing a value to their \verb|MVar|;
 otherwise, the thread blocks by calling \verb|takeMVar| on its new,
-empty, \verb|MVar|.
-
-The final fragment of our execution trace corresponds to this code
-where the condition \verb|length r == numCapabilities - 1| is false.
-But how can that be false?  \emph{The list is never emptied!}  Think
-about what happens if every thread reaches this logic \emph{twice}:
+empty, \verb|MVar|.  The final fragment of our execution trace
+corresponds to this code where \verb|length r == numCapabilities - 1|
+is false.  But how can that be false?  \emph{The list is never
+  emptied!}  Think about what happens if every thread reaches this
+logic \emph{twice}:
 
 \begin{enumerate}
 \item \verb|n - 1| threads add themselves to the list, and block.
@@ -2069,12 +2063,12 @@ we really had fixed the problem, another issue arose which \dejafu{}
 did \emph{not} find.  After a while, the main thread would be killed
 by a \verb|BlockedIndefinitelyOnMVar| exception.  Such exceptions are
 out of scope~\sref{dejafu-whatis-scope}, so \dejafu{} could never find
-this new problem.  There is always a gap between the real
-system---GHC's runtime---and the model---\dejafu{}'s semantics.
-\dejafu{} is just one component of the Haskell programmer's toolbox,
-it is not the be-all and end-all for concurrency testing.  However,
-for the class of bugs which \dejafu{} can find, it is much more
-effective than simply running the program in \verb|IO| many times.
+this new problem.  There is always a gap between the real system and
+the model.  \dejafu{} is just one component of the Haskell
+programmer's toolbox, it is not the be-all and end-all for concurrency
+testing.  However, for the class of bugs which \dejafu{} can find, it
+is much more effective than simply running the program in \verb|IO|
+many times.
 
 By turning on the library's debugging output, and adding some more of
 our own, we were able to track the problem down to the same logic as
@@ -2172,9 +2166,6 @@ makeScheds main = do
   \caption{The monad-par ``direct'' scheduler initialisation.}\label{lst:parmonad}
 \end{listing}
 
-% [layout hack]: get lst:parmonad here.
-\FloatBarrier
-
 \subsection{auto-update}
 
 The auto-update library \parencite{auto_update} runs tasks periodically, but
@@ -2245,10 +2236,8 @@ We can see from the trace of the deadlock result that thread 0
 executed for a while, then thread 1, then thread 0 again.  As these
 are all \verb|S| points, each thread executed until it blocked.  So we
 can look at the source code in \Cref{lst:autoupdate_example1} and
-\Cref{lst:autoupdate} to see what happened.
-
-Following the execution by eye, we see this sequence of concurrency
-events:
+\Cref{lst:autoupdate} to see what Following the execution by eye, we
+see this sequence of concurrency events:
 
 \begin{enumerate}
 \item Thread 0:
@@ -2324,13 +2313,12 @@ How easy it is to make mistakes when implementing concurrent programs!
 
 \paragraph{Performance of testing}
 \Cref{tbl:autoupdate_perf} shows performance measurements for our test
-case in six different configurations: three different algorithms to
-explore the space of schedules, keeping or discarding execution
-traces.  Both the library itself and our test case are small, so it is
-perhaps no surprise to see that in all configurations, execution only
-takes a fraction of a second.  We can see the effect of the schedule
-bounding: when the bounds are disabled, the number of schedules tried
-almost doubles, and two new deadlocking executions are found.
+case in six different configurations.  Both the library itself and our
+test case are small, so it is perhaps no surprise to see that in all
+configurations, execution only takes a fraction of a second.  We can
+see the effect of the schedule bounding: when the bounds are disabled,
+the number of schedules tried almost doubles, and two new deadlocking
+executions are found.
 
 To reduce memory usage, \dejafu{} is able to discard results or
 execution traces which the user considers uninteresting in some way.
@@ -2756,8 +2744,8 @@ had this to say (emphasis mine):
 
 \subsection{Richness of the Abstraction}
 
-As we noted in \Cref{sec:dejafu-scope}, there are some areas which we
-do not currently aim to support with \dejafu{}:
+As we noted in \Cref{sec:dejafu-whatis-scope}, there are some areas
+which we do not currently aim to support with \dejafu{}:
 
 \begin{itemize}
 \item Blocking a thread until a file descriptor becomes available, as
@@ -2848,15 +2836,14 @@ higher-level and safer way of expressing asynchronous computations
 with guaranteed cleanup than using threading, mutable state, and
 asynchronous exceptions directly.
 
-Our concurrency library \parencite{concurrency}, which provides
-\verb|MonadConc|, includes an alternative to async using
-\verb|MonadConc|.  There is a test suite using \dejafu{}.  The test
-suite for async itself just runs most tests a single time, although
-one of them is run 1000 times.  Using \dejafu{} here to automatically
-seek out interesting schedules is a much more principled approach then
-repetition and hope.  Not all features of async are supported,
-however.  As we do not currently support bound threads, functions that
-use them have been omitted.
+Our concurrency library, which provides \verb|MonadConc|, includes an
+alternative to async using \verb|MonadConc|.  There is a test suite
+using \dejafu{}.  The test suite for async itself just runs most tests
+a single time, although one of them is run 1000 times.  Using
+\dejafu{} here to automatically seek out interesting schedules is a
+much more principled approach then repetition and hope.  Not all
+features of async are supported, however.  As we do not currently
+support bound threads, functions that use them have been omitted.
 
 This is just one library, and providing an alternative library that
 people will have to switch to is far from optimal.  However, until
@@ -2962,7 +2949,7 @@ concurrent Haskell programs:
   operational semantics~\sref{dejafu-semantics}, so that we can
   simulate the behaviour of GHC.  Our model includes most of the
   Control.Concurrent library module, although some operations are out
-  of scope, or have their behaviour changed~\sref{dejafu-scope}.
+  of scope, or have their behaviour changed~\sref{dejafu-whatis-scope}.
 
 \item We use bounded partial-order reduction \parencite{coons2013} with
   relaxed memory \parencite{zhang2015} as the core testing algorithm for
