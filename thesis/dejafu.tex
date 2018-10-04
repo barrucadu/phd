@@ -848,25 +848,6 @@ semantics is similar in spirit to \cite{vollmer2017}, however we model
 a much larger set of operations, and support partial store order as
 well as total store order.
 
-\paragraph{The heap}
-We implement \verb|IORef|s, \verb|MVar|s, and \verb|TVar|s with mutable
-references.  We do not use a pure model of the heap, as we found the
-additional indirection to both increase allocation, and to reduce the
-efficacy of garbage collection.  By using references directly, when
-all copies of a reference fall out of scope, the referenced value can
-be garbage collected.  If we model references as keys into a
-heterogeneous map, then such data can never be freed, as we cannot
-tell when it is safe to delete a key.
-
-This means that executing our step function has effects, and in
-general contexts cannot be re-used.  For general concurrency, this is
-not a limitation in practice because we never want to re-use contexts.
-However, for STM, we do have to compute an action to undo effects,
-which is applied if a transaction fails.
-
-To simplify the presentation of our semantic rules, in this section we
-use a pure model of the heap as a heterogeneous map.
-
 \paragraph{Syntax}
 We express our concurrency semantics as transitions on a context
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle$:
