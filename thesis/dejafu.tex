@@ -880,7 +880,7 @@ data Action n
   | AGetNumCapabilities     (Int -> Action n)
   | ASetNumCapabilities Int        (Action n)
   | AMyTId (ThreadId -> Action n)
-  | ALift           (n (Action n))
+  | ALift  (n a)  (a -> Action n)
   | AYield             (Action n)
   | ADelay             (Action n)
   | AReturn            (Action n)
@@ -967,10 +967,6 @@ $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \s
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset Unmasked >> mb >> \textbackslash b -> reset m0 >> pure b}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \langle\texttt{act umask}, \texttt{[]}, \texttt{m0}\rangle$}\\
 & \\
-$\semlrule{ALift n}\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
-\multicolumn{2}{l}{where \texttt{c} is the result of executing the Haskell action \texttt{n}}\\
-& \\
 $\semlrule{AGetNumCapabilities c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c C}]}\rangle$\\
 $\semlrule{ASetNumCapabilities i c}\rightarrow$&
@@ -983,6 +979,8 @@ $\semlrule{ADelay c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
 $\semlrule{AReturn c}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{c}]}\rangle$\\
+$\semlrule{ALift na c}\rightarrow$&
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semthread{na >>= c}]}\rangle$\\
 $\semlrule{AStop}\rightarrow$&
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \varnothing]}\rangle$
 \end{tabular}
@@ -1004,11 +1002,10 @@ terms of this.  We do not model which capability a thread is executing
 on, so we do not also need an ``\verb|AForkOn|'' action.
 
 The \verb|ALift| and \verb|AStop| actions are a little unlike the
-others.  \verb|ALift| causes a Haskell-level effect to occur,
-producing a continuation by executing some \verb|IO| action.
-\verb|AStop| has no continuation, we use
-$\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$ to mean that the
-thread is deleted.
+others.  \verb|ALift| causes a Haskell-level effect to occur by
+executing some action in the underlying monad.  \verb|AStop| has no
+continuation, we use $\texttt{T}_{[\texttt{tid}\mapsto\varnothing]}$
+to mean that the thread is deleted.
 
 \paragraph{\texttt{IORef} operations}
 \Cref{fig:sem_ioref} shows the semantics for the \verb|IORef|
