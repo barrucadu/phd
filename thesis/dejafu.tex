@@ -848,24 +848,49 @@ semantics is similar in spirit to \cite{vollmer2017}, however we model
 a much larger set of operations, and support partial store order as
 well as total store order.
 
-\paragraph{Syntax}
-We express our concurrency semantics as transitions on a context
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}\rangle$:
+\newcommand{\bnfeq}{\text{::=}}
+\newcommand{\bnfor}{\quad\text{|}\quad}
 
-\begin{itemize}
-\item \verb|C| is the number of capabilities, a natural number.
-\item \verb|B| is the relaxed-memory buffer, the representation
-  depends on the memory model.
-\item \verb|H| is the heap, a heterogeneous map from identifiers to
-  Haskell values.
-\item \verb|T| is a map from thread identifiers to threads
-  $\langle\texttt{K}, \texttt{E}, \texttt{M}\rangle$:
-  \begin{itemize}
-  \item \verb|K| is the next primitive action to execute.
-  \item \verb|E| is the stack of exception handler functions.
-  \item \verb|M| is the exception masking state.
-  \end{itemize}
-\end{itemize}
+\begin{figure}
+\centering
+\[
+\begin{array}{lrcl}
+  \multicolumn{2}{r}{tid,~tid2} &\in&\text{Thread Identifier}\\
+  \multicolumn{2}{r}{id}        &\in&\text{Heap Identifier}\\
+  \multicolumn{2}{r}{a}         &\in&\text{Value}\\
+  \multicolumn{2}{r}{c}         &\in&\text{Action Value}\\
+  \multicolumn{2}{r}{e}         &\in&\text{Exception Value}\\
+  \multicolumn{2}{r}{i,~n}      &\in&\mathbb{N}_{1}\\\\
+%
+  \text{Execution Context}  &\texttt{X}&\bnfeq&\langle \texttt{C},~\texttt{B},~\texttt{H},~\texttt{T} \rangle\\
+  \text{Capabilities}       &\texttt{C}&\bnfeq&n\\
+  \text{Buffer (TSO)}       &\texttt{B}&\bnfeq&tid \hookrightarrow [\langle id,~a \rangle]\\
+  \text{Buffer (PSO)}       &\texttt{B}&\bnfeq&\langle tid,~id \rangle \hookrightarrow [a]\\
+  \text{Heap}               &\texttt{H}&\bnfeq&id \hookrightarrow a\\
+  \text{Thread Map}         &\texttt{T}&\bnfeq&tid \hookrightarrow \langle \texttt{K},~\texttt{E},~\texttt{M} \rangle\\\\
+%
+  \text{Actions}            &\texttt{K}&\bnfeq&c\\
+  \text{Exception Handlers} &\texttt{E}&\bnfeq&[\lambda e \rightarrow c]\\
+  \text{Exception Mask}     &\texttt{M}&\bnfeq&\text{Unmasked} \bnfor \text{Interruptible} \bnfor \text{Uninterruptible}\\
+\end{array}
+\]
+\caption[The syntax of values and execution contexts.]{The syntax of values and execution contexts.  \Cref{lst:actionty} gives the definition of action values.}\label{fig:opsyntax}
+\end{figure}
+
+\paragraph{Syntax}
+We express our semantics as transitions on execution contexts.
+\Cref{fig:opsyntax} gives the syntax for these contexts.  A context
+has a number of capabilities (\texttt{C}), a relaxed-memory buffer
+(\texttt{B}), a heap (\texttt{H}), and a collection of threads
+(\texttt{T}).  The representation of \texttt{B} depends on the memory
+model: it is a finite mapping, either from thread identifiers to a
+list of heap identifier and value pairs, or from thread and heap
+identifier pairs to a list of values; see
+\Cref{sec:dejafu-semantics-writes}.  \texttt{H} is a finite mapping
+from identifiers to values.  \texttt{T} is a finite mapping from
+identifiers to threads.  A thread has a next operation to perform
+(\texttt{K}), a list of exception handlers (\texttt{E}), and a masking
+state (\texttt{M}).
 
 For some rules we include side-conditions or local definitions.  We
 use Haskell syntax for these.
@@ -961,8 +986,8 @@ explain them when first used.
 \centering
 \begin{tabular}{r@{\hspace{0.5em}}l}
 $\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{\left[\texttt{tid} \mapsto \semfullthread{AFork \_ act c}{E}{m0}\right]}\rangle\rightarrow$&
-$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c id}{E}{m0};~\texttt{id} \mapsto \texttt{new}]}\rangle$\\
-\multicolumn{2}{l}{where \texttt{id} is not in the domain of \texttt{T}}\\
+$\langle\texttt{C}, \texttt{B}, \texttt{H}, \texttt{T}_{[\texttt{tid} \mapsto \semfullthread{c tid2}{E}{m0};~\texttt{tid2} \mapsto \texttt{new}]}\rangle$\\
+\multicolumn{2}{l}{where \texttt{tid2} is not in the domain of \texttt{T}}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{reset m'} = \texttt{\textbackslash k -> AResetMask m' k}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{umask mb} = \texttt{reset Unmasked >> mb >> \textbackslash b -> reset m0 >> pure b}$}\\
 \multicolumn{2}{l}{\hphantom{where }$\texttt{new} = \langle\texttt{act umask}, \texttt{[]}, \texttt{m0}\rangle$}\\
