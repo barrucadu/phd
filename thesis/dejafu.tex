@@ -840,10 +840,9 @@ nondeterminism.  We take this approach from \cite{zhang2015}.
 
 Fundamental to \dejafu{} is an operational semantics for Haskell
 concurrency, in the form of a step function on primitive actions.
-Given the current state, which we call the context, the identifier of
-the chosen thread, and its primitive action, we either indicate a
-failure condition, or produce a new context; in both cases we return a
-log of what happened, to produce an execution trace for the user.  Our
+Given the current state, which we call the context, we select a thread
+to execute and either indicate a failure condition, or produce a new
+context.  We also produce an execution trace for the user.  Our
 semantics is similar in spirit to \cite{vollmer2017}, however we model
 a much larger set of operations, and support partial store order as
 well as total store order.
@@ -950,17 +949,16 @@ data Action n
 \paragraph{Primitive actions}
 \Cref{lst:actionty} gives the primitive actions for concurrency.
 Execution happens in the context of an underlying monad, the \verb|n|
-parameter to the \verb|Action| type, which we use to provide the
-mutable variables we use for model \verb|IORef|s, \verb|MVar|s, and
-\verb|TVar|s.  This monad is usually \verb|IO|, but can be any
-\verb|MonadConc|.
+parameter to the \verb|Action| type.  This monad is usually \verb|IO|,
+but can be any \verb|MonadConc|.  In these semantics we only use this
+monad for the \verb|ALift| action.  \dejafu{} communicates the result
+of the computation back to the caller by inserting an \verb|ALift|
+action which writes the result of the main thread to a mutable
+reference just before termination.
 
-\dejafu{} communicates the result of the computation back to the
-caller by inserting an \verb|ALift| action which writes the result to
-a mutable variable at the end of the main thread.  Our implementation
-of model execution is more similar to cooperative multitasking than
-pre-emptive multitasking: if evaluating a primitive action fails to
-terminate, the entire computation locks up.
+Our implementation of model execution is more similar to cooperative
+multitasking than pre-emptive multitasking: if evaluating a primitive
+action fails to terminate, the entire computation locks up.
 
 \paragraph{Simplifications and omissions}
 The semantic rules we present are for the small-step behaviour.  They
@@ -968,10 +966,11 @@ are tied together by a scheduling loop which we do not present here.
 This scheduling loop picks a thread to step, steps it, and continues
 until every thread is blocked or the main thread terminates.
 
-In addition to modelling the heap as part of the context, we make some
-other changes for presentation purposes: we omit building the
-execution trace and we omit the definitions of helper functions, but
-explain them when first used.
+For presentation purposes, we omit some of the complexities of the
+implementation.  We omit building the execution trace, and we omit the
+definition of helper functions, but explain them when first used.
+Furthermore, while we present the heap here as a heterogeneous map, in
+practice we implement it using real mutable references.
 
 \newcommand{\semfullthread}[3]{\langle\texttt{#1}, \texttt{#2}, \texttt{#3}\rangle}
 \newcommand{\semthread}[1]{\semfullthread{#1}{E}{M}}
@@ -1049,9 +1048,9 @@ $\texttt{H} \oplus \texttt{\_} = \texttt{H}$.
 \Cref{fig:sem_mvar} shows the semantics for the \verb|MVar|
 operations.  We represent an \verb|MVar| as a reference to a
 \verb|Maybe| value.  These operations enforce a memory barrier, and
-some of them may cause the thread to block.  An action can enforce a
-memory barrier even if it blocks.  We model blocking by not changing
-the continuation for the chosen thread.
+some may cause the thread to block.  An action can enforce a memory
+barrier even if it blocks.  We model blocking by not changing the
+continuation for the chosen thread.
 
 \paragraph{Exceptions and masking}
 \Cref{fig:sem_exc} shows the semantics for the exception and masking
