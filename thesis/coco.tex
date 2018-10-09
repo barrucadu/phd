@@ -238,11 +238,14 @@ improvements:
   aggressively prune redundant schemas.
 \end{enumerate}
 
+\paragraph{Why not use QuickSpec's term generator?}
 The main difference between our approach and QuickSpec is how we
-handle monadic operations, and that QuickSpec compares \emph{equality}
-of term \emph{results} whereas we compare \emph{refinement} of term
-\emph{behaviours}.  Furthermore, we generate lambda-terms in a
-restricted setting whereas QuickSpec does not do so at all.
+handle monadic operations.  We generate lambda-terms in a restricted
+setting, but QuickSpec does not do so at all.  This means that
+QuickSpec is unable to generate larger monadic expressions out of
+smaller ones, unless the user supplies in the signature functions
+representing all the ways in which they may be combined.  CoCo is able
+to generate the needed lambda functions used in monadic binds.
 
 \subsection{Representing and Generating Expression Schemas}
 \label{sec:coco-hiw-gen}
