@@ -1,62 +1,97 @@
 In this chapter we present and evaluate CoCo, our tool for finding
 properties of equivalence and refinement between concurrent Haskell
-expressions with shared state.  We first discuss some key concerns in
-the implementation of a tool like this~\sref{coco-concerns}, and then
-demonstrate the use of the tool with an illustrative
-example~\sref{coco-example}.  We explain how properties are
-discovered~\sref{coco-hiw} and argue the correctness of our
-approach~\sref{coco-correctness}.  We then present two further
-examples~\sref{coco-cases}.  Next we discuss how CoCo properties can
-be incorporated into a \dejafu{} test suite~\sref{coco-dejafu}.
-Finally, we present conclusions and evaluate the
-approach~\sref{coco-conclusions}.
+expressions with shared state.  We first discuss what properties for
+concurrency even are~\sref{coco-concerns}, and then demonstrate the
+use of the tool with an illustrative example~\sref{coco-example}.  We
+explain how properties are discovered~\sref{coco-hiw} and argue the
+correctness of our approach~\sref{coco-correctness}.  We then present
+two further examples~\sref{coco-cases}.  Next we discuss how CoCo
+properties can be incorporated into a \dejafu{} test
+suite~\sref{coco-dejafu}.  Finally, we present conclusions and
+evaluate the approach~\sref{coco-conclusions}.
 
 This chapter is derived from our previous work \cite{tfp-coco} and
 \cite{walker2018}.
 
-\section{Key Concerns of Observing Concurrent Programs}
+\section{Concurrency Properties}
 \label{sec:coco-concerns}
 
 CoCo works by generating program fragments and then comparing their
-results, to see if any interesting properties hold.  Unlike tools for
-discovering properties of \emph{sequential} programs, such as
-QuickSpec \parencite{smallbone2017} and Speculate
+effects.  Unlike tools for discovering properties of \emph{sequential}
+programs, such as QuickSpec \parencite{smallbone2017} and Speculate
 \parencite{braquehais2017}, CoCo cannot simply compare the results of
-single executions.  There are three key concerns which concurrency
-gives rise to: (1)~we need to decide what it means for two concurrent
-programs to be equivalent; (2)~concurrent programs may be
-nondeterministic, so if we simply compared results of single
-executions the discovered properties may not hold in the general case;
-and (3)~mutable state is subject to interference from other threads,
-so if we do not consider concurrent interference, the discovered
-properties may not hold when there are more threads involved.
+single executions.  In general, concurrent programs are
+nondeterministic, so we must consider all possible behaviours when
+determining if two terms are equivalent in some sense.
 
 \paragraph{Properties}
 We formulate our properties in terms of \emph{observational
-  refinement} \parencite{he1986}, where the observations we take are
-snapshots of the state.  \dejafu{} provides support for testing if two
-programs are observationally equivalent~\sref{dejafu-whatis-bugs},
-according to a programmer-supplied observation function.
-
-Properties that we report are of the form \verb|A === B|, meaning that
+  refinement} \parencite{he1986}.  In general, one term is an
+observational refinement of another if the \emph{visible effects} of
+the first term are a subset of those of the second term.  The
+properties that we report are of the form \verb|A === B|, meaning that
 \verb|A| and \verb|B| are observationally equivalent; and
 \verb|A ->- B|, meaning that \verb|A| is a strict observational
-refinement of \verb|B|.  CoCo works by generating program fragments
-and then using \dejafu{} to test these relations.
+refinement of \verb|B|.
 
-\paragraph{Nondeterminism}
-As in \dejafu{}, CoCo restricts nondeterminism to scheduler
-nondeterminism, which allows the use of \dejafu{}'s systematic
-concurrency testing.
+CoCo uses \dejafu{} to find the results of generated program
+fragments, and then tests these relations.  \dejafu{} provides support
+for testing if two programs are observationally
+equivalent~\sref{dejafu-whatis-bugs}, CoCo extends this to also
+support observational refinement.
 
-\paragraph{Interference}
-If CoCo reports that two program fragments are equivalent in some
-sense, then they should be broadly interchangeable.  However, if we
-did not consider concurrent interference, they may not be.  CoCo
-requires the programmer to supply a function with effects, which is
-executed concurrently during testing, to provide this interference.
-By supplying different sorts of interference, the programmer can see
-how the functions under test behave in different concurrent contexts.
+\paragraph{Visible effects}
+CoCo does not consider all possible effects, we require the programmer
+to provide an \emph{observation function} for a nominated piece of
+shared state.  It is the observations produced by this function which
+we compare to determine if one term is a refinement of another.
+
+\paragraph{Concurrent interference}
+If CoCo reports that two program fragments are equivalent, then they
+should be interchangeable.  However, if we did not consider concurrent
+interference, they may not be.  In addition to the observation
+function, CoCo requires the programmer to supply an effectful
+\emph{interference function}, which is executed concurrently during
+testing.  By supplying different sorts of interference, the programmer
+can see how the functions under test behave in different concurrent
+contexts.
+
+\begin{listing}
+\centering
+\begin{cminted}{haskell}
+evalSigWithSeed :: (MonadConc m, Ord o)
+  => (x -> ConcT m s)       -- ^ Create a new instance of the state.
+  -> (s -> x -> ConcT m o)  -- ^ The observation to make.
+  -> (s -> x -> ConcT m ()) -- ^ Perform some concurrent interference.
+  -> (s -> ConcT m ())      -- ^ The expression to evaluate.
+  -> x                      -- ^ Pure value used to initialise the state.
+  -> m (Set (Maybe Failure, o))
+\end{cminted}
+\caption[The \texttt{evalSigWithSeed} function, repeated from \Cref{sec:dejafu-whatis-bugs}.]{The \texttt{evalSigWithSeed} function, repeated from \Cref{sec:dejafu-whatis-bugs}.  Runs a concurrent program and returns a set of observations and possible failures.}\label{lst:coco-evalSigWithSeed}
+\end{listing}
+
+\paragraph{What a property means}
+A CoCo property stating \verb|A === B| can be read as ``when executed
+concurrently with a user-specified interference function \verb|I|, and
+followed by a user-specified observation function \verb|O|, the result
+of \verb|O| for both terms is the same.''  This is a weaker
+requirement than how observational equivalence is usually used, where
+\verb|A === B| means that you can replace \verb|A| with \verb|B|
+anywhere.  The weaker claim of CoCo is due to the tool being based on
+testing, rather than proof.
+
+Like \dejafu{}, CoCo does not reason about the terms it is given, it
+runs them and examines the results.  \Cref{lst:coco-evalSigWithSeed}
+gives the function at the heart of CoCo, which we saw in
+\Cref{sec:dejafu-whatis-bugs}.  Here the first three arguments---the
+function to initialise the state, the observation function, and the
+interference function---are supplied by the programmer.  The
+expression to evaluate and the pure ``seed'' value are generated by
+CoCo.
+
+Despite its limitations, we believe that CoCo properties can still
+provide a useful glimpse into the behaviour of a concurrent program.
+We motivate this throughout the chapter with examples.
 
 \section{An Illustrative Example}
 \label{sec:coco-example}
@@ -1073,6 +1108,25 @@ have found that interference functions which do one type of
 interference, such as emptying an \verb|MVar|, tend to give more
 easily understandable results than interference functions which
 perform multiple operations.
+
+\paragraph{Automatic interference}
+An alternative to user-supplied interference functions would be for
+CoCo to generate interference automatically.  This is possible, as the
+primitives (\verb|IORef|s, \verb|MVar|s, and \verb|TVar|s) are all
+modelled by \dejafu{}.  However, it is difficult to see how state with
+associated invariants can be automatically modified.  The user would
+need to supply predicates to check these invariants, or perhaps a
+collection of allowable transformations, but is that any better than
+supplying the interference function?
+
+\paragraph{Term results}
+In its current form, CoCo does not consider term results at all.  Only
+the effects of terms on the distinguished share state are compared.
+This means that CoCo reports as equivalent terms which could not be
+substituted for each other at all.  It can be useful to see that a
+complex term has the same effects as a much simpler one, but it would
+be more useful to know that the more complex one could be replaced by
+the simpler.
 
 \paragraph{Scaling}
 While a na\"{\i}ve CoCo would scale poorly, our optimisations greatly
