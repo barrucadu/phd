@@ -196,9 +196,10 @@ numbers are not part of the normal output of the tool.
 Property (1) shows that \verb|readMVar| is idempotent; (2) shows that
 it is not merely a take followed by a put, it is rather a distinct
 operation; (3) and (4) show that it does not modify the \verb|MVar|,
-and that it does not block when the \verb|MVar| is full.  Properties
-(2) and (4) may appear to be type-incorrect, but remember that CoCo
-does not consider equality of term results, only the effects.
+and that it does not block when the \verb|MVar| is full.  The terms in
+Properties (2) and (4) do not have the same types, illustrating a
+weakness in how CoCo currently works: CoCo does not consider the
+results of the terms, only their effects.
 
 \begin{table}[t]
 \centering
@@ -210,7 +211,7 @@ does not consider equality of term results, only the effects.
              & \verb|Just 0|  & \verb|Just 0|  & No  \\
              &                & \verb|Just 42| & Yes \\ \bottomrule
 \end{tabular}
-\caption{The behaviours of the terms in property (2).}
+\caption{The behaviours of the terms in Property (2).}
 \label{tbl:behaviours}
 \end{table}
 
@@ -218,16 +219,16 @@ We see the effect of the interference in (2): with no other producers,
 this would be an equivalence; it is only when interference by another
 thread is introduced that the equivalence breaks down and the
 distinction is revealed.  \Cref{tbl:behaviours} shows the possible
-behaviours.  This property is a strict refinement because, while the
-behaviours for the seed value \verb|Nothing| are the same, the
-behaviours of the left term for the seed value \verb|Just 0| are a
-strict subset of the behaviours of the right.
+behaviours in Property (2).  This property is a strict refinement
+because, while the behaviours for the seed value \verb|Nothing| are
+the same, the behaviours of the left term for the seed value
+\verb|Just 0| are a strict subset of the behaviours of the right.
 
 \paragraph{Background expressions}
 Sometimes when expressing properties it is necessary to call upon
 other expressions which are of secondary interest.  Such expressions
 are commonly called \emph{background} expressions.  A property is only
-reported if each side includes at least one non-background expression.
+reported if each term includes at least one non-background expression.
 
 \begin{listing}
 \centering
@@ -342,14 +343,14 @@ ones.  We do this for both pure and monadic schemas.
 The expressions of most interest to us are \emph{monadic} expressions.
 Such expressions allow us to combine smaller effects to create larger
 ones.  We simplify this task by taking inspiration from Haskell's
-do-notation, a syntactic sugar for expressing sequences of monadic
+do-notation, a syntactic sugar for expressing compound monadic
 operations in an imperative style, which has explicit variable
 bindings and makes the sequencing of effects clear.  Rather than
 generating lambda-terms, we use a kind of first-class do-notation
 where the monadic bind operation binds the result of evaluating the
-\emph{binder} to zero or more holes in the \emph{body}.  Restricting
-ourselves to this simpler case allows us to avoid many of the
-complexities of trying to generate lambda-terms directly.
+\emph{binder} to holes in the \emph{body}.  Restricting ourselves to
+this case allows us to avoid many of the complexities of generating
+lambda-terms directly.
 
 For example, the generation of the schema
 \verb|pop @ >>= \x -> push @ x| proceeds as follows:
@@ -362,17 +363,17 @@ For example, the generation of the schema
   \verb|pop @ >> push @ ?|\\and \verb|pop @ >>= \x -> push @ x|.
 \end{enumerate}
 
-To avoid name clashes, bound variables use de Bruijn
-indices \parencite{debruijn1972}.  Names are only introduced when
-expressions are displayed to the user.
+% To avoid name clashes, bound variables use de Bruijn
+% indices \parencite{debruijn1972}.  Names are only introduced when
+% expressions are displayed to the user.
 
 \subsection{Evaluating Most General Terms}
 \label{sec:coco-hiw-eval}
 
 Time spent evaluating terms dominates the execution cost of CoCo.  In
 the worst case the number of executions needed for a term is
-exponential in the number of threads, pre-emptive context switches,
-and blocking operations \parencite{musuvathi2007}.
+exponential in the number of threads, context switches, and blocking
+operations \parencite{musuvathi2007}.
 
 What is more, our term evaluation always involves at least two
 threads: the term thread executing the term itself, and an
@@ -434,11 +435,10 @@ type at a time:
 \paragraph{Evaluating terms}
 To compute the behaviours of every term for a schema, we need only
 consider the most general term.  The behaviours of all less-general
-terms can be derived from the most general case by restricting to
-cases where the variables are equal.  For example, given the
-behaviours of the term \verb|f x y|, we throw away those where
-\verb|x| $\neq$ \verb|y| to obtain the behaviours of the term
-\verb|f x x|.
+terms can be derived from the most general by restricting to cases
+where the variables are equal.  For example, given the behaviours of
+the term \verb|f x y|, we throw away those where \verb|x| $\neq$
+\verb|y| to obtain the behaviours of the term \verb|f x x|.
 
 \dejafu{} allows us to make an observation of the final state even if
 evaluation of the term deadlocks.  This is essential, as an operation
@@ -455,14 +455,11 @@ and refinements.
 
 As one schema may correspond to many terms, we may discover many
 properties between a pair of schemas.  In practice, most of these
-properties are consequences of more general ones.  We solve this
-problem by first producing all properties between the pair of schemas,
-and then pruning properties which are simple consequences of another.
-Property $P_2$ is made redundant by property $P_1$ if (1) both $P_1$
-and $P_2$ are equivalences or both are refinements; and (2) $P_1$ has
-a more general allocation of variables to holes.  As \verb|->-| is
-\emph{strict} refinement, it is impossible for both \verb|S === T| and
-\verb|S ->- T| to hold.
+properties are consequences of more general ones, so we solve this
+problem by pruning the generated properties.  Property $P_2$ is a
+consequence by property $P_1$ if (1) both $P_1$ and $P_2$ are
+equivalences or both are strict refinements; and (2) $P_1$ has a more
+general allocation of variables to holes.
 
 \paragraph{Smallest schemas}
 To avoid discovering the same property multiple times, we maintain a
@@ -501,13 +498,13 @@ the execution cost of CoCo and generating new properties.
 We compute the behaviours of each term individually, yet we construct
 properties from pairs of terms.  This poses a difficulty when
 discovering properties between terms which have free variables: we
-must decide which free variables in the left term to identify with
-free variables in the right term, if any.  So we first project the
-terms into a common namespace.  Each variable in each term is either
-given a unique name, or identified with a variable in the other term.
-There may be multiple ways to do this, and CoCo tries them all.  We
-never reduce the number of distinct variables in a term.  To do so
-would only reproduce another term generated from the same schema.
+must decide which free variables in one term to identify with free
+variables in the other term, if any.  So we project the two terms into
+a common namespace.  Each variable in each term is either given a
+unique name, or identified with a variable in the other term.  There
+may be multiple ways to do this, and CoCo tries them all.  We never
+reduce the number of distinct variables in a term.  To do so would
+only reproduce another term generated from the same schema.
 
 As a pair of terms may have many projections, we may discover many
 properties between them: at most one for each projection.  In
@@ -517,14 +514,12 @@ ones.  We only keep the most general.
 \subsection{The CoCo Algorithm}
 \label{sec:coco-hiw-algo}
 
-The CoCo algorithm is much like that of any other property-discovery
-tool for the most part.  The key difference is that we compare sets of
-behaviours, rather than equality of results.  We have some additional
-complication as we evaluate terms independently, and so need to
-project pairs of terms into a common namespace before we can compare
-them, but this is not an inherent aspect of CoCo: one could implement
-a CoCo which does not cache term results like we do, it would just be
-slow.
+The CoCo algorithm is similar to that of any other property-discovery
+tool.  The key difference is that we compare sets of behaviours,
+rather than equality of results.  We have some additional complication
+as we evaluate terms independently, but this is not an inherent aspect
+of CoCo: one could implement a CoCo which does not cache term results
+like we do, it would just be slow.
 
 In outline, the CoCo algorithm is:
 
@@ -536,8 +531,7 @@ In outline, the CoCo algorithm is:
     \begin{enumerate}
     \item Record the results of evaluating its most general term.
     \item Check if the schema is neutral and, if so, annotate it.
-    \item For each smaller schema, which has not been annotated as
-      `not smallest':
+    \item For each smaller schema, which is considered `smallest':
       \begin{enumerate}
       \item Discover properties between the two.
       \item Display any such properties to the user.
@@ -548,8 +542,8 @@ In outline, the CoCo algorithm is:
 
 To implement step 1(b)iii we must keep track of all previously
 generated schemas.  Conveniently, this makes it simple to incorporate
-schemas provided in the user's signature: we simply include them in
-the initial state and thereafter treat them like any other schema.
+schemas provided in the user's signature: we include them in the
+initial state and thereafter treat them like any other schema.
 
 \paragraph{Property discovery}
 Given two schemas \verb|S| and \verb|T| where \verb|S| is larger than
@@ -618,35 +612,34 @@ A property between two terms cannot be discovered if either term is
 simply not generated.  When generating new schemas, CoCo tries all
 appropriately sized pairings of previously generated schemas and keeps
 the type-correct ones.  If our type checker is incorrect, then valid
-schemas may be thrown away.  Currently we do not support class
-polymorphism at all, so terms which are only well-typed due to
-typeclass use will be discarded.
+schemas may be thrown away.  We do not support class polymorphism at
+all, so terms which are only well-typed due to typeclass use will be
+discarded.
 
 We do not require CoCo to report properties which are implied by
 another.  As many terms correspond to the same schema, and many
 projections correspond to the same pair of terms, in general there
-will be many such redundant properties.  We use two simple syntactic
-criteria to determine whether one property implies another, rather
-than attempting any deeper logical analysis.
+will be many such redundant properties.  We use two syntactic criteria
+to determine whether one property implies another, rather than
+attempting any deeper logical analysis.
 
 A property between terms \verb|A1| and \verb|B1| is made redundant by
 another property between \verb|A2| and \verb|B2| if both properties
-are refinements or both are equivalences, and:
+are strict refinements or both are equivalences, and:
 
 \begin{itemize}
 \item If \verb|A1| and \verb|A2| are both renamings of the same term
   \verb|A| (similarly for \verb|B1| and \verb|B2|), and the renaming
-  which generates \verb|A2| and \verb|B2| is strictly more general
-  than the renaming which generates \verb|A1| and \verb|B1|.
+  which generates \verb|A2| and \verb|B2| is more general than the
+  renaming which generates \verb|A1| and \verb|B1|.
 
   For example, the property \verb|f x === g x y| is made redundant by
-  \verb|f x === g y z|, as the latter has a strictly more general
-  renaming.  But it is not made redundant by \verb|f x === g y x|.
+  \verb|f x === g y z|, as the latter has a more general renaming,
 
 \item If \verb|A1| and \verb|A2| are both terms generated from the
   same schema \verb|A| (similarly for \verb|B1| and \verb|B2|), and
-  \verb|A2| is strictly more general than \verb|A1|, and \verb|B2| is
-  strictly more general than \verb|B1|.
+  \verb|A2| is more general than \verb|A1|, and \verb|B2| is more
+  general than \verb|B1|.
 
   For example, the term \verb|f x x| is less general than \verb|f x y|,
   so \verb|f x x ->- g x x| is made redundant by
@@ -911,7 +904,7 @@ CoCo also finds properties (13) and (14), revealing another
 implementation detail, that the programmer can \verb|wait| for a
 negative value instead of calling \verb|signal|.  We might suspect
 that the more general property \verb|signal @ x === wait @ (-x)| holds
-for all positive \verb|x|.  CoCo finds this form, property (15), if we
+for all positive \verb|x|.  CoCo finds this form, Property (15), if we
 extend our signature with \verb|abs| and \verb|negate|.
 
 \paragraph{A lack of composability}
@@ -975,12 +968,12 @@ implicit.  So properties cannot simply be copied into a test suite.
 CoCo properties are represented as a pair of expressions and the
 operator (equality or strict refinement) connecting them.  The visual
 form of the operators is hard-coded, but how the expressions are
-displayed is controlled by a pretty-printer.  There is a default
-pretty-printer, used throughout this chapter, which favours a concise
+displayed is controlled by a pretty-printer.  The default
+pretty-printer, used throughout this chapter, favours a concise
 output.  There is also the option to produce \dejafu{}-compatible
 output, giving properties which can be checked by \dejafu{} directly,
-or by the hunit-dejafu \parencite{hunit_dejafu} and
-tasty-dejafu \parencite{tasty_dejafu} packages.
+or by the hunit-dejafu \parencite{hunit_dejafu} and tasty-dejafu
+\parencite{tasty_dejafu} packages.
 
 \begin{listing}
   \centering
@@ -1103,11 +1096,11 @@ The choice of interference function has a great effect on the
 discovered properties.  Unless two terms are atomic, it is a little
 suspicious for them to be equivalent.  So, to get a fuller
 understanding of the behaviour of their concurrency functions, the
-programmer must run CoCo with multiple interference functions.  We
-have found that interference functions which do one type of
-interference, such as emptying an \verb|MVar|, tend to give more
-easily understandable results than interference functions which
-perform multiple operations.
+programmer must run CoCo with multiple interference functions.  In our
+experience, interference functions which do one type of interference,
+such as emptying an \verb|MVar|, tend to give more easily
+understandable results than interference functions which perform
+multiple operations.
 
 \paragraph{Automatic interference}
 An alternative to user-supplied interference functions would be for
@@ -1176,7 +1169,8 @@ apply here, as these are \emph{different} schemas.  Constants in
 signatures are necessary as CoCo does not synthesise preconditions.
 If it did, constants could be omitted, as any properties which require
 a specific value for a parameter would be found as a precondition.
-Property (11) in the semaphore example would instead become:
+Property (11) in the semaphore example would instead become the
+property in \Cref{lst:precondition}.
 
 \begin{listing}
 \centering
