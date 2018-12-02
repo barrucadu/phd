@@ -105,34 +105,67 @@ Our major contributions are:
 \item A library for effectively testing Concurrent Haskell programs,
   in \Cref{chp:dejafu}.  We demonstrate its effectiveness with case
   studies of three concurrency-using Haskell libraries.
+
+  There are no sound and complete concurrency testing tools for
+  Haskell.  Our tool fills this niche.
 \item A new scheduling algorithm for randomised testing to allow
   testing programs where complete testing does not scale, in
   \Cref{chp:algorithms}.  We evaluate its bug-finding ability on a
   standard set of benchmarks.
+
+  Randomised testing can be both fast and effective, but existing
+  algorithms such as PCT \parencite{burckhardt2010} require
+  difficult-to-obtain information about the program under test.  Ours
+  does not.
 \item A tool for discovering properties of Haskell functions operating
   on shared mutable state in the presence of concurrent interference,
   in \Cref{chp:coco}.  We give case studies of three concurrent data
   structures.
+
+  Tools such as QuickSpec \parencite{smallbone2017} and Speculate
+  \parencite{braquehais2017} can discover properties of pure
+  functions.  Our approach extends this to nondeterministic and
+  concurrent program fragments.
 \end{itemize}
 
 In achieving these major contributions, we also achieve several
 smaller ones along the way:
 
 \begin{itemize}
-\item An abstraction over the GHC Haskell concurrency API, extended
-  with named threads and shared variables to make debugging easier, in
+\item An abstraction over the GHC Haskell concurrency API, in
   \Cref{sec:dejafu-monadconc}.
+
+  We allow the user to give names to threads and shared variables to
+  make debugging easier.
 \item An operational semantics for Concurrent Haskell, in
   \Cref{sec:dejafu-semantics}.
-\item A method for soundly incorporating daemon threads, threads which
-  are automatically terminated when the main thread terminates, into a
+
+  Our semantics is similar in spirit to \cite{vollmer2017}, however we
+  model a much larger set of operations, and support more memory
+  models.
+\item A method for soundly incorporating daemon threads into a
   concurrency testing setting, in \Cref{sec:dejafu-testing}.
+
+  Daemon threads are threads which automatically terminate when the
+  main thread terminates.  They are typically omitted from concurrency
+  testing algorithms, and a straightforward implementation is too
+  inefficient to be practical.
 \item An algorithm for semantics-preserving simplification of
   execution traces, in \Cref{sec:dejafu-traces}.
+
+  These simplified traces are easier for a programmer to follow than a
+  trace which may contain unnecessary details and scheduling
+  decisions.
 \item Case studies of applying concurrency testing to three Haskell
   libraries, in \Cref{sec:dejafu-casestudies}.
+
+  Through these case studies we demonstrate that our tools are of
+  practical use to programmers.
 \item A method for generating program fragments containing lambda
-  terms in a restricted setting, in \Cref{sec:coco-hiw-gen}.
+  terms, in a restricted setting, in \Cref{sec:coco-hiw-gen}.
+
+  Lambda terms are essential in generating complex monadic
+  expressions.
 \end{itemize}
 
 \section{Chapter Preview}
