@@ -4,15 +4,15 @@ technique or formalism, another will question its applicability to the
 \emph{real world}, a nebulous and under-specified place.  For example,
 a common argument against techniques such as model checking is that
 they do not scale to real-world problems, whatever those are, and that
-stress testing is good enough.  Stress testing, aided by dynamic
-analyses like Clang's ThreadSanitizer \parencite{serebryany2009} or
-Go's data race detector \parencite{golang2017}, is often effective at
-finding flaws, and is less alien to most programmers.  However, unlike
-stress testing, model checking can prove the absence of bugs, though
-it can be difficult or resource-intensive to use.
+testing is good enough.  Testing, aided by dynamic analyses like
+Clang's ThreadSanitizer \parencite{serebryany2009} or Go's data race
+detector \parencite{golang2017}, is often effective at finding flaws,
+and is familiar to most programmers.  However, unlike testing, model
+checking can prove the absence of bugs, though it can be difficult or
+resource-intensive to use.
 
 In this thesis, we are interested in the testing of concurrent
-programs.  In this setting, stress testing falls down when considering
+programs.  In this setting, testing falls down when considering
 questions like:
 
 \begin{itemize}
@@ -79,21 +79,17 @@ of parallelism, appears in \Cref{chp:dejafu}.
 
 The overall motivation of this research has been to develop tools
 which make it easier for programmers to write correct concurrent
-programs.
+programs.  Our primary goal is to demonstrate that concurrency testing
+techniques, typically described in the context of a simple core
+language, can be successfully applied to languages with rich
+concurrency abstractions.
 
-The primary goal of this thesis is to demonstrate that concurrency
-testing techniques, typically described in the context of a simple
-core language, can be successfully applied to languages with rich
-concurrency abstractions.  Specifically, we want:
-
-\begin{itemize}
-\item A concurrency testing tool which simultaneously supports
-  multiple aspects of concurrency which are traditionally considered
-  difficult: such as relaxed memory, software transactional memory,
-  and inter-thread signals.
-\item To show that supporting these features does not render a tool
-  too expensive, in time or space, to be of practical value.
-\end{itemize}
+Specifically, we want a concurrency testing tool which simultaneously
+supports multiple aspects of concurrency which are traditionally
+considered difficult: such as relaxed memory, software transactional
+memory, and inter-thread signals.  Furthermore, we want to show that
+supporting these features does not render a tool too expensive, in
+time or space, to be of practical value.
 
 To meet and demonstrate our objectives, we develop libraries and tools
 for testing Concurrent Haskell programs, and evaluate their
@@ -128,15 +124,15 @@ Our major contributions are:
   concurrent program fragments.
 \end{itemize}
 
-In achieving these major contributions, we also achieve several
-smaller ones along the way:
+In achieving these major contributions, we also achieve smaller ones
+along the way:
 
 \begin{itemize}
 \item An abstraction over the GHC Haskell concurrency API, in
   \Cref{sec:dejafu-monadconc}.
 
-  We allow the user to give names to threads and shared variables to
-  make debugging easier.
+  We use a typeclass abstraction permitting multiple possible
+  implementations.
 \item An operational semantics for Concurrent Haskell, in
   \Cref{sec:dejafu-semantics}.
 
@@ -171,8 +167,6 @@ smaller ones along the way:
 \section{Roadmap}
 \label{sec:intro-roadmap}
 
-This thesis is divided into three parts:
-
 \paragraph{\Cref{part:review}}
 We present the context and background of the work.
 \Cref{chp:concurrent_haskell} gives an introduction to concurrency in
@@ -182,15 +176,12 @@ introduction to property testing in Haskell.
 
 \paragraph{\Cref{part:testing}}
 We present our contributions.  \Cref{chp:dejafu} gives an account of
-the \dejafu{} tool for testing concurrent Haskell programs, discussing
-the scope, implementation, and some case studies.
+the \dejafu{} tool for testing concurrent Haskell programs.
 \Cref{chp:algorithms} discusses an alternative scheduling algorithm
 for testing concurrent programs.  Finally, \Cref{chp:coco} gives an
 account of the CoCo tool for discovering properties of concurrent
-Haskell programs, discussing the scope, implementation, and some case
-studies, and finally shows how it connects to \dejafu{}.
-
-These chapters build on each other:
+Haskell programs, and shows how it connects to \dejafu{}.  These
+chapters build on each other:
 
 \begin{itemize}
 \item \dejafu{}, in \Cref{chp:dejafu}, allows exploring the behaviours
@@ -207,7 +198,8 @@ These chapters build on each other:
 We present our overall conclusions in \Cref{chp:conclusions} and
 suggest possible future work in \Cref{chp:future_work}.
 
-\paragraph{Source availability}
+\section{Source Code}
+
 The \dejafu{} and CoCo tools we develp in \Cref{part:testing} are
 available on GitHub:
 
