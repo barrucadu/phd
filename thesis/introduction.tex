@@ -168,7 +168,7 @@ smaller ones along the way:
   expressions.
 \end{itemize}
 
-\section{Chapter Preview}
+\section{Roadmap}
 \label{sec:intro-roadmap}
 
 This thesis is divided into three parts:
@@ -189,6 +189,19 @@ for testing concurrent programs.  Finally, \Cref{chp:coco} gives an
 account of the CoCo tool for discovering properties of concurrent
 Haskell programs, discussing the scope, implementation, and some case
 studies, and finally shows how it connects to \dejafu{}.
+
+These chapters build on each other:
+
+\begin{itemize}
+\item \dejafu{}, in \Cref{chp:dejafu}, allows exploring the behaviours
+  of a concurrent program, and on top of this foundation we build an
+  equivalence checker.
+\item Swarm scheduling, in \Cref{chp:algorithms}, is an alternative
+  scheduling algorithm which can be plugged into \dejafu{}.
+\item CoCo, in \Cref{chp:coco}, builds on the equivalence checker in
+  \dejafu{}, by generating and testing candidate equivalences from
+  programmer-supplied primitives.
+\end{itemize}
 
 \paragraph{\Cref{part:end}}
 We present our overall conclusions in \Cref{chp:conclusions} and
