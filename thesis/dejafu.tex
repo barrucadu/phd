@@ -2872,67 +2872,6 @@ command-line arguments.  The tasty-dejafu package is similar to the
 hunit-dejafu package and does not make use of these additional
 features.
 
-% \section{Conclusions}
-% \label{sec:dejafu-conclusions}
-
-% Although a commonly reported experience amongst Haskell programmers is
-% that `if it compiles, it works,' there are times where it does
-% \emph{not} work.  Concurrency is a particularly difficult area to get
-% right, as everyone who has had to move outside the realm of guaranteed
-% determinism will know.  A number of profiling and debugging tools
-% exist, typically requiring special runtime support.  Yet there are no
-% debugging tools for concurrent Haskell programs.  We contribute such a
-% tool, at the cost of a programmer having to use a generalisation of
-% the familiar concurrency abstraction.
-
-% This work was inspired by attending a talk at INVEST 2014 by Paul
-% Thompson, then a Ph.D student at Imperial College London, on
-% systematic concurrency testing, the talk mentioned tools for languages
-% like Java and C, but functional languages were not mentioned at all.
-% The questions to be answered, then, were:
-
-% \begin{itemize}
-% \item \textbf{Can concurrency testing techniques from the imperative
-%     and object-oriented worlds be applied in the functional world?}
-%   \hfill
-
-%   The answer to this would seem to be a resounding `yes.'  There was
-%   some difficulty in implementing these techniques in a purely
-%   functional setting, as the algorithms are typically expressed in
-%   terms of mutable state, but this was overcome.
-
-% \item \textbf{Does the purely functional setting allow for new
-%     techniques to be developed?} \hfill
-
-%   At first we hoped that the lack of effects in evaluation, amongst
-%   other things, would allow for new techniques to be developed.
-%   However, as concurrency testing explicitly cares about
-%   \emph{execution} rather than \emph{evaluation} (although these are
-%   one and the same in most languages), this does not seem to be the
-%   case.
-% \end{itemize}
-
-% In \cite{walker2015}, we asked if the cost of a programmer needing to
-% write their code in terms of \verb|MonadConc| rather than \verb|IO|
-% was too high, and would discourage people.  This is still a concern,
-% but with the development of libraries to integrate with or replace
-% others, we hope that the use of \dejafu{} will appear attractive
-% enough to overcome this.
-
-% The contributions of this work are:
-
-% \begin{itemize}
-% \item a generalisation of a large subset of the GHC concurrency
-%   abstraction;
-
-% \item a library called \dejafu{} for the systematic and random testing
-%   of concurrent Haskell programs, including those using relaxed-memory
-%   effects; and
-
-% \item a convincing demonstration that systematic concurrency
-%   techniques work well in a rich concurrency setting such as Haskell.
-% \end{itemize}
-
 \vfill\pagebreak
 \section{Summary}
 
