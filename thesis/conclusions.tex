@@ -1,20 +1,16 @@
 We set out to make it easier for programmers to write correct
 concurrent programs, but have we achieved that?  In this chapter we
 review our contributions and draw some overall conclusions.  Recall
-our contributions from \Cref{sec:intro-contributions}:
+our motivation from \Cref{sec:intro-contributions}:
 
-\begin{itemize}
-\item A library for effectively testing Concurrent Haskell programs,
-  in \Cref{chp:dejafu}.
-\item An operational semantics for Concurrent Haskell, in
-  \Cref{chp:dejafu}.
-\item A new scheduling algorithm for randomised testing to allow
-  testing programs where complete testing does not scale, in
-  \Cref{chp:algorithms}.
-\item A tool for discovering properties of Haskell functions operating
-  on shared mutable state in the presence of concurrent interference,
-  in \Cref{chp:coco}.
-\end{itemize}
+\begin{displayquote}
+  The overall motivation of this research has been to develop tools
+  which make it easier for programmers to write correct concurrent
+  programs.  Our primary goal is to demonstrate that concurrency
+  testing techniques, typically described in the context of a simple
+  core language, can be successfully applied to languages with rich
+  concurrency abstractions.
+\end{displayquote}
 
 \paragraph{Systematic concurrency testing with rich semantics}
 \Cref{chp:dejafu} introduced \dejafu{}.  This is a Haskell tool for
@@ -38,14 +34,16 @@ would work effectively in this context.  Our case studies in
 SCT can be applied to languages with rich concurrency abstractions.
 
 \paragraph{Effective bug finding with randomised scheduling}
-\Cref{chp:algorithms} introduced the swarm scheduling algorithm.  Our
-benchmark results in \Cref{sec:algorithms-bench} show that it performs
-as well as the PCT algorithm \parencite{burckhardt2010} in terms of
-bug-finding ability.  Crucially, PCT requires the user to supply
-parameters derived from the program under test, whereas swarm
-scheduling does not.  The freedom from any such requirement makes
-swarm scheduling simpler to implement and use than PCT, yet it still
-finds bugs just as effectively.
+\Cref{chp:algorithms} introduced the swarm scheduling algorithm for
+random testing of concurrent programs.  Random testing is useful
+because it can be both fast and effective, even in cases where
+complete testing does not scale.  Our benchmark results in
+\Cref{sec:algorithms-bench} show that it performs as well as the PCT
+algorithm \parencite{burckhardt2010} in terms of bug-finding ability.
+Crucially, PCT requires the user to supply parameters derived from the
+program under test, whereas swarm scheduling does not.  The freedom
+from any such requirement makes swarm scheduling simpler to implement
+and use than PCT, yet it still finds bugs just as well.
 
 \paragraph{Discovering properties of concurrent programs}
 \Cref{chp:coco} introduced CoCo.  By synthesising program terms and
@@ -77,13 +75,13 @@ modification problem and solving the optimisation problem.
 
 \paragraph{The inevitable exponentials}
 Concurrent programs are nondeterministic, and this is where the
-difficulty of writing correct concurrent programs comes from.
-Fundamentally, testing a concurrent program requires executing it
-multiple times with different schedules.  This multiplicity adds
-significant overhead compared to sequential tests, where a single
-execution suffices.  Even worse, a concurrent program with $n$ threads
-which each execute for at most $k$ steps can have as many as
-$\frac{(nk)!}{(k!)^{n}}$ executions \parencite{musuvathi2007}!
+difficulty of writing correct concurrent programs comes from.  Testing
+a concurrent program requires executing it multiple times with
+different schedules.  This multiplicity adds overhead compared to
+sequential tests, where a single execution suffices.  Even worse, a
+concurrent program with $n$ threads which each execute for at most $k$
+steps can have as many as $\frac{(nk)!}{(k!)^{n}}$ executions
+\parencite{musuvathi2007}!
 
 \dejafu{} implements schedule
 bounding \parencite{emmi2011,musuvathi2008,musuvathi2007} and partial-order
