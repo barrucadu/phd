@@ -1609,11 +1609,10 @@ have the trace \verb|[(t1, X), (t2, Y), (t1, Z)]|, where \verb|X| and
 \verb|Y| are independent, this transformation re-orders the trace to
 \verb|[(t2, Y), (t1, X), (t1, Z)]|.
 
-The ``pull back'' and ``push forward'' transformations are not
-inverses of each other, as the dependency relation is not transitive.
-It may be that an action \verb|X| can be pushed forward to just before
-an action \verb|Z|, but \verb|Z| could not be pulled back to just
-after \verb|X|.
+Having both the ``pull back'' and ``push forward'' transformations is
+not redundant.  If we have three actions---\verb|X|, \verb|Y|, and
+\verb|Z|---it may be that \verb|X| is independent with \verb|Y| but
+\verb|Z| is not, or vice versa.
 
 \section{Soundness and Completeness}
 \label{sec:dejafu-correctness}
