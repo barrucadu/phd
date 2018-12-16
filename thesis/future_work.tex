@@ -88,16 +88,39 @@ forbidden?  When there are multiple threads with delays which are
 important relative to each other, the problem only becomes more
 confusing.
 
+\paragraph{Invariant testing in \dejafu{}}
+Temporal program logics \parencite{pnueli1977} allow defining and
+checking complex specifications for how a program should behave over
+the course of its entire execution.  While \dejafu{} is not a temporal
+logic checking tool, it can get part of the way there by allowing
+users to specify invariants which are checked continuously while the
+program under test runs.  As \dejafu{} drives the execution, these
+invariants can be checked atomically.  This would be similar to, but
+more general than, the GHC Haskell function
+\verb|always :: STM Bool -> STM ()|, which registers an invariant to
+be checked at the end of STM transactions.
+
+\paragraph{Automatic interference for CoCo}
+CoCo requires the user to provide the interference functions which are
+necessary to distinguish between atomic and non-atomic actions.  An
+alternative would be for CoCo to generate interference automatically.
+This is possible, as the primitives (\verb|IORef|s, \verb|MVar|s, and
+\verb|TVar|s) are all modelled by \dejafu{}.  However, it is difficult
+to see how state with associated invariants can be automatically
+modified.  The user would need to supply predicates to check these
+invariants, or perhaps a collection of allowable transformations, but
+is that any better than supplying the interference function directly?
+
 \paragraph{Conditional properties in CoCo}
-Speculate \parencite{braquehais2017} discovers conditional equations and
-inequalities automatically, which greatly expands the range of
+Speculate \parencite{braquehais2017} discovers conditional equations
+and inequalities automatically, which greatly expands the range of
 properties which can be found.  Conditional properties are useful as
 we see how our functions behave in different situations, rather than
 just in general.  CoCo has a limited form of conditional properties,
 involving preconditions on the generated seed values.  Such
-precondition functions must be supplied by the programmer.  However,
-it would be much more useful if CoCo could synthesise preconditions,
-as Speculate does, to discover interesting cases itself.
+precondition functions must be supplied by the user.  However, it
+would be much more useful if CoCo could synthesise preconditions, as
+Speculate does, to discover interesting cases itself.
 
 \paragraph{Term rewriting for CoCo}
 Both QuickSpec \parencite{smallbone2017} and Speculate \parencite{braquehais2017}
