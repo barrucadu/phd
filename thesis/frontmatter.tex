@@ -31,26 +31,31 @@
 \addcontentsline{toc}{chapter}{Abstract}
 
 We aim to make it easier for programmers to write correct concurrent
-programs.  In pursuit of this goal, we develop three lines of work:
+programs and to demonstrate that concurrency testing techniques,
+typically described in the context of simple core languages, can be
+successfully applied to languages with more complex concurrency.  In
+pursuit of these goals, we develop three lines of work:
 
 \paragraph{Testing concurrent Haskell}
 We develop a library for testing concurrent Haskell programs using a
-typeclass abstraction of concurrency.  Our tool implements
-\emph{systematic concurrency testing}, a family of techniques for
-deterministically testing concurrent programs.  We not only obtain a
-useful tool for Haskell programs, but we also demonstrate that these
-techniques work well in languages with rich concurrency abstractions.
+typeclass abstraction of concurrency, which we give a formal
+semantics.  Our tool implements \emph{systematic concurrency testing},
+a family of techniques for deterministically testing concurrent
+programs.  Along the way we also tackle how to soundly handle daemon
+threads, and how to usefully present complex execution traces to a
+user.  We not only obtain a useful tool for Haskell programs, but we
+also show that these techniques work well in languages with rich
+concurrency abstractions.
 
 \paragraph{Randomised concurrency testing}
 We propose a new algorithm for \emph{randomly} testing concurrent
-programs.  This approach is fundamentally incomplete, but is suitable
-for large programs, or programs with nondeterminism beyond scheduler
-nondeterminism, whereas systematic concurrency testing is not.  We
+programs.  This approach is fundamentally incomplete, but can be
+suitable in cases where systematic concurrency testing is not.  We
 show that our algorithm performs as well as a pre-existing popular
-algorithm for a standard set of benchmarks, while not requiring the
-use of program-specific parameters.  We argue that this makes use and
-implementation of our algorithm simpler, yet gives results which are
-just as good.
+algorithm for a standard set of benchmarks.  This pre-existing
+algorithm requires the use of program-specific parameters, but our
+algorithm does not.  We argue that this makes use and implementation
+of our algorithm simpler.
 
 \paragraph{Finding properties of programs}
 We develop a tool for finding properties of sets of concurrency
@@ -59,10 +64,8 @@ concurrent data type.  Our tool enumerates Haskell expressions and
 discovers properties by comparing execution results for a variety of
 inputs.  Unlike other property discovery tools, we support side
 effects.  We do so by building on our tool for testing concurrent
-Haskell programs.  We also generate lambda-terms, in a restricted
-setting, whereas other property discovery tools typically do not.  We
-argue that this approach can lead to greater understanding of
-concurrency functions.
+Haskell programs.  We argue that this approach can lead to greater
+understanding of concurrency functions.
 
 % octavo disables the "ugly" table-of-contents dots, but I find they
 % improve readability.  The default dot separation is 4.5, but I like
