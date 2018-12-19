@@ -310,7 +310,7 @@ abs y <= x ==>     abs (x + y) == x + y
 
 \paragraph{Machine learning}
 The Daikon \parencite{ernst2007} tool discovers \emph{likely invariants} of
-C, C++, Java, and Perl programs.  It observes variables in memory
+C, \CPP{}, Java, and Perl programs.  It observes variables in memory
 during the execution of a program, and applies machine learning
 techniques to discover properties that seem to hold.  These properties
 may include: pre- and post-conditions of statements, and equational
@@ -324,7 +324,7 @@ described here discover properties based on the program API.
 
 \paragraph{Concurrency testing}
 A variant of the Daikon tool discovers likely invariants of concurrent
-C and C++ programs using code instrumentation and systematic
+C and \CPP{} programs using code instrumentation and systematic
 concurrency testing techniques \parencite{kusano2015}.  The invariants it
 finds are so-called \emph{transition invariants} that capture the
 relations amongst mutable state shared between threads.
