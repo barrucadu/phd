@@ -1400,14 +1400,15 @@ precise decisions.
 \end{figure}
 
 \paragraph{Sleep sets}
-The sleep set optimisation \parencite{godefroid1996} is a complementary
-approach to DPOR which we use to further reduce schedules explored.
-The intuition is as follows: if we are in a state $s_{0}$ and have a
-choice of two scheduling decisions, $t_{1}$ and $t_{2}$, after trying
-out $t_{1}$ there is no point in making the sequence of decisions
-$t_{2}t_{1}$ from $s_{0}$, unless $t_{1} \dependent t_{2}$.  All
-states reachable from $t_{1}$ have already been explored, so the only
-way a new state could arise is if $t_{1}$ had a different effect,
+The sleep set optimisation \parencite{godefroid1996} is a
+complementary approach to DPOR which we use to further reduce
+schedules explored.  We were able to re-use this algorithm without
+difficulty.  The intuition is as follows: if we are in a state $s_{0}$
+and have a choice of two scheduling decisions, $t_{1}$ and $t_{2}$,
+after trying out $t_{1}$ there is no point in making the sequence of
+decisions $t_{2}t_{1}$ from $s_{0}$, unless $t_{1} \dependent t_{2}$.
+All states reachable from $t_{1}$ have already been explored, so the
+only way a new state could arise is if $t_{1}$ had a different effect,
 which will only be the case if a dependent transition has been taken.
 \Cref{fig:sleep} shows this graphically.
 
