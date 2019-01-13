@@ -133,7 +133,7 @@ schedules to be explored.
 
 * Section 5.7: define the notion of correctness.
 
-This is now explicitly stated.
+This is now explicitly stated in section 5.8.
 
 * Section 5.8: strengthen the argument that your changes do not
   introduce errors.
