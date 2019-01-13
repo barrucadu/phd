@@ -1941,16 +1941,16 @@ Some simplifications were made in the conversion process:
   \caption{Breakdown of changes to port the monad-par ``direct'' scheduler.}\label{tbl:parmonad_diff}
 \end{table}
 
-\Cref{lst:parmonad} shows the original and converted versions of the
-scheduler initialisation code.  As can be seen, they are similar, even
-though this is a core component of a rather sophisticated library,
-where the types have been changed.  \Cref{tbl:parmonad_diff} breaks
-down the changes across both files.  Code changes are broken down into
-``renames,'' where the concurrency library simply provides a different
-name for a function, and ``logic,'' where that was not the case.  The
-logic changes were either: (1) places where a call to \verb|liftIO| or
-\verb|lift| was now necessary; or (2) inserting uses of
-\verb|getNumCapabilities|.
+\Cref{lst:parmonad} on page~\pageref{lst:parmonad} shows the original
+and converted versions of the scheduler initialisation code.  As can
+be seen, they are similar, even though this is a core component of a
+rather sophisticated library, where the types have been changed.
+\Cref{tbl:parmonad_diff} breaks down the changes across both files.
+Code changes are broken down into ``renames,'' where the concurrency
+library simply provides a different name for a function, and
+``logic,'' where that was not the case.  The logic changes were
+either: (1) places where a call to \verb|liftIO| or \verb|lift| was
+now necessary; or (2) inserting uses of \verb|getNumCapabilities|.
 
 \begin{listing}
 \centering
@@ -2479,8 +2479,9 @@ these higher-level abstractions is the \verb|Concurrently| type, a
 simple wrapper around \verb|IO|, which allows concurrently composing
 actions with the \verb|Applicative| \verb|<*>| operator.  The two
 arguments to \verb|<*>| are computed concurrently in separate threads,
-and then combined.  \Cref{lst:concurrently} gives the implementation
-of \verb|Concurrently|.
+and then combined.  \Cref{lst:concurrently} on
+page~\pageref{lst:concurrently} gives the implementation of
+\verb|Concurrently|.
 
 In Haskell, we like our typeclasses to have \emph{laws} specifying how
 instances should behave.  Without such a specification, it is

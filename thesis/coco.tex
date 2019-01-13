@@ -397,7 +397,7 @@ metadata, including its behaviour-sets, and compare these cached
 behaviours later when discovering properties.  Storing this data is a
 space cost, but reduces the execution time of some of our test
 applications from hours to minutes.  We present performance
-measurements in \Cref{tbl:coco_scale}.
+measurements in \Cref{sec:coco-conclusions}.
 
 \paragraph{Deriving terms from schemas}
 One schema may have many term instances.  \Cref{lst:schematerms} shows
@@ -1124,13 +1124,13 @@ the simpler.
 \paragraph{Scaling}
 While a na\"{\i}ve CoCo would scale poorly, our optimisations greatly
 improve matters in both execution time and maximum resident memory
-usage.  \Cref{tbl:coco_scale} shows how the three examples we have
-seen perform with the optimisations disabled.  All optimisations are
-on by default.  The most significant improvement by far is
-\textbf{O4}, caching of term behaviours, but the other optimisations
-all play their part as well.  Furthermore, \dejafu{} implements its
-own optimisations which reduce the time to discover all behaviours of
-a term.
+usage.  \Cref{tbl:coco_scale} on page \pageref{tbl:coco_scale} shows
+how the three examples we have seen perform with the optimisations
+disabled.  All optimisations are on by default.  The most significant
+improvement by far is \textbf{O4}, caching of term behaviours, but the
+other optimisations all play their part as well.  Furthermore,
+\dejafu{} implements its own optimisations which reduce the time to
+discover all behaviours of a term.
 
 \begin{table}[t]
 \centering
