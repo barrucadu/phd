@@ -37,8 +37,8 @@ schedule replay will be unreliable \parencite{thomson2016}.
 The PCT algorithm \parencite{burckhardt2010} is a randomised algorithm
 with a probabilistic guarantee of finding bugs.  Key to its design is
 a notion of the \emph{depth} of a bug: the minimum number of
-scheduling constraints required to exhibit it.  The intuition behind
-PCT is that most concurrency bugs can be exhibited with just a few
+scheduling decisions required to exhibit it.  The intuition behind PCT
+is that most concurrency bugs can be exhibited with just a few
 scheduling decisions being made in the correct places, or the
 incorrect places depending on your point of view.  If PCT makes those
 decisions correctly, it finds the bug regardless of what any other
