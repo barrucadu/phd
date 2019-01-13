@@ -110,9 +110,10 @@ incorporate all of the examiners suggestions.
   simplification algorithm in a precise way.
 
 Section 5.7, "Execution traces", gives the syntax of traces
-(previously contained in one of the case studies), and a precise
-(prose) description of the algorithm, with examples for two of the
-trickier steps.
+(previously contained in one of the case studies), and a prose
+description of the algorithm, with examples for two of the trickier
+steps.  Furthermore, the new Listing 54 gives the simplification
+algorithm in pseudocode.
 
 * Explain more carefully your clever combination of QuickCheck and
   Deja Fu.

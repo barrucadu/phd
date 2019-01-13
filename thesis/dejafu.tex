@@ -1575,7 +1575,8 @@ Our trace simplification algorithm has four steps:
 \end{enumerate}
 
 We repeat steps (3) and (4) until a fixed point is reached, or a fixed
-number of iterations has elapsed.
+number of iterations has elapsed.  \Cref{lst:simpl_algo} gives the
+full algorithm in pseudocode.
 
 \paragraph{Rewrite the trace into lexicographic normal form}
 The problem of sorting sequences where only some items can be permuted
@@ -1614,6 +1615,67 @@ Having both the ``pull back'' and ``push forward'' transformations is
 not redundant.  If we have three actions---\verb|X|, \verb|Y|, and
 \verb|Z|---it may be that \verb|X| is independent with \verb|Y| but
 \verb|Z| is not, or vice versa.
+
+\begin{listing}
+\centering
+\begin{minipage}{\linewidth}
+\begin{algorithmic}
+\Function{Simplify}{$T$}
+  \State \textit{\# rewrite in lexicographic normal form}
+  \State $r \gets \mathrm{true}$
+  \While{$r$}
+    \State $r \gets \mathrm{false}$
+    \For{$i \gets 0 \ldots \Call{Length}{T} - 2$}
+      \If{$\Call{tid}{T_{i}} > \Call{tid}{T_{i+1}} \land T_{i} \independent T_{i+1}$}
+        \State \Call{Swap}{$T, i, i+1$}
+        \State $r \gets \mathrm{true}$
+      \EndIf
+    \EndFor
+  \EndWhile
+  \State \textit{\# prune redundant commits}
+  \State $i \gets 0$
+  \While{$i < \Call{Length}{T} - 1$}
+    \If{$\Call{IsCommit}{T_{i}}$}
+      \If{$T_{i} \independent T_{i+1}$}
+        \State \Call{Swap}{$T, i, i+1$}
+      \ElsIf{$\Call{IsBarrier}{T_{i+1}} \land \Call{ioref}{T_{i}} \text{ has only this buffered write}$}
+        \State \Call{Delete}{$T, i$}
+        \State \textsc{continue}
+      \EndIf
+    \EndIf
+    \State $i \gets i + 1$
+  \EndWhile
+  \State \textit{\# reduce context switching}
+  \State $r \gets$ true
+  \While{$r \land \lnot \text{ iteration limit is reached}$}
+    \State $r \gets$ false
+    \State \textit{\# pull actions backwards}
+    \For{$i \gets 0 \ldots \Call{Length}{T} - 2$}
+      \If{$\Call{tid}{T_{i}} \neq \Call{tid}{T_{i+1}}$}
+        \If{$j \gets \Call{Find}{T, i+1, \lambda j. \textsc{tid}(T_{i}) = \textsc{tid}(T_{j})}$}
+          \State \Call{Move}{$T, j, i+1$}
+          \State $r \gets$ true
+        \EndIf
+      \EndIf
+    \EndFor
+    \State \textit{\# push actions forwards}
+    \State $i \gets 0$
+    \While{$i < \Call{Length}{T} - 1$}
+      \If{$\Call{tid}{T_{i}} \neq \Call{tid}{T_{i+1}}$}
+        \If{$j \gets \Call{Find}{T, i+1, \lambda j. \textsc{tid}(T_{i}) = \textsc{tid}(T_{j}), T_{i}}$}
+          \State \Call{Move}{$T, i, j-1$}
+          \State $r \gets$ true
+          \State \textsc{continue}
+        \EndIf
+      \EndIf
+      \State $i \gets i + 1$
+    \EndWhile
+  \EndWhile
+\EndFunction
+\end{algorithmic}
+\end{minipage}
+  \caption[The trace simplification algorithm.]{The trace simplification algorithm.  \textsc{Swap} swaps two entries by index.  \textsc{Move} moves an element to a new index, shifting all other elements.  \textsc{Delete} removes an element by index.  \textsc{Find}$(T, i, \lambda\ldots)$ finds the first element, starting from index $i$, which meets the predicate, and returns its index if it is independent with all the intervening elements.  \textsc{Find}$(T, i, \lambda\ldots, a)$ finds the first element, starting from index $i$, which meets the predicate, and returns its index if $a$ is independent with all the intervening elements.}\label{lst:simpl_algo}
+\end{listing}
 
 \section{Soundness and Completeness}
 \label{sec:dejafu-correctness}
