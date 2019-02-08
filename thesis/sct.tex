@@ -445,6 +445,16 @@ bug, performance degrades \parencite{arts2011} as one test with
 procrastination corresponds to multiple executions with different
 schedules.
 
+Concuerror \parencite{christakis2013} is another concurrency testing
+tool for Erlang.  Like \textsc{Pulse}, Concuerror uses source
+instrumentation to insert calls to a scheduler process in the program
+under test.  Unlike \textsc{Pulse}, Concuerror systematically explores
+the space of schedules by using iterative pre-emption bounding.
+Concuerror also uses \emph{blocking avoidance} to prune redundant
+schedules.  The insight here is that, if scheduling a thread will
+cause it to immediately block without updating any shared state, then
+there is no point in scheduling it.  Concuerror does not use DPOR.
+
 \paragraph{In Haskell}
 The Concurrent Haskell Debugger (CHD) \parencite{bottcher2002} is a
 GUI-based controlled scheduler for Haskell programs.  Like
