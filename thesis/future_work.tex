@@ -54,6 +54,18 @@ interrupt arrives, its exception handler sets a flag and returns
 control to the interrupted routine, which checks the flag at a
 convenient point.
 
+\paragraph{Optimal DPOR for \dejafu{}}
+The Optimal DPOR with Observers algorithm \parencite{aronis2018} is
+based on the same insight as MCR, that the order of writes to some
+shared state only matters if there exists a read operation which
+observes the difference.  As it is a DPOR algorithm, it could be
+closer to what \dejafu{} currently does, and simpler to implement.
+However, it is even more restrictive than MCR's requirement of local
+determinism, forbidding threads from disabling each other entirely.
+This means that blocking operations currently cannot be modelled with
+the Optimal DPOR with Observers algorithm, so it is currently
+unsuitable for \dejafu{}.
+
 \paragraph{Accurately modelling delays in \dejafu{}}
 Some users have expressed interest in using \dejafu{} to test systems
 where accurate timing is
