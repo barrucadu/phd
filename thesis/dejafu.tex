@@ -1354,8 +1354,8 @@ writes to shared variables, and locks.''  For example, in
 \cite{coons2013} two actions are said to be dependent if they are
 actions of the same thread, or they are both actions on the same
 shared variable and at least one is a write.  The Haskell concurrency
-API is richer than this, and the implicit dependencies between actions
-(such as which actions impose a memory barrier) are not documented.
+API is richer than this, and subtle dependencies (such as which
+actions impose a memory barrier) are not documented.
 
 \Cref{fig:deprel} shows the dependency relation we use in \dejafu{}.
 We use a conditional dependency relation \parencite{godefroid1993}.
@@ -1687,23 +1687,18 @@ not redundant.  If we have three actions---\verb|X|, \verb|Y|, and
 \section{Soundness and Completeness}
 \label{sec:dejafu-correctness}
 
-Correctness for \dejafu{} is about two questions:
-
-\begin{itemize}
-\item Is the set of results which are possible under normal execution
-  the same as the set of results which are possible under \dejafu{}?
-\item Will \dejafu{} discover all of these possible results?
-\end{itemize}
-
-These two questions highlight a natural separation in the theory: the
-correspondence of \dejafu{}'s concurrency semantics to those of GHC,
-and the correctness of the machinery to discover new executions.
+Correctness for \dejafu{} comes down to two core issues: (1)~is the
+set of results which are possible under normal execution the same as
+the set of results which are possible under \dejafu{}; and (2)~will
+\dejafu{} discover all these possible results?  These questions
+highlight a natural separation in the theory: the relation between
+\dejafu{}'s concurrency semantics and GHC's, and the correctness of
+the machinery to discover new executions.
 
 We do not attempt to formally verify the \dejafu{} implementation, but
-we do have an extensive test suite.  Testing a testing tool is a
-little different to testing a regular program.  Most of our tests
-consist of nondeterministic programs, where we want to verify that
-\dejafu{} finds precisely the behaviours we expect.
+we do have an extensive test suite.  Most of our tests consist of
+nondeterministic programs, where we verify that \dejafu{} finds
+precisely the behaviours we expect.
 
 \paragraph{Property tests}
 \dejafu{} is not one monolithic implementation.  It has components
@@ -1714,10 +1709,9 @@ check these properties of the implementation.
 
 \paragraph{Integration tests}
 Most of the tests are integration tests, consisting of a small
-concurrent program and a property to check.  A failure in such an
-integration test could in principle be anywhere in \dejafu{}, and so
-be hard to isolate and fix, but in practice failures in different
-components tend to manifest differently.  For example, a failure in
+concurrent program and a property to check.  A failure in such a test
+could in principle be anywhere in \dejafu{}, but in practice failures
+in different components tend to manifest differently.  A failure in
 the DPOR implementation tends to manifest as invalid schedules being
 generated; whereas a failure in the concurrency implementation tends
 to manifest as incorrect results of individual executions.
@@ -1763,12 +1757,9 @@ generator does not affect the memory model.
 
 There are some intentional semantic differences for practical reasons.
 For example, GHC can sometimes detect deadlocks involving only a
-subset of the threads, and throw an exception to the threads
-signalling this.  We cannot do this.
-
-Although the behaviour of \dejafu{} is not correct with respect to
-GHC-compiled behaviour in all cases, we claim it is close enough to be
-useful.
+subset of the threads.  We cannot do this.  Although the behaviour of
+\dejafu{} is not correct with respect to GHC-compiled behaviour in all
+cases, we claim it is close enough to be useful.
 
 \paragraph{Possible executions}
 Our stepwise execution of concurrent programs allows a scheduling
@@ -1815,6 +1806,7 @@ Executions are stored internally as a stack, shown in \Cref{lst:dpor}.
 The sequence of thread IDs corresponding to this stack represents a
 complete execution of the program.  There is a unique initial state,
 where only the initial thread is runnable and nothing has been done.
+We have some well-formedness properties:
 
 \begin{listing}
 \centering
@@ -1839,9 +1831,6 @@ data DPOR = DPOR
 \end{cminted}
 \caption{The DPOR state is a stack of scheduling decisions.}\label{lst:dpor}
 \end{listing}
-
-There are some well-formedness properties associated with a
-\verb|DPOR| value:
 
 \begin{enumerate}
 \item Every thread in the to-do set is runnable.
