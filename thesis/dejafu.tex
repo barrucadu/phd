@@ -1427,6 +1427,13 @@ until all transitions in $T$ have been explored, at each step adding
 the previously taken transitions to the sleep set of the new state,
 and removing the dependent transitions.
 
+\paragraph{Blocking avoidance}
+\dejafu{} avoids trying schedules which would immediately cause a
+thread to block without updating any shared state.  As a context
+switch will occur immediately after the thread blocks, there is no
+point in scheduling it.  This is the same insight as in Concuerror
+\parencite{christakis2013}, but was discovered independently.
+
 \paragraph{Schedule bounding}
 \dejafu{} supports pre-emption bounding \parencite{musuvathi2007};
 fair bounding \parencite{musuvathi2008}; and depth, or length,
